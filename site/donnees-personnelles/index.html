@@ -147,6 +147,29 @@
             un tiers. Les statistiques produites sont anonymes et servent uniquement à améliorer le
             site. Les données brutes sont conservées 25 mois au plus.
           </p>
+          <p>
+            Vous pouvez vous opposer à cette mesure : votre choix est gardé dans ce navigateur, sans
+            cookie.
+          </p>
+          <div class="bui-checkbox">
+            <input
+              class="bui-checkbox__input"
+              id="opposition-mesure"
+              type="checkbox"
+              data-opposition-mesure
+              data-testid="legal-opposition-mesure"
+            />
+            <label class="bui-checkbox__label" for="opposition-mesure"
+              >Ne pas mesurer mes visites sur ce site</label
+            >
+          </div>
+          <p
+            role="status"
+            aria-live="polite"
+            data-opposition-mesure-etat
+            data-testid="legal-opposition-etat"
+          ></p>
+          <script type="module" src="/js/shared/oppositionMesureToggle.js"></script>
         </section>
         <!--# endif -->
         <section aria-labelledby="rights-title">
