@@ -40,7 +40,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@kewinmarchand/boilerplates-ui": "github:kewinMarchand/boilerplates-ui#v0.5.0",
+    "@kewinmarchand/boilerplates-ui": "github:kewinMarchand/boilerplates-ui#v0.11.1",
     "embla-carousel": "^8"
   }
 }
