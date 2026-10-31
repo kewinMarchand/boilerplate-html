@@ -31,8 +31,8 @@ test-e2e: ## Tests end-to-end desktop et mobile (Playwright)
 test-a11y: ## Tests d'accessibilité WCAG 2.1 AA, trois modes : standard, sombre, renforcé (axe-core + Playwright)
 	$(RUN) yarn test:a11y
 
-metrics: ## Métriques Lighthouse CI (perf ≥ 90, a11y et SEO = 100)
-	$(RUN) sh -c 'CHROME_PATH=$$(node -e "import(\"@playwright/test\").then(({ chromium }) => console.log(chromium.executablePath()))") yarn lhci'
+metrics: ## Métriques Lighthouse CI en clair puis en sombre (perf ≥ 90, a11y et SEO = 100)
+	$(RUN) sh -c 'export CHROME_PATH=$$(node -e "import(\"@playwright/test\").then(({ chromium }) => console.log(chromium.executablePath()))") && yarn lhci && yarn lhci:sombre'
 
 test-prod: ## Construit et lance l'image nginx sur la machine, la vérifie depuis le conteneur de dev (codes HTTP, en-têtes, SSI, maintenance)
 	sh scripts/test-prod.sh

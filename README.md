@@ -151,19 +151,19 @@ Le serveur de développement lit les mêmes variables, par exemple `GLITCHTIP_DS
 
 `make help` liste toutes les commandes. Les principales :
 
-| Commande                               | Effet                                                                                                                |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `make up`                              | Serveur de développement sur le port 3130                                                                            |
-| `make qa`                              | QA rapide : html-validate, stylelint, ESLint, règles d'architecture et leur auto-test, Prettier, tests unitaires     |
-| `make icons`                           | Génère `site/icons.svg` et la liste des noms depuis `icons.json`                                                     |
-| `make icons-check`                     | Échoue si le sprite est périmé ou si le site cite une icône absente de `icons.json`                                  |
-| `make arch-selftest`                   | Écrit une violation de chaque règle d'architecture, exige sa détection, puis la retire                               |
-| `make qa-full`                         | QA complète : QA rapide, e2e, accessibilité, Lighthouse, image de production                                         |
-| `make test-e2e`                        | Playwright, desktop et mobile                                                                                        |
-| `make test-a11y`                       | axe-core, WCAG 2.1 AA, chaque page en standard, sombre et renforcé                                                   |
-| `make metrics`                         | Lighthouse CI sur le port 3250 : échoue sous 90 en performance, sous 100 en accessibilité et SEO                     |
-| `make test-prod`                       | Construit l'image nginx et vérifie codes HTTP, en-têtes, catalogue pré-rendu et mode maintenance (API sur `API_URL`) |
-| `make docker-build` / `make docker-up` | Image de production, sur le port `PORT` (8080 par défaut)                                                            |
+| Commande                               | Effet                                                                                                                     |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `make up`                              | Serveur de développement sur le port 3130                                                                                 |
+| `make qa`                              | QA rapide : html-validate, stylelint, ESLint, règles d'architecture et leur auto-test, Prettier, tests unitaires          |
+| `make icons`                           | Génère `site/icons.svg` et la liste des noms depuis `icons.json`                                                          |
+| `make icons-check`                     | Échoue si le sprite est périmé ou si le site cite une icône absente de `icons.json`                                       |
+| `make arch-selftest`                   | Écrit une violation de chaque règle d'architecture, exige sa détection, puis la retire                                    |
+| `make qa-full`                         | QA complète : QA rapide, e2e, accessibilité, Lighthouse, image de production                                              |
+| `make test-e2e`                        | Playwright, desktop et mobile                                                                                             |
+| `make test-a11y`                       | axe-core, WCAG 2.1 AA, chaque page en standard, sombre et renforcé                                                        |
+| `make metrics`                         | Lighthouse CI sur le port 3250, en clair puis en sombre : échoue sous 90 en performance, sous 100 en accessibilité et SEO |
+| `make test-prod`                       | Construit l'image nginx et vérifie codes HTTP, en-têtes, catalogue pré-rendu et mode maintenance (API sur `API_URL`)      |
+| `make docker-build` / `make docker-up` | Image de production, sur le port `PORT` (8080 par défaut)                                                                 |
 
 ## Architecture
 
