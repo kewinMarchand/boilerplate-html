@@ -28,7 +28,7 @@ test-unit: ## Tests unitaires (node:test)
 test-e2e: ## Tests end-to-end desktop et mobile (Playwright)
 	$(RUN) yarn test:e2e
 
-test-a11y: ## Tests d'accessibilité WCAG 2.1 AA, deux modes (axe-core + Playwright)
+test-a11y: ## Tests d'accessibilité WCAG 2.1 AA, trois modes : standard, sombre, renforcé (axe-core + Playwright)
 	$(RUN) yarn test:a11y
 
 metrics: ## Métriques Lighthouse CI (perf ≥ 90, a11y et SEO = 100)

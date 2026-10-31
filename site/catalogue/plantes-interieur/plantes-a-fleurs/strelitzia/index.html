@@ -48,11 +48,16 @@
         if (localStorage.getItem('a11y-mode') === 'enhanced') {
           document.documentElement.dataset.a11yMode = 'enhanced'
         }
+        const colorScheme = localStorage.getItem('color-scheme')
+        if (colorScheme === 'light' || colorScheme === 'dark') {
+          document.documentElement.dataset.colorScheme = colorScheme
+        }
       } catch {}
     </script>
     <link rel="stylesheet" href="/css/main.css" />
     <link rel="stylesheet" href="/vendor/boilerplates-ui.css" />
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
+    <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
     <script type="module" src="/js/modules/catalog/ui/catalog.js"></script>
     <script type="application/ld+json">

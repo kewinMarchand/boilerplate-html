@@ -26,7 +26,7 @@ Point de départ pour un site en **HTML, CSS et JavaScript natifs**, sans framew
 | ESLint + simple-import-sort        | Ordre des imports                                                   |
 | dependency-cruiser                 | Règles de dépendance entre modules et couches                       |
 | `node:test`                        | Tests unitaires, sans dépendance                                    |
-| Playwright + axe-core              | Tests end-to-end et accessibilité, desktop et mobile, deux modes    |
+| Playwright + axe-core              | Tests end-to-end et accessibilité, desktop et mobile, trois modes   |
 | Lighthouse CI                      | Performance, accessibilité, SEO                                     |
 | nginx (Docker)                     | Production : URL propres, pages d'erreur, CSP stricte, maintenance  |
 
@@ -160,7 +160,7 @@ Le serveur de développement lit les mêmes variables, par exemple `GLITCHTIP_DS
 | `make arch-selftest`                   | Écrit une violation de chaque règle d'architecture, exige sa détection, puis la retire                               |
 | `make qa-full`                         | QA complète : QA rapide, e2e, accessibilité, Lighthouse, image de production                                         |
 | `make test-e2e`                        | Playwright, desktop et mobile                                                                                        |
-| `make test-a11y`                       | axe-core, WCAG 2.1 AA, chaque page dans les deux modes d'affichage                                                   |
+| `make test-a11y`                       | axe-core, WCAG 2.1 AA, chaque page en standard, sombre et renforcé                                                   |
 | `make metrics`                         | Lighthouse CI sur le port 3250 : échoue sous 90 en performance, sous 100 en accessibilité et SEO                     |
 | `make test-prod`                       | Construit l'image nginx et vérifie codes HTTP, en-têtes, catalogue pré-rendu et mode maintenance (API sur `API_URL`) |
 | `make docker-build` / `make docker-up` | Image de production, sur le port `PORT` (8080 par défaut)                                                            |
@@ -180,7 +180,7 @@ site/                        racine servie par nginx, avec inclusions côté ser
       infrastructure/http/   lecture de l'API et traduction validée vers le domaine
       ui/                    point d'entrée chargé par la page, libellés, branchement au DOM
     views/styleguide/        charte graphique (développement seulement)
-    shared/                  socle : mode renforcé, menu de catégories, modales (boilerplates-ui), latestOnly
+    shared/                  socle : mode renforcé, thème, menu de catégories, modales et menus (boilerplates-ui), latestOnly
       carousel/              seul fichier qui importe Embla
   vendor/                    Embla, copié par `yarn install` (non versionné)
   icons.svg                  sprite d'icônes Lucide, généré par `make icons`
@@ -221,7 +221,7 @@ L'architecture suit le document commun `ARCHITECTURE-DDD.md` (forme vanilla). Ch
 
 ### Changer le script inline du `<head>`
 
-Il pose `data-js` et le mode renforcé avant le premier rendu. La CSP l'autorise par son hash : après toute modification, `make test-unit` affiche le nouveau hash attendu, à reporter dans `docker/security-headers.conf`.
+Il pose `data-js`, le mode renforcé et le thème mémorisé avant le premier rendu. La CSP l'autorise par son hash : après toute modification, `make test-unit` affiche le nouveau hash attendu, à reporter dans `docker/security-headers.conf`.
 
 ### L'API
 
@@ -246,6 +246,10 @@ Le site est branché : `API_URL` désigne l'API (8090, API Platform, par défaut
 | `subgrid`                        | Colonnes alignées de la liste de tâches                                                   |
 | `@view-transition`               | Transition entre pages, coupée en mode renforcé et sous mouvement réduit                  |
 
+## Thème clair ou sombre
+
+Le site suit le thème du système. Le bouton « Thème » de l'en-tête ouvre un menu (système, clair, sombre) : le choix pose `data-color-scheme` sur `<html>`, mémorisé en `localStorage` (clé `color-scheme`) et appliqué par le script inline avant le premier rendu. Les couleurs viennent des tokens de boilerplates-ui. Le mode renforcé garde toujours la page en clair.
+
 ## Mode accessibilité renforcée
 
 Le bouton de l'en-tête pose `data-a11y-mode="enhanced"` sur `<html>`, mémorisé en `localStorage` (clé `a11y-mode`). Tout est en CSS par surcharge de tokens : texte de base à 20 px, contraste `#000` sur `#fff` et primaire AAA, liens soulignés, focus de 4 px, animations coupées. Les espacements de texte WCAG 1.4.12 ne s'appliquent qu'au contenu de `<main>`, jamais au header, à la navigation, aux boutons ni au footer.
@@ -262,9 +266,9 @@ L'image `nginx:1.29-alpine` sert `site/`, sans la charte graphique ni son script
 
 ## Tests
 
-- **Unitaires** : `tests/unit/`, fonctions pures (catalogue, tâches, formulaire, mode renforcé, contraste, fil d'Ariane, conformité) et cohérence des pages statiques.
+- **Unitaires** : `tests/unit/`, fonctions pures (catalogue, tâches, formulaire, mode renforcé, thème, contraste, fil d'Ariane, conformité) et cohérence des pages statiques.
 - **End-to-end** : un fichier par page ou par brique, ciblage par `data-testid`, rendus conditionnels testés présents et absents, scénarios sans JavaScript pour le carrousel et le catalogue, absence de débordement à 375, 768 et 1280 px dans les deux modes.
-- **Accessibilité** : axe-core sur chaque route, les pages d'erreur, la charte, le catalogue filtré et le menu ouvert, dans les deux modes. Axe ne couvre qu'une partie du RGAA : la déclaration reste « non conforme » tant qu'aucun audit n'est renseigné dans `site.config.json`.
+- **Accessibilité** : axe-core sur chaque route, les pages d'erreur, la charte, le catalogue filtré et le menu ouvert, en standard, sombre et renforcé. Axe ne couvre qu'une partie du RGAA : la déclaration reste « non conforme » tant qu'aucun audit n'est renseigné dans `site.config.json`.
 
 ## Licence
 

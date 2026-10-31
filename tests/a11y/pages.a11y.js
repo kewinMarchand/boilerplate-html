@@ -1,10 +1,11 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
-import { enableEnhancedMode, ROUTES } from '../e2e/routes.js'
+import { enableDarkMode, enableEnhancedMode, ROUTES } from '../e2e/routes.js'
 
 const MODES = [
   { name: 'standard', enhanced: false },
+  { name: 'sombre', enhanced: false, dark: true },
   { name: 'renforcé', enhanced: true },
 ]
 
@@ -26,6 +27,7 @@ for (const mode of MODES) {
   test.describe(`mode ${mode.name}`, () => {
     test.beforeEach(async ({ page }) => {
       if (mode.enhanced) await enableEnhancedMode(page)
+      if (mode.dark) await enableDarkMode(page)
     })
 
     for (const route of [...ROUTES, ...EXTRA_ROUTES]) {

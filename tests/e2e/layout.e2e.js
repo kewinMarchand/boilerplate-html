@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
 
-import { enableEnhancedMode, ROUTES } from './routes.js'
+import { enableDarkMode, enableEnhancedMode, ROUTES } from './routes.js'
 
 const WIDTHS = [375, 768, 1280]
 const MODES = [
-  { name: 'standard', enhanced: false },
-  { name: 'renforcé', enhanced: true },
+  { name: 'standard', slug: 'standard', enhanced: false },
+  { name: 'sombre', slug: 'sombre', enhanced: false, dark: true },
+  { name: 'renforcé', slug: 'renforce', enhanced: true },
 ]
 
 test.describe('Mise en page', () => {
@@ -15,6 +16,7 @@ test.describe('Mise en page', () => {
     for (const width of WIDTHS) {
       test(`aucun débordement horizontal à ${width} px en mode ${mode.name}`, async ({ page }) => {
         if (mode.enhanced) await enableEnhancedMode(page)
+        if (mode.dark) await enableDarkMode(page)
         await page.setViewportSize({ width, height: 900 })
 
         for (const route of ROUTES) {
@@ -31,6 +33,7 @@ test.describe('Mise en page', () => {
         page,
       }, testInfo) => {
         if (mode.enhanced) await enableEnhancedMode(page)
+        if (mode.dark) await enableDarkMode(page)
         await page.setViewportSize({ width, height: 900 })
         for (const route of ['/', '/catalogue']) {
           await page.goto(route)
@@ -38,7 +41,7 @@ test.describe('Mise en page', () => {
             await expect(page.getByTestId('catalog-pagination')).toBeVisible()
           await page.screenshot({
             path: testInfo.outputPath(
-              `${route === '/' ? 'accueil' : 'catalogue'}-${mode.enhanced ? 'renforce' : 'standard'}-${width}.png`,
+              `${route === '/' ? 'accueil' : 'catalogue'}-${mode.slug}-${width}.png`,
             ),
             fullPage: true,
           })
@@ -99,19 +102,21 @@ test.describe('Header mobile compact', () => {
   test.skip(({ isMobile }) => !isMobile, 'header compact réservé au mobile')
 
   for (const mode of MODES) {
-    test(`tient sur une ligne à 375 px avec deux boutons icône en mode ${mode.name}`, async ({
+    test(`tient sur une ligne à 375 px avec trois boutons icône en mode ${mode.name}`, async ({
       page,
     }) => {
       if (mode.enhanced) await enableEnhancedMode(page)
+      if (mode.dark) await enableDarkMode(page)
       await page.setViewportSize({ width: 375, height: 800 })
       await page.goto('/contact')
       const logo = await page.getByTestId('layout-logo').boundingBox()
       const menu = page.getByTestId('layout-mobile-menu-toggle')
+      const theme = page.getByTestId('color-scheme-toggle')
       const a11y = page.getByTestId('a11y-mode-toggle')
 
       await expect(menu).toHaveAccessibleName('Menu')
       await expect(a11y).toHaveAccessibleName('Accessibilité renforcée')
-      for (const button of [menu, a11y]) {
+      for (const button of [menu, theme, a11y]) {
         const box = await button.boundingBox()
         expect(box.width).toBeGreaterThanOrEqual(44)
         expect(box.height).toBeGreaterThanOrEqual(44)

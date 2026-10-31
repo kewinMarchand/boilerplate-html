@@ -524,7 +524,8 @@
   }
 
   .mobile-menu-toggle,
-  :root:not([data-js]) .category-menu-toggle {
+  :root:not([data-js]) .category-menu-toggle,
+  :root:not([data-js]) .color-scheme-toggle {
     display: none;
   }
 

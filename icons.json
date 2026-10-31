@@ -1,4 +1,5 @@
 [
+  "check",
   "chevron-down",
   "chevron-left",
   "chevron-right",
@@ -9,8 +10,11 @@
   "list",
   "list-filter",
   "menu",
+  "monitor",
+  "moon",
   "person-standing",
   "rotate-cw",
+  "sun",
   "triangle-alert",
   "x"
 ]

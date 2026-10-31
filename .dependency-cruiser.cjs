@@ -89,9 +89,9 @@ module.exports = {
     {
       name: 'boilerplates-ui-hors-wrapper',
       comment:
-        'Les comportements de boilerplates-ui ne sont importés que par leur wrapper, shared/modals.js.',
+        'Les comportements de boilerplates-ui ne sont importés que par leurs wrappers, shared/modals.js et shared/menus.js.',
       severity: 'error',
-      from: { pathNot: '^site/js/shared/modals\\.js$' },
+      from: { pathNot: '^site/js/shared/(modals|menus)\\.js$' },
       to: { path: '^site/vendor/boilerplates-ui/' },
     },
     {

@@ -262,6 +262,84 @@
       </svg>
       <span class="header-button-label">Menu</span>
     </button>
+    <div class="bui-menu color-scheme-toggle" data-bui-menu data-color-scheme-toggle>
+      <button
+        type="button"
+        class="bui-button bui-button--outline bui-button--icon bui-menu__trigger header-icon-button"
+        id="color-scheme-trigger"
+        aria-label="Thème : système"
+        aria-haspopup="menu"
+        aria-expanded="false"
+        aria-controls="color-scheme-list"
+        data-testid="color-scheme-toggle"
+      >
+        <svg
+          class="bui-icon bui-icon--md"
+          aria-hidden="true"
+          focusable="false"
+          width="20"
+          height="20"
+        >
+          <use href="/icons.svg#monitor"></use>
+        </svg>
+      </button>
+      <ul
+        class="bui-menu__list"
+        role="menu"
+        id="color-scheme-list"
+        aria-labelledby="color-scheme-trigger"
+        hidden
+      >
+        <li role="none">
+          <button
+            type="button"
+            class="bui-menu__item"
+            role="menuitemradio"
+            aria-checked="true"
+            tabindex="-1"
+            data-bui-menu-item="auto"
+            data-testid="color-scheme-option-auto"
+          >
+            <svg class="bui-icon bui-menu__check" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#check"></use>
+            </svg>
+            Système
+          </button>
+        </li>
+        <li role="none">
+          <button
+            type="button"
+            class="bui-menu__item"
+            role="menuitemradio"
+            aria-checked="false"
+            tabindex="-1"
+            data-bui-menu-item="light"
+            data-testid="color-scheme-option-light"
+          >
+            <svg class="bui-icon bui-menu__check" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#check"></use>
+            </svg>
+            Clair
+          </button>
+        </li>
+        <li role="none">
+          <button
+            type="button"
+            class="bui-menu__item"
+            role="menuitemradio"
+            aria-checked="false"
+            tabindex="-1"
+            data-bui-menu-item="dark"
+            data-testid="color-scheme-option-dark"
+          >
+            <svg class="bui-icon bui-menu__check" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#check"></use>
+            </svg>
+            Sombre
+          </button>
+        </li>
+      </ul>
+    </div>
     <button
       type="button"
       class="bui-button bui-button--outline header-icon-button a11y-toggle"
