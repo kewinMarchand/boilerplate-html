@@ -11,7 +11,7 @@ test.describe('Accueil', () => {
     await page.goto('/')
 
     const hero = page.getByTestId('home-hero')
-    await expect(hero.getByRole('heading', { level: 1 })).toHaveText('HTML CSS Vanilla Boilerplate')
+    await expect(hero.getByRole('heading', { level: 1 })).toHaveText('Boilerplate HTML')
     await expect(page.getByTestId('home-tasks-link')).toHaveAttribute('href', '/taches')
     await expect(page.getByTestId('home-contact-link')).toHaveAttribute('href', '/contact')
     await expect(hero.locator('img')).toHaveAttribute('fetchpriority', 'high')

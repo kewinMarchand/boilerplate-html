@@ -69,7 +69,7 @@ test.describe('Mise en page', () => {
   test('le logo mène à l’accueil et porte aria-current sur l’accueil', async ({ page }) => {
     await page.goto('/')
     const logo = page.getByTestId('layout-logo')
-    await expect(logo).toHaveAccessibleName('HTML CSS Vanilla Boilerplate')
+    await expect(logo).toHaveAccessibleName('Boilerplate HTML')
     await expect(logo).toHaveAttribute('aria-current', 'page')
 
     await page.goto('/contact')
