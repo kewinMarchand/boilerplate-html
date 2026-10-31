@@ -1,4 +1,4 @@
-# CLAUDE.md — html-css-vanilla-boilerplate
+# CLAUDE.md — boilerplate-html
 
 Boilerplate personnel. Les conventions générales sont dans `~/.claude/CLAUDE.md` : ce fichier ne note que les choix propres au projet.
 

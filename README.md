@@ -1,4 +1,4 @@
-# html-css-vanilla-boilerplate
+# boilerplate-html
 
 Point de départ pour un site en **HTML, CSS et JavaScript natifs**, sans framework et sans bundler. Les fichiers servis sont ceux du dépôt, assemblés par nginx avec les inclusions côté serveur (SSI) pour le header et le footer. Seule l'image de production a une étape de construction : elle pré-rend la première page du catalogue depuis l'API. L'outillage (validation, format, tests, Lighthouse) ne sert qu'au développement.
 
@@ -37,8 +37,8 @@ Point de départ pour un site en **HTML, CSS et JavaScript natifs**, sans framew
 ## Démarrage
 
 ```sh
-git clone https://github.com/kewinMarchand/html-css-vanilla-boilerplate.git
-cd html-css-vanilla-boilerplate
+git clone https://github.com/kewinMarchand/boilerplate-html.git
+cd boilerplate-html
 make install   # image de dev, dépendances dans son volume, copie d'Embla dans site/vendor
 make up        # http://localhost:3130
 ```
@@ -55,19 +55,19 @@ Le dépôt est un modèle (« template ») sur GitHub. C'est la voie recommandé
 - Ou en ligne de commande :
 
   ```sh
-  gh repo create mon-projet --template kewinMarchand/html-css-vanilla-boilerplate --private --clone
+  gh repo create mon-projet --template kewinMarchand/boilerplate-html --private --clone
   cd mon-projet
   make install
   ```
 
-Pour suivre le boilerplate de près, en gardant son historique, on peut aussi le forker : `gh repo fork kewinMarchand/html-css-vanilla-boilerplate --clone`.
+Pour suivre le boilerplate de près, en gardant son historique, on peut aussi le forker : `gh repo fork kewinMarchand/boilerplate-html --clone`.
 
 ### Récupérer les mises à jour du boilerplate
 
 - **Depuis un fork**, l'historique est commun : on fusionne.
 
   ```sh
-  git remote add upstream https://github.com/kewinMarchand/html-css-vanilla-boilerplate.git
+  git remote add upstream https://github.com/kewinMarchand/boilerplate-html.git
   git fetch upstream
   git merge upstream/main
   ```
@@ -75,7 +75,7 @@ Pour suivre le boilerplate de près, en gardant son historique, on peut aussi le
 - **Depuis un template**, l'historique n'est pas commun : un `merge` rejouerait tout le dépôt. On reprend les commits utiles un par un.
 
   ```sh
-  git remote add boilerplate https://github.com/kewinMarchand/html-css-vanilla-boilerplate.git
+  git remote add boilerplate https://github.com/kewinMarchand/boilerplate-html.git
   git fetch boilerplate
   git log --oneline boilerplate/main
   git cherry-pick <commit>

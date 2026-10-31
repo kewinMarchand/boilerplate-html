@@ -5,9 +5,9 @@ set -eu
 # (Docker est le seul prérequis). Dans le conteneur de dev, appelé par la machine avec
 # `checks <phase>` : vérifie l'image par HTTP, sur le réseau de la machine.
 
-IMAGE=html-css-vanilla-boilerplate:test
+IMAGE=boilerplate-html:test
 PORT=3140
-NAME=html-css-vanilla-prod-test
+NAME=boilerplate-html-prod-test
 PAGES='/ /catalogue /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages /taches /contact /mentions-legales /donnees-personnelles /accessibilite /plan-du-site /route-inexistante'
 
 if [ "${1:-}" = checks ]; then
@@ -70,8 +70,8 @@ if [ "${1:-}" = checks ]; then
     expect_body / 'data-site-header'
     expect_body /contact '<a href="/contact" aria-current="page">Contact</a>'
     expect_body /route-inexistante 'class="site-footer"'
-    post_status=$(curl --silent --output /tmp/html-css-vanilla-405.html --write-out '%{http_code}' --data 'name=Ada' "http://localhost:$PORT/contact")
-    if [ "$post_status" = 405 ] && grep --quiet 'Envoi impossible sans JavaScript' /tmp/html-css-vanilla-405.html; then
+    post_status=$(curl --silent --output /tmp/boilerplate-html-405.html --write-out '%{http_code}' --data 'name=Ada' "http://localhost:$PORT/contact")
+    if [ "$post_status" = 405 ] && grep --quiet 'Envoi impossible sans JavaScript' /tmp/boilerplate-html-405.html; then
       echo "ok   405 POST /contact, page française"
     else
       echo "FAIL POST /contact : reçu $post_status sans la page française"
