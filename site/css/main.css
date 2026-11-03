@@ -1268,6 +1268,12 @@
     gap: var(--space-xs);
   }
 
+  /* Le texte légal arrive de l'API après le premier affichage (hors image pré-rendue) : sans cette réserve,
+     il pousse le pied de page déjà visible et Lighthouse mesure un décalage de mise en page (CLS 0,27). */
+  [data-legal-page] {
+    min-block-size: 100vh;
+  }
+
   .tasks-search {
     display: flex;
     flex-wrap: wrap;
