@@ -256,7 +256,7 @@ Le bouton de l'en-tête pose `data-a11y-mode="enhanced"` sur `<html>`, mémoris�
 
 ## Production
 
-L'image `nginx:1.29-alpine` sert `site/`, sans la charte graphique ni son script (`.dockerignore`) :
+L'image `nginx:1.31-alpine` sert `site/`, sans la charte graphique ni son script (`.dockerignore`) :
 
 - URL propres par `try_files $uri $uri/index.html`, 404 personnalisée, 500/502/504 sur `50x.html`.
 - Inclusions côté serveur (`ssi on;`) pour le header et le footer, `/partials/` interne (404 en accès direct).

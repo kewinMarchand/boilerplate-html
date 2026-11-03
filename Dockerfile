@@ -19,7 +19,7 @@ COPY site site
 RUN node --import ./tests/unit/siteResolver.js scripts/prerender-catalog.js site "$API_URL" \
   && node --import ./tests/unit/siteResolver.js scripts/prerender-content.js site "$API_URL"
 
-FROM nginx:1.29-alpine
+FROM nginx:1.31-alpine
 ENV MAINTENANCE=0 GLITCHTIP_DSN="" GLITCHTIP_ENVIRONMENT=production MATOMO_URL="" MATOMO_SITE_ID="" API_URL=http://localhost:8090
 COPY docker/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY docker/default.conf.template /etc/nginx/templates/default.conf.template
