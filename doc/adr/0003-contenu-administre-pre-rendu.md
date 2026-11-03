@@ -1,7 +1,7 @@
 # 0003 — Carrousel et pages légales pré-rendus à la construction de l'image
 
 - **Statut** : Acceptée
-- **Introduite par** : commit qui branche le carrousel et les pages légales sur l'API (lot 6 de l'administration)
+- **Introduite par** : commit `3ec13b5`
 - **Décideurs** : Kewin Marchand
 - **Complète** : ADR 0002, dont le suivi prévoyait de rouvrir la décision « si d'autres pages demandent un pré-rendu ». Le catalogue ne change pas.
 
