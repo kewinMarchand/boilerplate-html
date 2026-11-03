@@ -42,14 +42,7 @@
   ],
   "publisher": {
     "companyName": "Exemple SAS",
-    "address": "10 rue de l'Exemple, 13100 Aix-en-Provence",
-    "siret": "000 000 000 00000",
-    "publicationDirector": "Camille Exemple",
     "email": "contact@example.com"
-  },
-  "host": {
-    "name": "Hébergeur Exemple",
-    "address": "1 avenue Fictive, 75000 Paris"
   },
   "accessibility": {
     "auditDate": null,
