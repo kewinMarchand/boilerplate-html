@@ -53,6 +53,7 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
+    <script type="module" src="/js/modules/content/ui/legalPage.js"></script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -78,7 +79,7 @@
     <!--# set var="page" value="donnees-personnelles" -->
     <!--# include virtual="/partials/header.html" -->
     <main id="main">
-      <div class="container page prose">
+      <div class="container page prose" data-legal-page="donnees-personnelles">
         <nav class="bui-breadcrumb" aria-label="Fil d'Ariane" data-testid="layout-breadcrumb">
           <ol class="bui-breadcrumb__list">
             <li class="bui-breadcrumb__item"><a class="bui-link" href="/">Accueil</a></li>
@@ -87,56 +88,56 @@
             </li>
           </ol>
         </nav>
-        <h1>Données personnelles</h1>
-        <section aria-labelledby="controller-title">
-          <h2 id="controller-title">Responsable de traitement</h2>
-          <p>
-            Exemple SAS, 10 rue de l'Exemple, 13100 Aix-en-Provence. Contact :
-            <a href="mailto:contact@example.com">contact@example.com</a>.
-          </p>
-        </section>
-        <section aria-labelledby="processing-title">
-          <h2 id="processing-title">Traitements réalisés</h2>
-          <section class="table-wrapper" aria-labelledby="processing-caption" tabindex="0">
-            <table>
-              <caption id="processing-caption">
-                Traitements de données et durées de conservation
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Traitement</th>
-                  <th scope="col">Finalité</th>
-                  <th scope="col">Base légale</th>
-                  <th scope="col">Durée de conservation</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th scope="row">Formulaire de contact</th>
-                  <td>Répondre à votre demande (nom, e-mail, message)</td>
-                  <td>
-                    Intérêt légitime de l'éditeur à répondre aux demandes reçues (article 6.1.f du
-                    <abbr title="Règlement général sur la protection des données">RGPD</abbr>)
-                  </td>
-                  <td>3 ans après le dernier échange</td>
-                </tr>
-                <tr>
-                  <th scope="row">Mode accessibilité renforcée</th>
-                  <td>Mémoriser votre préférence d'affichage</td>
-                  <td>
-                    Stockage strictement nécessaire au service que vous demandez, dans votre
-                    navigateur uniquement, jamais transmis
-                  </td>
-                  <td>Jusqu'à ce que vous désactiviez le mode</td>
-                </tr>
-              </tbody>
-            </table>
-          </section>
-        </section>
-        <section aria-labelledby="cookies-title">
-          <h2 id="cookies-title">Cookies</h2>
-          <p>Ce site ne dépose aucun cookie de mesure d'audience ni de publicité.</p>
-        </section>
+        <h1 data-legal-title>Données personnelles</h1>
+        <div data-legal-state>
+          <div class="skeleton-list" role="status" data-testid="legal-loading">
+            <span class="visually-hidden">Chargement de la page…</span>
+            <span class="bui-skeleton" aria-hidden="true"></span>
+            <span class="bui-skeleton" aria-hidden="true"></span>
+            <span class="bui-skeleton" aria-hidden="true"></span>
+          </div>
+        </div>
+        <noscript>
+          <div class="bui-alert bui-alert--info" data-testid="legal-noscript">
+            <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#info"></use>
+            </svg>
+            <div class="bui-alert__content">
+              <span class="bui-visually-hidden">Information :</span>
+              <div class="bui-alert__body">
+                <p>
+                  Le texte de cette page est lu dans l'API par JavaScript. Activez-le pour
+                  l'afficher.
+                </p>
+              </div>
+            </div>
+          </div>
+        </noscript>
+        <div data-legal-content></div>
+        <template id="legal-section-template">
+          <section data-testid="legal-section"><h2 data-legal-section-title>Section</h2></section>
+        </template>
+        <template id="legal-error-template">
+          <div class="bui-alert bui-alert--error" role="alert" data-testid="legal-error">
+            <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#circle-alert"></use>
+            </svg>
+            <div class="bui-alert__content">
+              <span class="bui-visually-hidden">Erreur :</span>
+              <div class="bui-alert__body"><p data-legal-error-message></p></div>
+            </div>
+            <div class="bui-alert__action">
+              <button
+                type="button"
+                class="bui-button bui-button--outline"
+                data-legal-retry
+                data-testid="legal-retry"
+              >
+                Réessayer
+              </button>
+            </div>
+          </div>
+        </template>
         <!--# if expr="$matomo_origin" -->
         <section aria-labelledby="audience-title" data-testid="legal-audience-measurement">
           <h2 id="audience-title">Mesure d'audience</h2>
@@ -171,33 +172,6 @@
           <script type="module" src="/js/shared/oppositionMesureToggle.js"></script>
         </section>
         <!--# endif -->
-        <section aria-labelledby="rights-title">
-          <h2 id="rights-title">Vos droits</h2>
-          <p>Vous disposez des droits suivants sur vos données :</p>
-          <ul>
-            <li>droit d'accès ;</li>
-            <li>droit de rectification ;</li>
-            <li>droit d'effacement ;</li>
-            <li>droit d'opposition.</li>
-          </ul>
-          <p>
-            Pour les exercer, écrivez à
-            <a href="mailto:contact@example.com">contact@example.com</a>. Nous répondons dans un
-            délai d'un mois.
-          </p>
-        </section>
-        <section aria-labelledby="complaint-title">
-          <h2 id="complaint-title">Réclamation</h2>
-          <p>
-            Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une
-            réclamation à la
-            <abbr title="Commission nationale de l'informatique et des libertés">CNIL</abbr> :
-          </p>
-          <address>
-            CNIL, 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07<br />
-            <a href="https://www.cnil.fr/fr/plaintes">www.cnil.fr/fr/plaintes</a>
-          </address>
-        </section>
       </div>
     </main>
     <!--# include virtual="/partials/footer.html" -->

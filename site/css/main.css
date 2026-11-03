@@ -1410,27 +1410,6 @@
     & ul {
       padding-inline-start: var(--space-l);
     }
-
-    & address {
-      font-style: normal;
-    }
-  }
-
-  .definition-list {
-    display: grid;
-    gap: var(--space-xs) var(--space-l);
-
-    @media (width >= 640px) {
-      grid-template-columns: max-content 1fr;
-    }
-
-    & dt {
-      font-weight: 700;
-    }
-
-    & dd {
-      margin: 0;
-    }
   }
 
   .table-wrapper {
@@ -1458,42 +1437,6 @@
 
     & thead th {
       background-color: var(--color-surface);
-    }
-  }
-
-  .quote {
-    padding-inline-start: var(--space-l);
-    border-inline-start: 4px solid var(--color-primary);
-
-    & blockquote {
-      font-size: var(--font-size-lg);
-      font-style: italic;
-    }
-
-    & figcaption {
-      margin-block-start: var(--space-xs);
-      color: var(--color-text-muted);
-    }
-  }
-
-  .faq {
-    display: grid;
-    gap: var(--space-xs);
-
-    & details {
-      padding-inline: var(--space-m);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-    }
-
-    & summary {
-      padding-block: var(--space-s);
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    & details[open] > p {
-      padding-block-end: var(--space-m);
     }
   }
 }

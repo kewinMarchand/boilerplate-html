@@ -146,20 +146,3 @@ describe('sitemap et plan du site', () => {
     assert.ok(!main.includes('/charte-graphique'))
   })
 })
-
-describe('pages légales', () => {
-  it('affichent les informations de la configuration', () => {
-    const legal = PAGES.find((page) => page.route === '/mentions-legales').html
-    for (const value of [...Object.values(SITE.publisher), ...Object.values(SITE.host)]) {
-      assert.ok(legal.includes(value.replace(/'/g, "'")), value)
-    }
-  })
-
-  it('déclarent l’état de conformité calculé', () => {
-    const declaration = PAGES.find((page) => page.route === '/accessibilite').html
-    assert.ok(declaration.includes(`<strong>${complianceStatus(SITE.accessibility)}</strong>`))
-    if (!SITE.accessibility.auditDate) {
-      assert.ok(declaration.includes("Aucun audit n'a encore été réalisé."))
-    }
-  })
-})

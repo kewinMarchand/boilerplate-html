@@ -53,7 +53,7 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
-    <script type="module" src="/js/shared/carousel/carousel.js"></script>
+    <script type="module" src="/js/modules/content/ui/featuredCarousel.js"></script>
     <script type="module" src="/js/modules/blog/ui/latestArticles.js"></script>
     <script type="application/ld+json">
       {
@@ -178,6 +178,30 @@
             </button>
           </div>
         </div>
+        <div data-carousel-state>
+          <div class="skeleton-list" role="status" data-testid="home-carousel-loading">
+            <span class="visually-hidden">Chargement du carrousel…</span>
+            <span class="bui-skeleton" aria-hidden="true"></span>
+            <span class="bui-skeleton" aria-hidden="true"></span>
+            <span class="bui-skeleton" aria-hidden="true"></span>
+          </div>
+        </div>
+        <noscript>
+          <div class="bui-alert bui-alert--info" data-testid="home-carousel-noscript">
+            <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#info"></use>
+            </svg>
+            <div class="bui-alert__content">
+              <span class="bui-visually-hidden">Information :</span>
+              <div class="bui-alert__body">
+                <p>
+                  Les diapositives sont lues dans l'API par JavaScript. Activez-le pour les
+                  afficher.
+                </p>
+              </div>
+            </div>
+          </div>
+        </noscript>
         <div
           class="carousel-viewport"
           id="carousel-track"
@@ -187,193 +211,7 @@
           data-carousel-viewport
           data-testid="carousel-track"
         >
-          <div class="carousel-container">
-            <div
-              class="carousel-slide"
-              role="group"
-              aria-roledescription="diapositive"
-              aria-label="1 sur 5"
-              data-testid="carousel-slide"
-            >
-              <figure>
-                <picture>
-                  <source
-                    type="image/avif"
-                    srcset="/images/slide-1-640.avif 640w, /images/slide-1-1280.avif 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <source
-                    type="image/webp"
-                    srcset="/images/slide-1-640.webp 640w, /images/slide-1-1280.webp 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <img
-                    src="/images/slide-1-1280.webp"
-                    alt=""
-                    width="1280"
-                    height="720"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-                <figcaption>
-                  <h3>Héliconia</h3>
-                  <p>
-                    Ses bractées rouges et jaunes, en forme de pince de homard, se succèdent le long
-                    de la tige.
-                  </p>
-                </figcaption>
-              </figure>
-            </div>
-            <div
-              class="carousel-slide"
-              role="group"
-              aria-roledescription="diapositive"
-              aria-label="2 sur 5"
-              data-testid="carousel-slide"
-            >
-              <figure>
-                <picture>
-                  <source
-                    type="image/avif"
-                    srcset="/images/slide-2-640.avif 640w, /images/slide-2-1280.avif 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <source
-                    type="image/webp"
-                    srcset="/images/slide-2-640.webp 640w, /images/slide-2-1280.webp 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <img
-                    src="/images/slide-2-1280.webp"
-                    alt=""
-                    width="1280"
-                    height="720"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-                <figcaption>
-                  <h3>Anthurium</h3>
-                  <p>
-                    Une spathe vernissée en forme de cœur entoure un épi dressé, le spadice, qui
-                    porte les vraies fleurs.
-                  </p>
-                </figcaption>
-              </figure>
-            </div>
-            <div
-              class="carousel-slide"
-              role="group"
-              aria-roledescription="diapositive"
-              aria-label="3 sur 5"
-              data-testid="carousel-slide"
-            >
-              <figure>
-                <picture>
-                  <source
-                    type="image/avif"
-                    srcset="/images/slide-3-640.avif 640w, /images/slide-3-1280.avif 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <source
-                    type="image/webp"
-                    srcset="/images/slide-3-640.webp 640w, /images/slide-3-1280.webp 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <img
-                    src="/images/slide-3-1280.webp"
-                    alt=""
-                    width="1280"
-                    height="720"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-                <figcaption>
-                  <h3>Calliandra</h3>
-                  <p>
-                    Ses pompons de fines étamines rouges s’ouvrent en fin de journée et attirent les
-                    colibris.
-                  </p>
-                </figcaption>
-              </figure>
-            </div>
-            <div
-              class="carousel-slide"
-              role="group"
-              aria-roledescription="diapositive"
-              aria-label="4 sur 5"
-              data-testid="carousel-slide"
-            >
-              <figure>
-                <picture>
-                  <source
-                    type="image/avif"
-                    srcset="/images/slide-4-640.avif 640w, /images/slide-4-1280.avif 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <source
-                    type="image/webp"
-                    srcset="/images/slide-4-640.webp 640w, /images/slide-4-1280.webp 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <img
-                    src="/images/slide-4-1280.webp"
-                    alt=""
-                    width="1280"
-                    height="720"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-                <figcaption>
-                  <h3>Strelitzia</h3>
-                  <p>
-                    Surnommée oiseau de paradis, sa fleur orange et bleue évoque la tête d’un oiseau
-                    huppé.
-                  </p>
-                </figcaption>
-              </figure>
-            </div>
-            <div
-              class="carousel-slide"
-              role="group"
-              aria-roledescription="diapositive"
-              aria-label="5 sur 5"
-              data-testid="carousel-slide"
-            >
-              <figure>
-                <picture>
-                  <source
-                    type="image/avif"
-                    srcset="/images/slide-5-640.avif 640w, /images/slide-5-1280.avif 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <source
-                    type="image/webp"
-                    srcset="/images/slide-5-640.webp 640w, /images/slide-5-1280.webp 1280w"
-                    sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
-                  />
-                  <img
-                    src="/images/slide-5-1280.webp"
-                    alt=""
-                    width="1280"
-                    height="720"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-                <figcaption>
-                  <h3>Nénuphar</h3>
-                  <p>
-                    Ses fleurs s’ouvrent à la surface des bassins, au-dessus de larges feuilles
-                    flottantes.
-                  </p>
-                </figcaption>
-              </figure>
-            </div>
-          </div>
+          <div class="carousel-container" data-carousel-slides></div>
         </div>
         <div
           class="carousel-dots"
@@ -381,6 +219,63 @@
           aria-label="Choix de la diapositive"
           data-carousel-dots
         ></div>
+        <template id="carousel-slide-template">
+          <div
+            class="carousel-slide"
+            role="group"
+            aria-roledescription="diapositive"
+            data-testid="carousel-slide"
+          >
+            <figure>
+              <picture>
+                <source
+                  type="image/avif"
+                  sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
+                  data-slide-avif
+                />
+                <source
+                  type="image/webp"
+                  sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
+                  data-slide-webp
+                />
+                <img
+                  src="/images/slide-1-1280.webp"
+                  alt=""
+                  width="1280"
+                  height="720"
+                  loading="lazy"
+                  decoding="async"
+                  data-slide-image
+                />
+              </picture>
+              <figcaption>
+                <h3 data-slide-title>Diapositive</h3>
+                <p data-slide-text></p>
+              </figcaption>
+            </figure>
+          </div>
+        </template>
+        <template id="carousel-error-template">
+          <div class="bui-alert bui-alert--error" role="alert" data-testid="home-carousel-error">
+            <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#circle-alert"></use>
+            </svg>
+            <div class="bui-alert__content">
+              <span class="bui-visually-hidden">Erreur :</span>
+              <div class="bui-alert__body"><p data-carousel-error-message></p></div>
+            </div>
+            <div class="bui-alert__action">
+              <button
+                type="button"
+                class="bui-button bui-button--outline"
+                data-carousel-retry
+                data-testid="home-carousel-retry"
+              >
+                Réessayer
+              </button>
+            </div>
+          </div>
+        </template>
       </section>
       <section
         class="container home-section blog"

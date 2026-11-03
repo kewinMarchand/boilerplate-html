@@ -9,7 +9,7 @@ const options = () => ({
   duration: reducedMotion.matches || root.dataset.a11yMode === 'enhanced' ? 1 : 25,
 })
 
-const initCarousel = (carousel) => {
+export const initCarousel = (carousel) => {
   const viewport = carousel.querySelector('[data-carousel-viewport]')
   const prev = carousel.querySelector('[data-carousel-prev]')
   const next = carousel.querySelector('[data-carousel-next]')
@@ -73,5 +73,3 @@ const initCarousel = (carousel) => {
   renderDots()
   update()
 }
-
-document.querySelectorAll('[data-carousel]').forEach(initCarousel)

@@ -89,6 +89,13 @@ if [ "${1:-}" = checks ]; then
       echo "FAIL catalogue non pré-rendu : API injoignable à la construction ?"
       FAILED=1
     fi
+    sections=$(curl --silent "http://localhost:$PORT/accessibilite" | grep --only-matching 'data-testid="legal-section"' | wc -l)
+    if curl --silent "http://localhost:$PORT/" | grep --quiet 'aria-label="1 sur ' && [ "$sections" -gt 1 ]; then
+      echo "ok   carrousel et pages légales pré-rendus"
+    else
+      echo "FAIL carrousel ou pages légales non pré-rendus : API injoignable à la construction ?"
+      FAILED=1
+    fi
     if curl --silent "http://localhost:$PORT/" | grep --quiet 'data-glitchtip-dsn\|data-matomo-url'; then
       echo "FAIL un traceur est injecté sans configuration"
       FAILED=1

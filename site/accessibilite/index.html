@@ -53,6 +53,7 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
+    <script type="module" src="/js/modules/content/ui/legalPage.js"></script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -78,7 +79,7 @@
     <!--# set var="page" value="accessibilite" -->
     <!--# include virtual="/partials/header.html" -->
     <main id="main">
-      <div class="container page prose">
+      <div class="container page prose" data-legal-page="accessibilite">
         <nav class="bui-breadcrumb" aria-label="Fil d'Ariane" data-testid="layout-breadcrumb">
           <ol class="bui-breadcrumb__list">
             <li class="bui-breadcrumb__item"><a class="bui-link" href="/">Accueil</a></li>
@@ -89,130 +90,56 @@
             </li>
           </ol>
         </nav>
-        <h1>Déclaration d'accessibilité</h1>
-        <p>
-          Exemple SAS s'engage à rendre ses services en ligne accessibles, conformément à l'article
-          47 de la loi n° 2005-102 du 11 février 2005. Cette déclaration s'applique au site
-          https://www.example.com.
-        </p>
-        <figure class="quote">
-          <blockquote lang="en">
-            <p>
-              The power of the Web is in its universality. Access by everyone regardless of
-              disability is an essential aspect.
-            </p>
-          </blockquote>
-          <figcaption>
-            Tim Berners-Lee, inventeur du Web, cité par la
-            <cite>Web Accessibility Initiative du W3C</cite>. Traduction : la force du Web tient à
-            son universalité, l'accès de tous, quel que soit le handicap, en est un aspect
-            essentiel.
-          </figcaption>
-        </figure>
-        <section aria-labelledby="status-title">
-          <h2 id="status-title">État de conformité</h2>
-          <p data-testid="legal-compliance-status">
-            Ce site est <strong>non conforme</strong> avec le référentiel général d'amélioration de
-            l'accessibilité (<abbr title="Référentiel général d'amélioration de l'accessibilité"
-              >RGAA</abbr
-            >), version 4.1.2. Aucun audit n'a encore été réalisé.
-          </p>
-        </section>
-        <section aria-labelledby="results-title">
-          <h2 id="results-title">Résultats des tests</h2>
-          <p>
-            Les seuls résultats disponibles proviennent de tests automatisés axe-core (critères
-            <abbr title="Web Content Accessibility Guidelines">WCAG</abbr> 2.1 niveaux A et AA, sur
-            chaque page, dans les deux modes d'affichage). Ces tests ne couvrent qu'une partie des
-            critères et ne valent pas audit.
-          </p>
-        </section>
-        <section aria-labelledby="non-accessible-title">
-          <h2 id="non-accessible-title">Contenus non accessibles</h2>
-          <p>À compléter après audit.</p>
-        </section>
-        <section aria-labelledby="enhanced-title">
-          <h2 id="enhanced-title">Mode accessibilité renforcée</h2>
-          <p>
-            Le bouton « Accessibilité renforcée », dans l'en-tête de chaque page, agrandit le texte,
-            augmente les espacements, renforce les contrastes, souligne tous les liens, épaissit
-            l'indicateur de focus et coupe les animations.
-          </p>
-          <div class="faq">
-            <details>
-              <summary>Mon choix est-il conservé d'une page à l'autre ?</summary>
-              <p>
-                Oui. Il est enregistré dans le stockage local de votre navigateur, sans cookie, et
-                n'est jamais transmis.
-              </p>
-            </details>
-            <details>
-              <summary>Comment revenir à l'affichage habituel ?</summary>
-              <p>
-                Activez de nouveau le bouton « Accessibilité renforcée » : il indique son état,
-                enfoncé ou non, aux technologies d'assistance.
-              </p>
-            </details>
-            <details>
-              <summary>Le mode remplace-t-il les réglages de mon navigateur ?</summary>
-              <p>
-                Non. Il s'ajoute à eux : le zoom, la taille de police par défaut et la réduction des
-                animations du système restent respectés.
-              </p>
-            </details>
+        <h1 data-legal-title>Déclaration d'accessibilité</h1>
+        <div data-legal-state>
+          <div class="skeleton-list" role="status" data-testid="legal-loading">
+            <span class="visually-hidden">Chargement de la page…</span>
+            <span class="bui-skeleton" aria-hidden="true"></span>
+            <span class="bui-skeleton" aria-hidden="true"></span>
+            <span class="bui-skeleton" aria-hidden="true"></span>
           </div>
-        </section>
-        <section aria-labelledby="environment-title">
-          <h2 id="environment-title">Environnement de test</h2>
-          <ul>
-            <li>Chromium, piloté par Playwright, sur ordinateur et sur mobile émulé</li>
-            <li>axe-core et Lighthouse</li>
-            <li>Technologies d'assistance : à compléter après audit</li>
-          </ul>
-          <p>
-            Technologies utilisées : HTML, CSS, JavaScript. Déclaration établie le
-            <time datetime="2026-10-08">8 octobre 2026</time>.
-          </p>
-        </section>
-        <section aria-labelledby="feedback-title">
-          <h2 id="feedback-title">Retour d'information et contact</h2>
-          <p>
-            Si vous n'arrivez pas à accéder à un contenu ou à un service, contactez-nous pour être
-            orienté vers une alternative accessible ou obtenir le contenu sous une autre forme :
-          </p>
-          <address>
-            Exemple SAS, 10 rue de l'Exemple, 13100 Aix-en-Provence<br />
-            <a href="mailto:contact@example.com">contact@example.com</a>
-          </address>
-        </section>
-        <section aria-labelledby="remedies-title">
-          <h2 id="remedies-title">Voies de recours</h2>
-          <p>
-            Si vous avez signalé un défaut d'accessibilité qui vous empêche d'accéder à un contenu
-            ou à un service et que vous n'avez pas obtenu de réponse satisfaisante, vous pouvez
-            saisir le Défenseur des droits :
-          </p>
-          <ul>
-            <li>
-              par le
-              <a href="https://formulaire.defenseurdesdroits.fr/"
-                >formulaire en ligne du Défenseur des droits</a
+        </div>
+        <noscript>
+          <div class="bui-alert bui-alert--info" data-testid="legal-noscript">
+            <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#info"></use>
+            </svg>
+            <div class="bui-alert__content">
+              <span class="bui-visually-hidden">Information :</span>
+              <div class="bui-alert__body">
+                <p>
+                  Le texte de cette page est lu dans l'API par JavaScript. Activez-le pour
+                  l'afficher.
+                </p>
+              </div>
+            </div>
+          </div>
+        </noscript>
+        <div data-legal-content></div>
+        <template id="legal-section-template">
+          <section data-testid="legal-section"><h2 data-legal-section-title>Section</h2></section>
+        </template>
+        <template id="legal-error-template">
+          <div class="bui-alert bui-alert--error" role="alert" data-testid="legal-error">
+            <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#circle-alert"></use>
+            </svg>
+            <div class="bui-alert__content">
+              <span class="bui-visually-hidden">Erreur :</span>
+              <div class="bui-alert__body"><p data-legal-error-message></p></div>
+            </div>
+            <div class="bui-alert__action">
+              <button
+                type="button"
+                class="bui-button bui-button--outline"
+                data-legal-retry
+                data-testid="legal-retry"
               >
-              ;
-            </li>
-            <li>
-              en contactant
-              <a href="https://www.defenseurdesdroits.fr/carte-des-delegues"
-                >le délégué du Défenseur des droits de votre région</a
-              >
-              ;
-            </li>
-            <li>
-              par courrier gratuit, sans affranchissement : Défenseur des droits, Libre réponse
-              71120, 75342 Paris CEDEX 07.
-            </li>
-          </ul>
-        </section>
+                Réessayer
+              </button>
+            </div>
+          </div>
+        </template>
       </div>
     </main>
     <!--# include virtual="/partials/footer.html" -->

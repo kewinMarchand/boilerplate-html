@@ -1,8 +1,18 @@
 import { expect, test } from '@playwright/test'
 
+import { prerenderCarousel } from '../../scripts/prerender-content.js'
 import { withScenario } from './routes.js'
 
 const currentDot = (page) => page.locator('[data-testid="carousel-dot"][aria-current="true"]')
+
+// Cinq diapositives fictives, écrites dans l'accueil comme le fait l'image de production
+const SLIDES = [1, 2, 3, 4, 5].map((image) => ({
+  id: String(image),
+  slug: `diapositive-${image}`,
+  title: `Diapositive ${image}`,
+  text: 'Texte de la diapositive.',
+  image,
+}))
 
 test.describe('Accueil', () => {
   test('le hero porte le titre, les deux appels à l’action et une image prioritaire', async ({
@@ -33,6 +43,43 @@ test.describe('Accueil', () => {
 
     await page.getByTestId('carousel-prev').click()
     await expect(currentDot(page)).toHaveAttribute('aria-label', 'Aller à la diapositive 1')
+  })
+
+  test('le carrousel affiche les diapositives de l’API, sans message d’erreur', async ({
+    page,
+  }) => {
+    await page.goto('/')
+
+    await expect(page.getByTestId('carousel-slide').first()).toContainText('Heliconia')
+    await expect(page.getByTestId('carousel-slide').first()).toHaveAttribute(
+      'aria-label',
+      '1 sur 5',
+    )
+    await expect(page.getByTestId('home-carousel-error')).toHaveCount(0)
+  })
+
+  test('le carrousel affiche un message et propose de réessayer quand l’API échoue', async ({
+    page,
+  }) => {
+    await withScenario(page, 'error')
+    await page.goto('/')
+
+    await expect(page.getByTestId('home-carousel-error')).toContainText(
+      'Impossible de charger le carrousel pour le moment.',
+    )
+    await expect(page.getByTestId('carousel-next')).toBeHidden()
+    await page.getByTestId('home-carousel-retry').click()
+    await expect(page.getByTestId('home-carousel-error')).toBeVisible()
+  })
+
+  test('la section du carrousel disparaît quand l’API ne renvoie aucune diapositive', async ({
+    page,
+  }) => {
+    await withScenario(page, 'empty')
+    await page.goto('/')
+
+    await expect(page.getByTestId('home-carousel')).toHaveCount(0)
+    await expect(page.getByTestId('home-hero')).toBeVisible()
   })
 
   test('le carrousel se glisse à la souris', async ({ page }) => {
@@ -98,7 +145,19 @@ test.describe('Accueil', () => {
 test.describe('Accueil sans JavaScript', () => {
   test.use({ javaScriptEnabled: false })
 
-  test('la piste du carrousel défile nativement', async ({ page }) => {
+  test('le carrousel annonce que ses diapositives demandent JavaScript', async ({ page }) => {
+    await page.goto('/')
+
+    await expect(page.getByTestId('home-carousel-noscript')).toBeVisible()
+    await expect(page.getByTestId('carousel-slide')).toHaveCount(0)
+  })
+
+  test('la piste du carrousel pré-rendu défile nativement', async ({ page }) => {
+    // Le serveur de développement ne pré-rend rien : l'accueil est pré-rendu ici comme dans l'image
+    await page.route('/', async (route) => {
+      const response = await route.fetch()
+      await route.fulfill({ response, body: prerenderCarousel(await response.text(), SLIDES) })
+    })
     await page.goto('/')
     const track = page.getByTestId('carousel-track')
 
