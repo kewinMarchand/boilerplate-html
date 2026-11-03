@@ -1,7 +1,8 @@
-FROM node:24-alpine AS vendor
+FROM node:26-alpine AS vendor
 WORKDIR /app
 # git : boilerplates-ui est une dépendance git, installée par étiquette
-RUN apk add --no-cache git
+# Node 26 ne fournit plus Yarn (Corepack n'est plus livré depuis Node 25) : version de `packageManager`
+RUN apk add --no-cache git && npm install --global yarn@1.22.22
 COPY package.json yarn.lock ./
 COPY scripts/vendor.js scripts/vendor.js
 COPY vendor vendor
@@ -9,7 +10,7 @@ RUN yarn install --frozen-lockfile --production --ignore-scripts \
   && mkdir -p site/vendor \
   && node scripts/vendor.js
 
-FROM node:24-alpine AS catalog
+FROM node:26-alpine AS catalog
 WORKDIR /app
 ARG API_URL=http://localhost:8090
 COPY package.json ./
