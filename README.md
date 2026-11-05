@@ -43,7 +43,7 @@ make install   # image de dev, dépendances dans son volume, copie d'Embla dans 
 make up        # http://localhost:3130
 ```
 
-L'URL publique est `https://www.example.com` (domaine réservé aux exemples). Elle apparaît dans les balises canoniques, Open Graph, JSON-LD, `sitemap.xml` et `robots.txt`, et dans `site.config.json`. Remplacez-la partout avant une mise en ligne.
+L'URL publique est `https://www.example.com` (domaine réservé aux exemples). Elle apparaît dans les balises canoniques, Open Graph, JSON-LD, `sitemap.xml` et `robots.txt`, et dans `site.config.json`. Remplacez-la partout avant une mise en ligne. L'image de production peut aussi la remplacer à la construction, dans toutes les pages : `PUBLIC_SITE_URL=https://… make docker-build` (ce que fait la préprod).
 
 ## Démarrer un projet à partir de ce dépôt
 

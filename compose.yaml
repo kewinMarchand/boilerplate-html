@@ -5,6 +5,7 @@ services:
       network: host
       args:
         API_URL: ${API_URL:-http://localhost:8090}
+        SITE_URL: ${PUBLIC_SITE_URL:-}
     ports:
       - '${PORT:-8080}:80'
     environment:
