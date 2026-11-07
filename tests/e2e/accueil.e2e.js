@@ -54,7 +54,9 @@ test.describe('Accueil', () => {
   }) => {
     await page.goto('/')
 
-    await expect(page.getByTestId('carousel-slide').first()).toContainText('Anthurium andreanum rouge')
+    await expect(page.getByTestId('carousel-slide').first()).toContainText(
+      'Anthurium andreanum rouge',
+    )
     await expect(page.getByTestId('carousel-slide').first()).toHaveAttribute(
       'aria-label',
       '1 sur 5',
