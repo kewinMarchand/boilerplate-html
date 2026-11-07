@@ -6,12 +6,12 @@ import { withScenario } from './routes.js'
 const currentDot = (page) => page.locator('[data-testid="carousel-dot"][aria-current="true"]')
 
 // Cinq diapositives fictives, écrites dans l'accueil comme le fait l'image de production
-const SLIDES = [1, 2, 3, 4, 5].map((image) => ({
-  id: String(image),
-  slug: `diapositive-${image}`,
-  title: `Diapositive ${image}`,
+const SLIDES = [1, 2, 3, 4, 5].map((position) => ({
+  id: String(position),
+  slug: `diapositive-${position}`,
+  title: `Diapositive ${position}`,
   text: 'Texte de la diapositive.',
-  image,
+  image: null,
 }))
 
 test.describe('Accueil', () => {
@@ -118,6 +118,16 @@ test.describe('Accueil', () => {
     await expect(cards).toHaveCount(3)
     await expect(cards.first().locator('time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}$/)
     await expect(page.getByTestId('home-blog-empty')).toBeHidden()
+  })
+
+  test('la grille de blog affiche les illustrations servies par l’API', async ({ page }) => {
+    await page.goto('/')
+
+    const image = page.getByTestId('home-blog-card').first().locator('img')
+    await image.scrollIntoViewIfNeeded()
+    const apiOrigin = new URL(process.env.API_URL || 'http://localhost:8090').origin
+    await expect(image).toHaveAttribute('src', new RegExp(`^${apiOrigin}/media/`))
+    await expect.poll(() => image.evaluate((element) => element.naturalWidth)).toBeGreaterThan(0)
   })
 
   test('la grille de blog affiche un message amical quand l’API ne renvoie aucun article', async ({

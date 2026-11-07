@@ -1,4 +1,4 @@
-import { ApiContractError, field } from '/js/shared/api.js'
+import { ApiContractError, field, imageField } from '/js/shared/api.js'
 
 export const toArticle = (dto) => ({
   id: String(field(dto, 'id', 'number')),
@@ -6,6 +6,7 @@ export const toArticle = (dto) => ({
   title: field(dto, 'title', 'string'),
   excerpt: field(dto, 'excerpt', 'string'),
   publishedAt: field(dto, 'publishedAt', 'string'),
+  image: imageField(dto, 'image'),
 })
 
 export const toArticles = (dto) => {

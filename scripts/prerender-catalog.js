@@ -10,6 +10,7 @@ import {
 } from '/js/modules/catalog/infrastructure/http/catalogTranslation.js'
 import { EXPOSURE_LABELS, formatResultsCount } from '/js/modules/catalog/ui/labels.js'
 
+import { largestWebp, withPicture } from './prerenderPicture.js'
 import { sitePages } from './ssi.js'
 
 /**
@@ -33,22 +34,11 @@ const escapeHtml = (value) =>
     .replaceAll('"', '&quot;')
 
 const productItem = (template, product, index) => {
-  const image = `/images/product-${product.image}`
   const priority =
     index === 0 ? ' fetchpriority="high"' : index >= EAGER_IMAGES ? ' loading="lazy"' : ''
-  return template
+  return withPicture(template, product.image)
     .replace('class="product-item"', `class="product-item" data-product-id="${product.id}"`)
     .replace('data-product-card', `data-product-card id="produit-${escapeHtml(product.slug)}"`)
-    .replace(
-      'data-product-avif',
-      `data-product-avif srcset="${image}-400.avif 400w, ${image}-800.avif 800w"`,
-    )
-    .replace(
-      'data-product-webp',
-      `data-product-webp srcset="${image}-400.webp 400w, ${image}-800.webp 800w"`,
-    )
-    .replace(/src="[^"]*"/, `src="${image}-400.webp"`)
-    .replace('alt=""', `alt="${escapeHtml(product.name)}"`)
     .replace('data-product-image', `data-product-image${priority}`)
     .replace(/(data-product-name[^>]*>)[^<]*/, `$1${escapeHtml(product.name)}`)
     .replace(/(data-product-price[^>]*>)/, `$1${escapeHtml(formatPrice(product.price))}`)
@@ -71,7 +61,7 @@ const itemListJsonLd = (result, origin) =>
       item: {
         '@type': 'Product',
         name: product.name,
-        image: `${origin}/images/product-${product.image}-800.webp`,
+        ...(product.image && { image: largestWebp(product.image) }),
         offers: {
           '@type': 'Offer',
           price: (product.price / 100).toFixed(2),

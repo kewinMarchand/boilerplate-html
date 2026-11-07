@@ -59,6 +59,22 @@ export const apiPost = (path, data) =>
 
 const TYPES = { string: 'string', number: 'number', boolean: 'boolean' }
 
+/** Lit l'objet `image` du contrat (ADR 0002 de l'API Platform), ou `null` quand l'API n'en a pas. */
+export const imageField = (dto, name) => {
+  if (dto?.[name] === null) return null
+  const image = field(dto, name, 'object')
+  return {
+    alt: field(image, 'alt', 'string'),
+    width: field(image, 'width', 'number'),
+    height: field(image, 'height', 'number'),
+    sources: field(image, 'sources', 'array').map((source) => ({
+      type: field(source, 'type', 'string'),
+      srcset: field(source, 'srcset', 'string'),
+    })),
+    src: field(image, 'src', 'string'),
+  }
+}
+
 /** Lit un champ d'une réponse en vérifiant son type, pour qu'un écart de contrat échoue tôt. */
 export const field = (dto, name, type) => {
   const value = dto?.[name]

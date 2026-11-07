@@ -12,6 +12,9 @@ import { toLegalPage } from '../../site/js/modules/content/infrastructure/http/l
 import { toSlides } from '../../site/js/modules/content/infrastructure/http/slideTranslation.js'
 import { toTasks } from '../../site/js/modules/task/infrastructure/http/taskTranslation.js'
 import { ApiContractError } from '../../site/js/shared/api.js'
+import { apiImage } from './apiImage.js'
+
+const SLIDE_IMAGE = apiImage('a', [640, 1280], { alt: 'Heliconia en gros plan' })
 
 const PRODUCT = {
   id: 1,
@@ -21,7 +24,7 @@ const PRODUCT = {
   exposure: 'mi-ombre',
   size: 'M',
   inStock: true,
-  image: 1,
+  image: null,
   price: 3490,
 }
 
@@ -71,8 +74,20 @@ describe('traduction des réponses de l’API', () => {
 
   it('traduit les diapositives et les pages légales', () => {
     assert.deepEqual(
-      toSlides([{ id: 1, slug: 'heliconia', title: 'Heliconia', text: 'Des bractées.', image: 1 }]),
-      [{ id: '1', slug: 'heliconia', title: 'Heliconia', text: 'Des bractées.', image: 1 }],
+      toSlides([
+        { id: 1, slug: 'heliconia', title: 'Heliconia', text: 'Des bractées.', image: SLIDE_IMAGE },
+        { id: 2, slug: 'anthurium', title: 'Anthurium', text: 'Une spathe.', image: null },
+      ]),
+      [
+        {
+          id: '1',
+          slug: 'heliconia',
+          title: 'Heliconia',
+          text: 'Des bractées.',
+          image: SLIDE_IMAGE,
+        },
+        { id: '2', slug: 'anthurium', title: 'Anthurium', text: 'Une spathe.', image: null },
+      ],
     )
     assert.deepEqual(
       toLegalPage({
@@ -94,7 +109,7 @@ describe('traduction des réponses de l’API', () => {
     assert.throws(() => toTasks([{ id: '1', title: 'x', done: false }]), ApiContractError)
     assert.throws(() => toArticles({}), ApiContractError)
     assert.throws(
-      () => toSlides([{ id: 1, slug: 'a', title: 'A', text: '', image: '1' }]),
+      () => toSlides([{ id: 1, slug: 'a', title: 'A', text: '', image: 1 }]),
       ApiContractError,
     )
     assert.throws(

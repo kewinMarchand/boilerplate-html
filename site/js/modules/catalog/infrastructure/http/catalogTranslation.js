@@ -1,4 +1,4 @@
-import { ApiContractError, field } from '/js/shared/api.js'
+import { ApiContractError, field, imageField } from '/js/shared/api.js'
 
 import { EXPOSURES, SIZES } from '../../domain/catalogQuery.js'
 import { eurosToCents, Price } from '../../domain/price.js'
@@ -39,7 +39,7 @@ export const toProduct = (dto) => ({
   exposure: oneOf(field(dto, 'exposure', 'string'), EXPOSURES, 'exposure'),
   size: oneOf(field(dto, 'size', 'string'), SIZES, 'size'),
   inStock: field(dto, 'inStock', 'boolean'),
-  image: field(dto, 'image', 'number'),
+  image: imageField(dto, 'image'),
 })
 
 const toCounts = (values, dtos) =>

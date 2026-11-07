@@ -2,6 +2,8 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { withPicture } from './prerenderPicture.js'
+
 /**
  * Pré-rendu du contenu administré dans l'API, à la construction de l'image, sur le modèle du
  * catalogue (ADR 0002) : diapositives de l'accueil et texte des pages légales, écrits à partir des
@@ -37,21 +39,11 @@ const withoutNoscript = (html, testId) =>
   )
 
 const slideItem = (template, slide, index, count) => {
-  const image = `/images/slide-${slide.image}`
-  return template
+  return withPicture(template, slide.image)
     .replace(
       'data-testid="carousel-slide"',
       `aria-label="${index + 1} sur ${count}" data-testid="carousel-slide"`,
     )
-    .replace(
-      'data-slide-avif',
-      `data-slide-avif srcset="${image}-640.avif 640w, ${image}-1280.avif 1280w"`,
-    )
-    .replace(
-      'data-slide-webp',
-      `data-slide-webp srcset="${image}-640.webp 640w, ${image}-1280.webp 1280w"`,
-    )
-    .replace(/src="[^"]*"/, `src="${image}-1280.webp"`)
     .replace(/(data-slide-title>)[^<]*/, (_, open) => `${open}${escapeHtml(slide.title)}`)
     .replace(/(data-slide-text>)/, (_, open) => `${open}${escapeHtml(slide.text)}`)
 }

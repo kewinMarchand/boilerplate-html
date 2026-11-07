@@ -6,6 +6,7 @@ import { FileSystemConfigLoader, HtmlValidate } from 'html-validate'
 
 import { prerenderCatalogPage } from '../../scripts/prerender-catalog.js'
 import { formatPrice } from '../../site/js/modules/catalog/domain/price.js'
+import { apiImage } from './apiImage.js'
 import { renderPage, SITE_DIR } from './renderedPages.js'
 
 const SOURCE = readFileSync(join(SITE_DIR, 'catalogue/plantes-interieur/index.html'), 'utf8')
@@ -19,7 +20,7 @@ const product = (overrides) => ({
   exposure: 'mi-ombre',
   size: 'M',
   inStock: true,
-  image: 3,
+  image: apiImage('p3', [400, 800], { alt: 'Monstera <deliciosa>', ratio: 1 }),
   ...overrides,
 })
 
@@ -51,7 +52,9 @@ describe('pré-rendu du catalogue', () => {
     assert.ok(page.includes('alt="Monstera &lt;deliciosa&gt;"'))
     assert.ok(page.includes(formatPrice(2990)))
     assert.ok(
-      page.includes('srcset="/images/product-3-400.avif 400w, /images/product-3-800.avif 800w"'),
+      page.includes(
+        'srcset="http://localhost:8090/media/p3-400.avif 400w, http://localhost:8090/media/p3-800.avif 800w"',
+      ),
     )
     assert.ok(!page.includes('data-testid="catalog-loading"'))
   })

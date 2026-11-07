@@ -1,4 +1,5 @@
 import { initCarousel } from '/js/shared/carousel/carousel.js'
+import { fillPicture } from '/js/shared/picture.js'
 
 import { findSlides } from '../infrastructure/http/slideRepository.js'
 import { SlidesLoadError } from '../infrastructure/SlidesLoadError.js'
@@ -14,13 +15,8 @@ const loading = state.firstElementChild?.cloneNode(true)
 
 const renderSlide = (slide, index, slides) => {
   const element = slideTemplate.content.firstElementChild.cloneNode(true)
-  const image = `/images/slide-${slide.image}`
   element.setAttribute('aria-label', `${index + 1} sur ${slides.length}`)
-  element.querySelector('[data-slide-avif]').srcset =
-    `${image}-640.avif 640w, ${image}-1280.avif 1280w`
-  element.querySelector('[data-slide-webp]').srcset =
-    `${image}-640.webp 640w, ${image}-1280.webp 1280w`
-  element.querySelector('[data-slide-image]').src = `${image}-1280.webp`
+  fillPicture(element.querySelector('picture'), slide.image)
   element.querySelector('[data-slide-title]').textContent = slide.title
   element.querySelector('[data-slide-text]').textContent = slide.text
   return element

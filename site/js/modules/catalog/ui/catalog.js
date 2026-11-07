@@ -1,4 +1,5 @@
 import { latestOnly, STALE } from '/js/shared/latestOnly.js'
+import { fillPicture } from '/js/shared/picture.js'
 
 import {
   clearFilters,
@@ -187,17 +188,13 @@ const EAGER_IMAGES = 4
 
 const renderProduct = (product, index) => {
   const item = productTemplate.content.firstElementChild.cloneNode(true)
-  const image = `/images/product-${product.image}`
   const $item = (selector) => item.querySelector(selector)
   item.dataset.productId = String(product.id)
   $item('[data-product-card]').id = `produit-${product.slug}`
-  $item('[data-product-avif]').srcset = `${image}-400.avif 400w, ${image}-800.avif 800w`
-  $item('[data-product-webp]').srcset = `${image}-400.webp 400w, ${image}-800.webp 800w`
   const img = $item('[data-product-image]')
-  img.src = `${image}-400.webp`
-  img.alt = product.name
   if (index === 0) img.fetchPriority = 'high'
   if (index >= EAGER_IMAGES) img.loading = 'lazy'
+  fillPicture($item('picture'), product.image)
   $item('[data-product-name]').textContent = product.name
   $item('[data-product-price]').textContent = formatPrice(product.price)
   $item('[data-product-exposure]').textContent = EXPOSURE_LABELS[product.exposure]

@@ -5,14 +5,21 @@ import { describe, it } from 'node:test'
 import { FileSystemConfigLoader, HtmlValidate } from 'html-validate'
 
 import { prerenderCarousel, prerenderLegalPage } from '../../scripts/prerender-content.js'
+import { apiImage } from './apiImage.js'
 import { renderPage, SITE_DIR } from './renderedPages.js'
 
 const HOME = readFileSync(join(SITE_DIR, 'index.html'), 'utf8')
 const LEGAL = readFileSync(join(SITE_DIR, 'accessibilite/index.html'), 'utf8')
 
 const SLIDES = [
-  { id: '1', slug: 'heliconia', title: 'Heliconia <rouge>', text: 'Des bractées $1.', image: 1 },
-  { id: '2', slug: 'anthurium', title: 'Anthurium', text: 'Une spathe.', image: 2 },
+  { id: '1', slug: 'heliconia', title: 'Heliconia <rouge>', text: 'Des bractées $1.', image: null },
+  {
+    id: '2',
+    slug: 'anthurium',
+    title: 'Anthurium',
+    text: 'Une spathe.',
+    image: apiImage('s2', [640, 1280]),
+  },
 ]
 
 const LEGAL_PAGE = {
@@ -48,8 +55,11 @@ describe('pré-rendu du carrousel', () => {
     assert.ok(page.includes('Heliconia &lt;rouge&gt;'))
     assert.ok(page.includes('Des bractées $1.'))
     assert.ok(
-      page.includes('srcset="/images/slide-2-640.avif 640w, /images/slide-2-1280.avif 1280w"'),
+      page.includes(
+        'srcset="http://localhost:8090/media/s2-640.avif 640w, http://localhost:8090/media/s2-1280.avif 1280w"',
+      ),
     )
+    assert.equal(page.match(/<picture>/g)?.length, 1)
     assert.ok(!page.includes('data-testid="home-carousel-loading"'))
     assert.ok(!page.includes('data-testid="home-carousel-noscript"'))
   })

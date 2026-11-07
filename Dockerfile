@@ -16,7 +16,7 @@ ARG API_URL=http://localhost:8090
 # Adresse publique à la place de celle de site.config.json (préprod) ; vide : celle de site.config.json
 ARG SITE_URL=
 COPY package.json site.config.json ./
-COPY scripts/prerender-catalog.js scripts/prerender-content.js scripts/ssi.js scripts/
+COPY scripts/prerender-catalog.js scripts/prerender-content.js scripts/prerenderPicture.js scripts/ssi.js scripts/
 COPY tests/unit/siteResolver.js tests/unit/
 COPY site site
 RUN node --import ./tests/unit/siteResolver.js scripts/prerender-catalog.js site "$API_URL" \
