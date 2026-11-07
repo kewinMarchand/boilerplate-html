@@ -96,6 +96,15 @@ if [ "${1:-}" = checks ]; then
       echo "FAIL carrousel ou pages légales non pré-rendus : API injoignable à la construction ?"
       FAILED=1
     fi
+    product=$(curl --silent "http://localhost:$PORT/produit/monstera-deliciosa")
+    if printf '%s' "$product" | grep --quiet '"@type":"Product"' \
+      && curl --silent "http://localhost:$PORT/" | grep --quiet 'href="/produit/' \
+      && curl --silent "http://localhost:$PORT/sitemap.xml" | grep --quiet '/produit/monstera-deliciosa'; then
+      echo "ok   fiches produit pré-rendues, liées depuis le carrousel et listées dans le sitemap"
+    else
+      echo "FAIL fiches produit non pré-rendues : API injoignable à la construction ?"
+      FAILED=1
+    fi
     if curl --silent "http://localhost:$PORT/" | grep --quiet 'data-glitchtip-dsn\|data-matomo-url'; then
       echo "FAIL un traceur est injecté sans configuration"
       FAILED=1

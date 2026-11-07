@@ -41,6 +41,10 @@ const productItem = (template, product, index) => {
     .replace('data-product-card', `data-product-card id="produit-${escapeHtml(product.slug)}"`)
     .replace('data-product-image', `data-product-image${priority}`)
     .replace(/(data-product-name[^>]*>)[^<]*/, `$1${escapeHtml(product.name)}`)
+    .replace(
+      /href="\/catalogue"(\s+data-product-link)/,
+      (_, rest) => `href="/produit/${escapeHtml(product.slug)}"${rest}`,
+    )
     .replace(/(data-product-price[^>]*>)/, `$1${escapeHtml(formatPrice(product.price))}`)
     .replace(/(data-product-exposure[^>]*>)/, `$1${EXPOSURE_LABELS[product.exposure]}`)
     .replace(/(data-product-size[^>]*>)/, `$1${product.size}`)

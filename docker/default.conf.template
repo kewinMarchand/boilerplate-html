@@ -61,6 +61,14 @@ server {
         try_files /blog/$1/index.html /blog/fiche.html;
     }
 
+    # Fiche produit : même règle que la fiche article
+    location ~ ^/produit/([a-z0-9-]+)/?$ {
+        if ($maintenance) {
+            return 503;
+        }
+        try_files /produit/$1/index.html /produit/fiche.html;
+    }
+
     location ~* \.(css|js|map|svg|png|ico|jpg|webp|avif|webmanifest)$ {
         try_files $uri =404;
         expires 1h;

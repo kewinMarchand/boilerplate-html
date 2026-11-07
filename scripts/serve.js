@@ -5,7 +5,7 @@ import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
-import { prerenderArticle } from './prerender-content.js'
+import { prerenderArticle, prerenderProduct, withCategoryHrefs } from './prerender-content.js'
 import { resolveVariables, runtimeVariables } from './runtimeVariables.js'
 import { renderSsi } from './ssi.js'
 
@@ -17,6 +17,7 @@ const ERROR_TEST_ROUTE = '/_erreur-test'
 const STYLEGUIDE_MARKER = '<!-- dev:styleguide -->'
 const PARTIALS = '/partials/'
 const ARTICLE_PATH = /^\/blog\/([a-z0-9-]+)\/?$/
+const PRODUCT_PATH = /^\/produit\/([a-z0-9-]+)\/?$/
 const STYLEGUIDE_LINK = '<p><a href="/charte-graphique">Charte graphique (développement)</a></p>'
 
 const TYPES = {
@@ -70,8 +71,9 @@ const resolveFile = async (pathname) => {
   for (const candidate of [path, join(path, 'index.html')]) {
     if (await isFile(candidate)) return candidate
   }
-  // Fiche article non pré-rendue : le gabarit, rempli par JavaScript (même règle que nginx)
-  return ARTICLE_PATH.test(decoded) ? join(ROOT, 'blog/fiche.html') : undefined
+  // Fiche article ou produit non pré-rendue : le gabarit, rempli par JavaScript (même règle que nginx)
+  if (ARTICLE_PATH.test(decoded)) return join(ROOT, 'blog/fiche.html')
+  return PRODUCT_PATH.test(decoded) ? join(ROOT, 'produit/fiche.html') : undefined
 }
 
 const COMPRESSIBLE = new Set(['.html', '.css', '.js', '.json', '.webmanifest', '.svg', '.xml'])
@@ -111,20 +113,29 @@ const SITE_URL = JSON.parse(
   readFileSync(new URL('../site.config.json', import.meta.url), 'utf8'),
 ).url
 
-/** Fiche pré-rendue à la demande, avec la fonction du pré-rendu ; article inconnu ou API injoignable : le gabarit. */
-const prerenderedArticle = async (pathname, template) => {
-  const slug = ARTICLE_PATH.exec(pathname)?.[1]
+/** Fiche pré-rendue à la demande, avec la fonction du pré-rendu ; slug inconnu ou API injoignable : le gabarit. */
+const prerendered = async (apiPath, template, render) => {
   try {
-    const response = await fetch(new URL(`/api/articles/${slug}`, RUNTIME.api_url), {
+    const response = await fetch(new URL(apiPath, RUNTIME.api_url), {
       headers: { accept: 'application/json' },
       signal: AbortSignal.timeout(5_000),
     })
     if (!response.ok) return undefined
-    return prerenderArticle(await readFile(template, 'utf8'), await response.json(), SITE_URL)
+    return render(await readFile(template, 'utf8'), await response.json())
   } catch {
     return undefined
   }
 }
+
+const prerenderedArticle = (pathname, template) =>
+  prerendered(`/api/articles/${ARTICLE_PATH.exec(pathname)?.[1]}`, template, (html, dto) =>
+    prerenderArticle(html, dto, SITE_URL),
+  )
+
+const prerenderedProduct = (pathname, template) =>
+  prerendered(`/api/products/${PRODUCT_PATH.exec(pathname)?.[1]}`, template, (html, dto) =>
+    prerenderProduct(html, withCategoryHrefs(dto), SITE_URL),
+  )
 
 createServer(async (request, response) => {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -143,6 +154,8 @@ createServer(async (request, response) => {
     // Comme nginx, qui sert la fiche pré-rendue à la construction quand l'API connaît l'article
     const html = await prerenderedArticle(pathname, file)
     await send(request, response, 200, file, {}, html)
+  } else if (file?.endsWith('/produit/fiche.html')) {
+    await send(request, response, 200, file, {}, await prerenderedProduct(pathname, file))
   } else if (file) {
     await send(request, response, 200, file)
   } else {

@@ -8,7 +8,10 @@ import {
   prerenderArticle,
   prerenderCarousel,
   prerenderLegalPage,
+  prerenderProduct,
   withArticlesInSitemap,
+  withCategoryHrefs,
+  withPagesInSitemap,
 } from '../../scripts/prerender-content.js'
 import { apiImage } from './apiImage.js'
 import { renderPage, SITE_DIR } from './renderedPages.js'
@@ -16,15 +19,30 @@ import { renderPage, SITE_DIR } from './renderedPages.js'
 const HOME = readFileSync(join(SITE_DIR, 'index.html'), 'utf8')
 const LEGAL = readFileSync(join(SITE_DIR, 'accessibilite/index.html'), 'utf8')
 const FICHE = readFileSync(join(SITE_DIR, 'blog/fiche.html'), 'utf8')
+const PRODUCT_FICHE = readFileSync(join(SITE_DIR, 'produit/fiche.html'), 'utf8')
 
-const SLIDES = [
-  { id: '1', slug: 'heliconia', title: 'Heliconia <rouge>', text: 'Des bractées $1.', image: null },
+const PRODUCTS = [
   {
-    id: '2',
-    slug: 'anthurium',
-    title: 'Anthurium',
-    text: 'Une spathe.',
-    image: apiImage('s2', [640, 1280]),
+    id: 16,
+    slug: 'heliconia-rostrata',
+    name: 'Heliconia <rouge> $1',
+    categorySlug: 'heliconia',
+    price: 5490,
+    exposure: 'soleil',
+    size: 'L',
+    inStock: true,
+    image: null,
+  },
+  {
+    id: 7,
+    slug: 'anthurium-andreanum-rouge',
+    name: 'Anthurium',
+    categorySlug: 'anthurium',
+    price: 2490,
+    exposure: 'mi-ombre',
+    size: 'M',
+    inStock: false,
+    image: apiImage('s2', [400, 640, 800]),
   },
 ]
 
@@ -52,19 +70,16 @@ const validate = async (html, file) => {
 }
 
 describe('pré-rendu du carrousel', () => {
-  const html = prerenderCarousel(HOME, SLIDES)
+  const html = prerenderCarousel(HOME, PRODUCTS)
   const page = outsideTemplates(html)
 
-  it('écrit les diapositives à partir du template, sans squelette ni message sans JavaScript', () => {
+  it('écrit une diapositive par produit, liée à sa fiche, sans squelette ni message sans JavaScript', () => {
     assert.equal(page.match(/data-testid="carousel-slide"/g)?.length, 2)
     assert.ok(page.includes('aria-label="1 sur 2"'))
-    assert.ok(page.includes('Heliconia &lt;rouge&gt;'))
-    assert.ok(page.includes('Des bractées $1.'))
-    assert.ok(
-      page.includes(
-        'srcset="http://localhost:8090/media/s2-640.avif 640w, http://localhost:8090/media/s2-1280.avif 1280w"',
-      ),
-    )
+    assert.ok(page.includes('Heliconia &lt;rouge&gt; $1'))
+    assert.ok(page.includes('href="/produit/heliconia-rostrata"'))
+    assert.match(page, /54,90\s€/)
+    assert.ok(page.includes('http://localhost:8090/media/s2-800.avif 800w'))
     assert.equal(page.match(/<picture>/g)?.length, 1)
     assert.ok(!page.includes('data-testid="home-carousel-loading"'))
     assert.ok(!page.includes('data-testid="home-carousel-noscript"'))
@@ -74,7 +89,7 @@ describe('pré-rendu du carrousel', () => {
     assert.deepEqual(await validate(html, 'index.html'), [])
   })
 
-  it('laisse l’accueil tel quel sans diapositive', () => {
+  it('laisse l’accueil tel quel sans produit à la une', () => {
     assert.equal(prerenderCarousel(HOME, []), HOME)
   })
 })
@@ -143,6 +158,46 @@ describe('pré-rendu d’une fiche article', () => {
     assert.equal(
       withArticlesInSitemap('<urlset>\n</urlset>', ['a', 'b'], 'https://www.example.com/'),
       '<urlset>\n  <url><loc>https://www.example.com/blog/a</loc></url>\n  <url><loc>https://www.example.com/blog/b</loc></url>\n</urlset>',
+    )
+  })
+})
+
+describe('pré-rendu d’une fiche produit', () => {
+  const product = withCategoryHrefs({
+    ...PRODUCTS[1],
+    categoryPath: [
+      { slug: 'plantes-interieur', name: 'Plantes d’intérieur' },
+      { slug: 'plantes-a-fleurs', name: 'Plantes à fleurs' },
+      { slug: 'anthurium', name: 'Anthurium' },
+    ],
+  })
+  const html = prerenderProduct(PRODUCT_FICHE, product, 'https://www.example.com/')
+
+  it('écrit le contenu, le fil d’Ariane, l’indexation et les données structurées', () => {
+    assert.ok(html.includes('<title>Anthurium · Boilerplate HTML</title>'))
+    assert.ok(html.includes('<meta name="robots" content="index, follow" />'))
+    assert.ok(html.includes('href="https://www.example.com/produit/anthurium-andreanum-rouge"'))
+    assert.ok(html.includes('href="/catalogue/plantes-interieur/plantes-a-fleurs/anthurium"'))
+    assert.ok(html.includes('Rupture de stock'))
+    assert.ok(html.includes('"@type":"Product"'))
+    assert.ok(html.includes('"price":"24.90"'))
+    assert.ok(html.includes('"availability":"https://schema.org/OutOfStock"'))
+    assert.ok(!html.includes('data-product-content hidden'))
+    assert.ok(!html.includes('data-testid="product-noscript"'))
+  })
+
+  it('produit un HTML valide', async () => {
+    assert.deepEqual(await validate(html, 'produit/fiche.html'), [])
+  })
+
+  it('ajoute les fiches au sitemap', () => {
+    assert.ok(
+      withPagesInSitemap(
+        '<urlset>\n</urlset>',
+        'produit',
+        ['a'],
+        'https://www.example.com',
+      ).includes('<loc>https://www.example.com/produit/a</loc>'),
     )
   })
 })

@@ -62,3 +62,26 @@ export const toSearchResult = (dto) => {
     })),
   }
 }
+
+/** Fiche : le produit et le chemin de sa catégorie, chaque étape avec l'adresse de sa page du catalogue. */
+export const toProductDetail = (dto) => {
+  const steps = field(dto, 'categoryPath', 'array').map((step) => ({
+    slug: field(step, 'slug', 'string'),
+    name: field(step, 'name', 'string'),
+  }))
+  return {
+    ...toProduct(dto),
+    categoryPath: steps.map((step, index) => ({
+      ...step,
+      href: `/catalogue/${steps
+        .slice(0, index + 1)
+        .map(({ slug }) => slug)
+        .join('/')}`,
+    })),
+  }
+}
+
+export const toProducts = (dto) => {
+  if (!Array.isArray(dto)) throw new ApiContractError('products')
+  return dto.map(toProduct)
+}

@@ -39,22 +39,27 @@ const withoutNoscript = (html, testId) =>
     '',
   )
 
-const slideItem = (template, slide, index, count) => {
-  return withPicture(template, slide.image)
+const PRICE_FORMAT = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
+
+const formatPrice = (cents) => PRICE_FORMAT.format(cents / 100)
+
+const slideItem = (template, product, index, count) => {
+  return withPicture(template, product.image)
     .replace(
       'data-testid="carousel-slide"',
       `aria-label="${index + 1} sur ${count}" data-testid="carousel-slide"`,
     )
-    .replace(/(data-slide-title>)[^<]*/, (_, open) => `${open}${escapeHtml(slide.title)}`)
-    .replace(/(data-slide-text>)/, (_, open) => `${open}${escapeHtml(slide.text)}`)
+    .replace(/href="\/catalogue"/, `href="/produit/${escapeHtml(product.slug)}"`)
+    .replace(/(data-slide-title\s*>)[^<]*/, (_, open) => `${open}${escapeHtml(product.name)}`)
+    .replace(/(data-slide-text>)/, (_, open) => `${open}${escapeHtml(formatPrice(product.price))}`)
 }
 
-/** HTML de l'accueil, diapositives écrites. Liste vide : page inchangée. */
-export const prerenderCarousel = (html, slides) => {
-  if (!slides.length) return html
+/** HTML de l'accueil, une diapositive par produit à la une, liée à sa fiche. Liste vide : page inchangée. */
+export const prerenderCarousel = (html, products) => {
+  if (!products.length) return html
   const template = templateOf(html, 'carousel-slide-template')
-  const items = slides
-    .map((slide, index) => slideItem(template, slide, index, slides.length))
+  const items = products
+    .map((product, index) => slideItem(template, product, index, products.length))
     .join('')
   const page = html.replace(
     /(<div class="carousel-container" data-carousel-slides>)(<\/div>)/,
@@ -177,10 +182,142 @@ export const prerenderArticle = (html, article, siteUrl) => {
 
 /** Sitemap avec les fiches, avant la fermeture de la liste. */
 export const withArticlesInSitemap = (xml, slugs, siteUrl) =>
+  withPagesInSitemap(xml, 'blog', slugs, siteUrl)
+
+/** Sitemap avec les pages `/<route>/<slug>`, avant la fermeture de la liste. */
+export const withPagesInSitemap = (xml, route, slugs, siteUrl) =>
   xml.replace(
     '</urlset>',
-    `${slugs.map((slug) => `  <url><loc>${siteUrl.replace(/\/$/, '')}/blog/${slug}</loc></url>\n`).join('')}</urlset>`,
+    `${slugs.map((slug) => `  <url><loc>${siteUrl.replace(/\/$/, '')}/${route}/${slug}</loc></url>\n`).join('')}</urlset>`,
   )
+
+/**
+ * Fiche produit de l'API avec l'adresse de chaque étape de `categoryPath`, comme `toProductDetail` du
+ * navigateur : le serveur de développement, sans le résolveur des chemins servis, ne peut pas l'importer.
+ */
+export const withCategoryHrefs = (dto) => ({
+  ...dto,
+  categoryPath: dto.categoryPath.map((step, index, steps) => ({
+    ...step,
+    href: `/catalogue/${steps
+      .slice(0, index + 1)
+      .map(({ slug }) => slug)
+      .join('/')}`,
+  })),
+})
+
+const EXPOSURE_LABELS = { soleil: 'Soleil', 'mi-ombre': 'Mi-ombre', ombre: 'Ombre' }
+
+/** Description de la fiche produit, la même que dans le navigateur (`ui/productPage.js`). */
+const productDescription = (product) =>
+  `${product.name} : exposition ${EXPOSURE_LABELS[product.exposure].toLowerCase()}, taille ${product.size}, ${formatPrice(product.price)}. ${product.inStock ? 'En stock' : 'En rupture de stock'}, rayon ${product.categoryPath.at(-1)?.name ?? 'catalogue'}.`
+
+/**
+ * Fiche d'un produit à partir du gabarit produit/fiche.html : en-tête (titre, description, canonique,
+ * partage, données structurées `Product` et `BreadcrumbList`, indexation), fil d'Ariane et contenu.
+ */
+export const prerenderProduct = (html, product, siteUrl) => {
+  const origin = siteUrl.replace(/\/$/, '')
+  const url = `${origin}/produit/${product.slug}`
+  const description = productDescription(product)
+  const image = product.image && largestWebp(product.image)
+  const category = product.categoryPath.at(-1)
+  let page = html
+    .replace(
+      /<title>[^<]*<\/title>/,
+      `<title>${escapeHtml(product.name)} · Boilerplate HTML</title>`,
+    )
+    .replace(
+      '<meta name="robots" content="noindex" />',
+      '<meta name="robots" content="index, follow" />',
+    )
+    .replace(/(<link rel="canonical" href=")[^"]*(")/, (_, open, close) => `${open}${url}${close}`)
+  page = setMeta(page, 'name', 'description', description)
+  page = setMeta(page, 'property', 'og:description', description)
+  page = setMeta(page, 'name', 'twitter:description', description)
+  page = setMeta(page, 'property', 'og:title', `${product.name} · Boilerplate HTML`)
+  page = setMeta(page, 'name', 'twitter:title', `${product.name} · Boilerplate HTML`)
+  page = setMeta(page, 'property', 'og:url', url)
+  if (image) {
+    page = setMeta(page, 'property', 'og:image', image)
+    page = setMeta(page, 'name', 'twitter:image', image)
+    page = setMeta(page, 'property', 'og:image:width', String(product.image.width))
+    page = setMeta(page, 'property', 'og:image:height', String(product.image.height))
+    page = setMeta(page, 'property', 'og:image:alt', product.image.alt || product.name)
+  }
+  const structuredData = [
+    jsonLdScript({
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      sku: product.slug,
+      url,
+      ...(category && { category: category.name }),
+      ...(image && { image }),
+      offers: {
+        '@type': 'Offer',
+        url,
+        priceCurrency: 'EUR',
+        price: (product.price / 100).toFixed(2),
+        availability: `https://schema.org/${product.inStock ? 'InStock' : 'OutOfStock'}`,
+      },
+    }),
+    jsonLdScript({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { name: 'Accueil', item: `${origin}/` },
+        { name: 'Catalogue', item: `${origin}/catalogue` },
+        ...product.categoryPath.map((step) => ({ name: step.name, item: `${origin}${step.href}` })),
+        { name: product.name, item: url },
+      ].map((entry, index) => ({ '@type': 'ListItem', position: index + 1, ...entry })),
+    }),
+  ].join('\n    ')
+  page = page.replace('</head>', `    ${structuredData}\n  </head>`)
+
+  const name = escapeHtml(product.name)
+  const crumbs = product.categoryPath
+    .map(
+      (step) =>
+        `<li class="bui-breadcrumb__item"><a class="bui-link" href="${escapeHtml(step.href)}">${escapeHtml(step.name)}</a></li>\n            `,
+    )
+    .join('')
+  page = page
+    .replace(
+      /(<li class="bui-breadcrumb__item">\s*<span class="bui-breadcrumb__current")/,
+      (_, open) => `${crumbs}${open}`,
+    )
+    .replace(/(data-product-crumb\s*>)[^<]*/, (_, open) => `${open}${name}`)
+    .replace(/(data-testid="product-title">)[^<]*/, (_, open) => `${open}${name}`)
+    .replace(/<picture class="product-page-media">[\s\S]*?<\/picture>/, (picture) =>
+      withPicture(picture, product.image),
+    )
+    .replace(
+      /(data-product-price data-testid="product-price">)/,
+      (_, open) => `${open}${escapeHtml(formatPrice(product.price))}`,
+    )
+    .replace(
+      /(<dd data-product-exposure>)/,
+      (_, open) => `${open}${EXPOSURE_LABELS[product.exposure]}`,
+    )
+    .replace(/(<dd data-product-size>)/, (_, open) => `${open}${product.size}`)
+    .replace(/(<dd data-product-stock>)En stock/, (_, open) =>
+      product.inStock
+        ? `${open}En stock`
+        : `${open}<span class="bui-badge bui-badge--error">Rupture de stock</span>`,
+    )
+    .replace(
+      /<a class="bui-link" href="\/catalogue" data-product-category\s*>[^<]*/,
+      category
+        ? `<a class="bui-link" href="${escapeHtml(category.href)}" data-product-category>Voir les autres produits : ${escapeHtml(category.name)}`
+        : (match) => match,
+    )
+    .replace(
+      '<div class="product-page-layout" data-product-content hidden>',
+      '<div class="product-page-layout" data-product-content>',
+    )
+  return withoutNoscript(withoutLoading(page, 'data-product-state'), 'product-noscript')
+}
 
 const fetchJson = async (apiUrl, path) => {
   const response = await fetch(new URL(path, apiUrl), {
@@ -206,13 +343,14 @@ const prerender = async (file, route, load, render) => {
 const main = async ([siteDir, apiUrl]) => {
   // Imports dynamiques : les traductions importent le socle par son chemin servi, que seul le
   // crochet siteResolver.js résout, et tests/e2e/accueil.e2e.js importe ce fichier sans lui.
-  const { toSlides } = await import('/js/modules/content/infrastructure/http/slideTranslation.js')
+  const { toProducts } =
+    await import('/js/modules/catalog/infrastructure/http/catalogTranslation.js')
   const { toLegalPage } =
     await import('/js/modules/content/infrastructure/http/legalPageTranslation.js')
   await prerender(
     join(siteDir, 'index.html'),
     '/',
-    async () => toSlides(await fetchJson(apiUrl, '/api/slides')),
+    async () => toProducts(await fetchJson(apiUrl, '/api/featured-products')),
     prerenderCarousel,
   )
   for (const slug of LEGAL_PAGES) {
@@ -224,6 +362,50 @@ const main = async ([siteDir, apiUrl]) => {
     )
   }
   await prerenderArticles(siteDir, apiUrl)
+  await prerenderProducts(siteDir, apiUrl)
+}
+
+/** Une page par produit connu de l'API ; sans API, les fiches sont rendues dans le navigateur. */
+const prerenderProducts = async (siteDir, apiUrl) => {
+  const { toProductDetail } =
+    await import('/js/modules/catalog/infrastructure/http/catalogTranslation.js')
+  const { url: siteUrl } = JSON.parse(readFileSync(join(siteDir, '..', 'site.config.json'), 'utf8'))
+  const slugs = []
+  try {
+    for (let page = 1; ; page += 1) {
+      const list = await fetchJson(apiUrl, `/api/products?page=${page}&itemsPerPage=48`)
+      slugs.push(...list.items.map((item) => item.slug))
+      if (page >= list.totalPages) break
+    }
+  } catch (error) {
+    console.warn(
+      `[contenu] fiches produit rendues dans le navigateur, API injoignable (${error.message})`,
+    )
+    return
+  }
+  const template = readFileSync(join(siteDir, 'produit', 'fiche.html'), 'utf8')
+  const written = []
+  for (const slug of slugs) {
+    try {
+      const product = toProductDetail(
+        await fetchJson(apiUrl, `/api/products/${encodeURIComponent(slug)}`),
+      )
+      mkdirSync(join(siteDir, 'produit', slug), { recursive: true })
+      writeFileSync(
+        join(siteDir, 'produit', slug, 'index.html'),
+        prerenderProduct(template, product, siteUrl),
+      )
+      written.push(slug)
+    } catch (error) {
+      console.warn(`[contenu] /produit/${slug} rendue dans le navigateur (${error.message})`)
+    }
+  }
+  console.info(`[contenu] ${written.length} fiches produit pré-rendues`)
+  const sitemap = join(siteDir, 'sitemap.xml')
+  writeFileSync(
+    sitemap,
+    withPagesInSitemap(readFileSync(sitemap, 'utf8'), 'produit', written, siteUrl),
+  )
 }
 
 /** Une page par article connu de l'API ; sans API, les fiches sont rendues dans le navigateur. */

@@ -1464,6 +1464,67 @@
     margin-block-start: var(--space-xl);
   }
 
+  /* Fiche produit : image LCP à gauche, prix et caractéristiques à droite à partir de 768 px */
+  .product-page h1 {
+    overflow-wrap: break-word;
+  }
+
+  .product-page-layout {
+    display: grid;
+    gap: var(--space-xl);
+    align-items: start;
+  }
+
+  @media (width >= 768px) {
+    .product-page-layout {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .product-page-media img {
+    inline-size: 100%;
+    block-size: auto;
+    border-radius: var(--radius);
+  }
+
+  .product-page-price {
+    font-size: var(--bui-font-size-lead);
+    font-weight: 700;
+  }
+
+  .product-page-features {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-s) var(--space-l);
+    margin-block: var(--space-l);
+
+    & dt {
+      font-weight: 700;
+    }
+
+    & dd {
+      margin: 0;
+    }
+  }
+
+  /* Lien étiré sur toute la carte produit ou la diapositive : un seul lien, nommé par le titre */
+  .product-card,
+  .carousel-slide {
+    position: relative;
+  }
+
+  .product-link,
+  .carousel-link {
+    color: inherit;
+  }
+
+  .product-link::after,
+  .carousel-link::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+  }
+
   .table-wrapper {
     overflow-x: auto;
   }

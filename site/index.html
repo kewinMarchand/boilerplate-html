@@ -53,7 +53,7 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
-    <script type="module" src="/js/modules/content/ui/featuredCarousel.js"></script>
+    <script type="module" src="/js/modules/catalog/ui/featuredProducts.js"></script>
     <script type="module" src="/js/modules/blog/ui/latestArticles.js"></script>
     <script type="application/ld+json">
       {
@@ -241,15 +241,24 @@
                 <img
                   src="/images/hero-640.webp"
                   alt=""
-                  width="1280"
-                  height="720"
+                  width="800"
+                  height="800"
                   loading="lazy"
                   decoding="async"
                   data-slide-image
                 />
               </picture>
               <figcaption>
-                <h3 data-slide-title>Diapositive</h3>
+                <h3>
+                  <a
+                    class="carousel-link"
+                    href="/catalogue"
+                    draggable="false"
+                    data-testid="carousel-slide-link"
+                    data-slide-title
+                    >Diapositive</a
+                  >
+                </h3>
                 <p data-slide-text></p>
               </figcaption>
             </figure>

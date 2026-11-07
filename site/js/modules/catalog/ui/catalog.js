@@ -12,6 +12,7 @@ import {
   withFilters,
 } from '../domain/catalogQuery.js'
 import { formatPrice } from '../domain/price.js'
+import { productHref } from '../domain/product.js'
 import { loadCatalogPage } from '../application/loadCatalogPage.js'
 
 import { activeFilters } from './activeFilters.js'
@@ -196,6 +197,7 @@ const renderProduct = (product, index) => {
   if (index >= EAGER_IMAGES) img.loading = 'lazy'
   fillPicture($item('picture'), product.image)
   $item('[data-product-name]').textContent = product.name
+  $item('[data-product-link]').href = productHref(product.slug)
   $item('[data-product-price]').textContent = formatPrice(product.price)
   $item('[data-product-exposure]').textContent = EXPOSURE_LABELS[product.exposure]
   $item('[data-product-size]').textContent = product.size

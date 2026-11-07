@@ -14,7 +14,8 @@
         "http://localhost:3250/donnees-personnelles",
         "http://localhost:3250/accessibilite",
         "http://localhost:3250/plan-du-site",
-        "http://localhost:3250/blog/le-mode-accessibilite-renforcee"
+        "http://localhost:3250/blog/le-mode-accessibilite-renforcee",
+        "http://localhost:3250/produit/monstera-deliciosa"
       ],
       "numberOfRuns": 3,
       "settings": {

@@ -5,12 +5,16 @@ import { withScenario } from './routes.js'
 
 const currentDot = (page) => page.locator('[data-testid="carousel-dot"][aria-current="true"]')
 
-// Cinq diapositives fictives, écrites dans l'accueil comme le fait l'image de production
+// Cinq produits à la une fictifs, écrits dans l'accueil comme le fait l'image de production
 const SLIDES = [1, 2, 3, 4, 5].map((position) => ({
-  id: String(position),
-  slug: `diapositive-${position}`,
-  title: `Diapositive ${position}`,
-  text: 'Texte de la diapositive.',
+  id: position,
+  slug: `produit-${position}`,
+  name: `Produit ${position}`,
+  categorySlug: 'heliconia',
+  price: 1990,
+  exposure: 'soleil',
+  size: 'M',
+  inStock: true,
   image: null,
 }))
 
@@ -45,12 +49,12 @@ test.describe('Accueil', () => {
     await expect(currentDot(page)).toHaveAttribute('aria-label', 'Aller à la diapositive 1')
   })
 
-  test('le carrousel affiche les diapositives de l’API, sans message d’erreur', async ({
+  test('le carrousel affiche les produits à la une de l’API, sans message d’erreur', async ({
     page,
   }) => {
     await page.goto('/')
 
-    await expect(page.getByTestId('carousel-slide').first()).toContainText('Heliconia')
+    await expect(page.getByTestId('carousel-slide').first()).toContainText('Anthurium andreanum rouge')
     await expect(page.getByTestId('carousel-slide').first()).toHaveAttribute(
       'aria-label',
       '1 sur 5',
@@ -97,6 +101,19 @@ test.describe('Accueil', () => {
 
     await expect(currentDot(page)).not.toHaveAttribute('aria-label', 'Aller à la diapositive 1')
     await expect(page.getByTestId('carousel-prev')).toBeEnabled()
+    // Le geste part d'une diapositive cliquable : il fait défiler sans ouvrir la fiche
+    await expect(page).toHaveURL('/')
+  })
+
+  test('une diapositive ouvre la fiche de son produit', async ({ page }) => {
+    await page.goto('/')
+    const link = page.getByTestId('carousel-slide-link').first()
+    await expect(link).toHaveAttribute('href', /^\/produit\//)
+    const name = ((await link.textContent()) ?? '').trim()
+    await page.getByTestId('carousel-slide').first().click()
+
+    await expect(page).toHaveURL(/\/produit\/[a-z0-9-]+$/)
+    await expect(page.getByTestId('product-title')).toHaveText(name)
   })
 
   test('un geste de trackpad n’avance que d’une diapositive', async ({ page }) => {

@@ -12,6 +12,7 @@ export const ROUTES = [
   ...CATEGORY_ROUTES,
   ...SITE.legalNavigation.map((item) => item.href),
   '/blog/le-mode-accessibilite-renforcee',
+  '/produit/monstera-deliciosa',
 ]
 
 export const enableEnhancedMode = (page) =>

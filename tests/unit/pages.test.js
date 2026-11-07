@@ -13,7 +13,7 @@ const HEADERS = readFileSync(join(ROOT, 'docker/security-headers.conf'), 'utf8')
 const ERROR_PAGES = ['/404', '/405', '/50x', '/503']
 const DEV_PAGES = ['/charte-graphique']
 // Gabarit de la fiche article, servi pour /blog/<slug> et rempli par JavaScript (ou pré-rendu dans l'image)
-const TEMPLATE_PAGES = ['/blog/fiche']
+const TEMPLATE_PAGES = ['/blog/fiche', '/produit/fiche']
 
 const attribute = (html, pattern) => html.match(pattern)?.[1]
 const hrefsIn = (html, label) => {
