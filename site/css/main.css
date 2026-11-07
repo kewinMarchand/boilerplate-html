@@ -1212,10 +1212,18 @@
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
+    position: relative;
 
     & > p {
       flex-grow: 1;
     }
+  }
+
+  /* Lien étiré sur toute la carte : un seul lien, nommé par le titre */
+  .blog-card-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
   }
 
   .blog-card-media {
@@ -1416,6 +1424,44 @@
     & ul {
       padding-inline-start: var(--space-l);
     }
+  }
+
+  /* Fiche article : colonne de lecture, image LCP en tête, texte HTML venu de l'API */
+  .article {
+    max-inline-size: 760px;
+  }
+
+  .article-date {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .article-media img {
+    inline-size: 100%;
+    block-size: auto;
+    border-radius: var(--radius);
+  }
+
+  .article-excerpt {
+    font-size: var(--bui-font-size-lead);
+  }
+
+  [data-article-content] > * + *,
+  [data-article-body] > * + * {
+    margin-block-start: var(--space-m);
+  }
+
+  [data-article-body] h2 {
+    margin-block-start: var(--space-xl);
+  }
+
+  [data-article-body] code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.9em;
+  }
+
+  .article-back {
+    margin-block-start: var(--space-xl);
   }
 
   .table-wrapper {

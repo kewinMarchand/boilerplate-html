@@ -11,6 +11,7 @@ export const ROUTES = [
   ...SITE.navigation.map((item) => item.href),
   ...CATEGORY_ROUTES,
   ...SITE.legalNavigation.map((item) => item.href),
+  '/blog/le-mode-accessibilite-renforcee',
 ]
 
 export const enableEnhancedMode = (page) =>

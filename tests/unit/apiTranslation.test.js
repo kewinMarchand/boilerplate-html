@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { toArticles } from '../../site/js/modules/blog/infrastructure/http/articleTranslation.js'
+import {
+  toArticleDetail,
+  toArticles,
+} from '../../site/js/modules/blog/infrastructure/http/articleTranslation.js'
 import { DEFAULT_QUERY } from '../../site/js/modules/catalog/domain/catalogQuery.js'
 import {
   toProductsQuery,
@@ -103,6 +106,20 @@ describe('traduction des réponses de l’API', () => {
         sections: [{ title: 'État de conformité', html: '<p>Non conforme.</p>' }],
       },
     )
+  })
+
+  it('traduit la fiche d’un article, texte en HTML compris', () => {
+    const dto = {
+      id: 2,
+      slug: 'un-carrousel',
+      title: 'Un carrousel',
+      excerpt: '',
+      publishedAt: '2026-09-22',
+      image: null,
+      html: '<p>Texte.</p>\n',
+    }
+    assert.deepEqual(toArticleDetail(dto), { ...dto, id: '2' })
+    assert.throws(() => toArticleDetail({ ...dto, html: null }), ApiContractError)
   })
 
   it('refuse une réponse qui ne suit pas le contrat', () => {

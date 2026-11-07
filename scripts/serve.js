@@ -5,6 +5,7 @@ import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
+import { prerenderArticle } from './prerender-content.js'
 import { resolveVariables, runtimeVariables } from './runtimeVariables.js'
 import { renderSsi } from './ssi.js'
 
@@ -15,6 +16,7 @@ const MAINTENANCE = process.env.MAINTENANCE === '1'
 const ERROR_TEST_ROUTE = '/_erreur-test'
 const STYLEGUIDE_MARKER = '<!-- dev:styleguide -->'
 const PARTIALS = '/partials/'
+const ARTICLE_PATH = /^\/blog\/([a-z0-9-]+)\/?$/
 const STYLEGUIDE_LINK = '<p><a href="/charte-graphique">Charte graphique (développement)</a></p>'
 
 const TYPES = {
@@ -68,12 +70,14 @@ const resolveFile = async (pathname) => {
   for (const candidate of [path, join(path, 'index.html')]) {
     if (await isFile(candidate)) return candidate
   }
-  return undefined
+  // Fiche article non pré-rendue : le gabarit, rempli par JavaScript (même règle que nginx)
+  return ARTICLE_PATH.test(decoded) ? join(ROOT, 'blog/fiche.html') : undefined
 }
 
 const COMPRESSIBLE = new Set(['.html', '.css', '.js', '.json', '.webmanifest', '.svg', '.xml'])
 
-const send = async (request, response, status, file, extraHeaders = {}) => {
+/** `content` : HTML déjà produit pour `file` (fiche pré-rendue), à la place du fichier lu sur le disque. */
+const send = async (request, response, status, file, extraHeaders = {}, content = undefined) => {
   const extension = extname(file)
   const headers = {
     ...SECURITY_HEADERS,
@@ -87,7 +91,7 @@ const send = async (request, response, status, file, extraHeaders = {}) => {
     return
   }
 
-  let body = await readFile(file)
+  let body = content === undefined ? await readFile(file) : Buffer.from(content)
   if (extension === '.html') {
     const html = renderSsi(body.toString('utf8'), {
       readInclude: (path) => readFileSync(join(ROOT, path), 'utf8'),
@@ -103,6 +107,25 @@ const send = async (request, response, status, file, extraHeaders = {}) => {
   response.end(request.method === 'HEAD' ? undefined : body)
 }
 
+const SITE_URL = JSON.parse(
+  readFileSync(new URL('../site.config.json', import.meta.url), 'utf8'),
+).url
+
+/** Fiche pré-rendue à la demande, avec la fonction du pré-rendu ; article inconnu ou API injoignable : le gabarit. */
+const prerenderedArticle = async (pathname, template) => {
+  const slug = ARTICLE_PATH.exec(pathname)?.[1]
+  try {
+    const response = await fetch(new URL(`/api/articles/${slug}`, RUNTIME.api_url), {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(5_000),
+    })
+    if (!response.ok) return undefined
+    return prerenderArticle(await readFile(template, 'utf8'), await response.json(), SITE_URL)
+  } catch {
+    return undefined
+  }
+}
+
 createServer(async (request, response) => {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     await send(request, response, 405, join(ROOT, '405.html'), { Allow: 'GET, HEAD' })
@@ -116,6 +139,10 @@ createServer(async (request, response) => {
     await send(request, response, 503, join(ROOT, '503.html'), { 'Retry-After': '3600' })
   } else if (pathname === ERROR_TEST_ROUTE) {
     await send(request, response, 500, join(ROOT, '50x.html'))
+  } else if (file?.endsWith('/blog/fiche.html')) {
+    // Comme nginx, qui sert la fiche pré-rendue à la construction quand l'API connaît l'article
+    const html = await prerenderedArticle(pathname, file)
+    await send(request, response, 200, file, {}, html)
   } else if (file) {
     await send(request, response, 200, file)
   } else {

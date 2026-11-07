@@ -12,6 +12,8 @@ const SITE = JSON.parse(readFileSync(join(ROOT, 'site.config.json'), 'utf8'))
 const HEADERS = readFileSync(join(ROOT, 'docker/security-headers.conf'), 'utf8')
 const ERROR_PAGES = ['/404', '/405', '/50x', '/503']
 const DEV_PAGES = ['/charte-graphique']
+// Gabarit de la fiche article, servi pour /blog/<slug> et rempli par JavaScript (ou pré-rendu dans l'image)
+const TEMPLATE_PAGES = ['/blog/fiche']
 
 const attribute = (html, pattern) => html.match(pattern)?.[1]
 const hrefsIn = (html, label) => {
@@ -19,7 +21,8 @@ const hrefsIn = (html, label) => {
   return [...nav.matchAll(/<a [^>]*href="([^"]+)"/g)].map(([, href]) => href)
 }
 const PUBLIC_ROUTES = PAGES.map((page) => page.route).filter(
-  (route) => !ERROR_PAGES.includes(route) && !DEV_PAGES.includes(route),
+  (route) =>
+    !ERROR_PAGES.includes(route) && !DEV_PAGES.includes(route) && !TEMPLATE_PAGES.includes(route),
 )
 
 describe('pages statiques', () => {
@@ -48,26 +51,34 @@ describe('pages statiques', () => {
         assert.ok(html.includes(`>Accessibilité : ${complianceStatus(SITE.accessibility)}<`))
       })
 
-      it('affiche le fil d’Ariane calculé et son JSON-LD', () => {
-        const h1 = text(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)[1])
-        const trail = breadcrumbTrail(route === '/404' ? '/404' : route, h1)
-        const nav = html.match(/<nav[^>]*data-testid="layout-breadcrumb"[\s\S]*?<\/nav>/)?.[0]
-        if (route === '/') {
-          assert.equal(nav, undefined)
-          return
-        }
-        const labels = [...nav.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map(([, item]) => text(item))
-        assert.deepEqual(
-          labels,
-          trail.map((item) => item.label),
-        )
-        const ld = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
-          .map(([, json]) => JSON.parse(json))
-          .find((data) => data['@type'] === 'BreadcrumbList')
-        assert.equal(ld.itemListElement.length, trail.length)
-      })
+      it(
+        'affiche le fil d’Ariane calculé et son JSON-LD',
+        { skip: TEMPLATE_PAGES.includes(route) },
+        () => {
+          const h1 = text(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)[1])
+          const trail = breadcrumbTrail(route === '/404' ? '/404' : route, h1)
+          const nav = html.match(/<nav[^>]*data-testid="layout-breadcrumb"[\s\S]*?<\/nav>/)?.[0]
+          if (route === '/') {
+            assert.equal(nav, undefined)
+            return
+          }
+          const labels = [...nav.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map(([, item]) =>
+            text(item),
+          )
+          assert.deepEqual(
+            labels,
+            trail.map((item) => item.label),
+          )
+          const ld = [
+            ...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g),
+          ]
+            .map(([, json]) => JSON.parse(json))
+            .find((data) => data['@type'] === 'BreadcrumbList')
+          assert.equal(ld.itemListElement.length, trail.length)
+        },
+      )
 
-      if (!ERROR_PAGES.includes(route) && !DEV_PAGES.includes(route)) {
+      if (PUBLIC_ROUTES.includes(route)) {
         it('porte des métadonnées SEO complètes', () => {
           const title = text(html.match(/<title>([\s\S]*?)<\/title>/)[1])
           const description = attribute(html, /<meta\s+name="description"\s+content="([^"]+)"/)

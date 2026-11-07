@@ -9,6 +9,11 @@ export const toArticle = (dto) => ({
   image: imageField(dto, 'image'),
 })
 
+export const toArticleDetail = (dto) => ({
+  ...toArticle(dto),
+  html: field(dto, 'html', 'string'),
+})
+
 export const toArticles = (dto) => {
   if (!Array.isArray(dto)) throw new ApiContractError('articles')
   return dto.map(toArticle)

@@ -4,12 +4,18 @@ import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import { FileSystemConfigLoader, HtmlValidate } from 'html-validate'
 
-import { prerenderCarousel, prerenderLegalPage } from '../../scripts/prerender-content.js'
+import {
+  prerenderArticle,
+  prerenderCarousel,
+  prerenderLegalPage,
+  withArticlesInSitemap,
+} from '../../scripts/prerender-content.js'
 import { apiImage } from './apiImage.js'
 import { renderPage, SITE_DIR } from './renderedPages.js'
 
 const HOME = readFileSync(join(SITE_DIR, 'index.html'), 'utf8')
 const LEGAL = readFileSync(join(SITE_DIR, 'accessibilite/index.html'), 'utf8')
+const FICHE = readFileSync(join(SITE_DIR, 'blog/fiche.html'), 'utf8')
 
 const SLIDES = [
   { id: '1', slug: 'heliconia', title: 'Heliconia <rouge>', text: 'Des bractées $1.', image: null },
@@ -89,5 +95,54 @@ describe('pré-rendu des pages légales', () => {
 
   it('produit un HTML valide', async () => {
     assert.deepEqual(await validate(html, 'accessibilite/index.html'), [])
+  })
+})
+
+describe('pré-rendu d’une fiche article', () => {
+  const ARTICLE = {
+    id: '2',
+    slug: 'un-carrousel',
+    title: 'Un carrousel <accessible>',
+    excerpt: 'Défilement natif.',
+    publishedAt: '2026-09-22',
+    image: apiImage('a2', [480, 960], { alt: 'Piste du carrousel' }),
+    html: '<p>Premier paragraphe.</p>\n<h2>Intertitre</h2>\n',
+  }
+  const html = prerenderArticle(FICHE, ARTICLE, 'https://www.example.com')
+  const page = outsideTemplates(html)
+
+  it('écrit le titre, la date, l’image, le chapeau et le texte, sans squelette ni message sans JavaScript', () => {
+    assert.ok(page.includes('data-testid="article-title">Un carrousel &lt;accessible&gt;'))
+    assert.ok(page.includes('<time data-article-date datetime="2026-09-22">22 septembre 2026'))
+    assert.ok(page.includes('srcset="http://localhost:8090/media/a2-480.avif 480w'))
+    assert.ok(page.includes('alt="Piste du carrousel"'))
+    assert.ok(page.includes('data-article-excerpt>Défilement natif.'))
+    assert.ok(page.includes('<h2>Intertitre</h2>'))
+    assert.ok(page.includes('<div data-article-content>'))
+    assert.ok(!page.includes('data-testid="article-loading"'))
+    assert.ok(!page.includes('data-testid="article-noscript"'))
+  })
+
+  it('écrit l’en-tête d’un article indexable, avec ses données structurées', () => {
+    assert.ok(html.includes('<title>Un carrousel &lt;accessible&gt; · Boilerplate HTML</title>'))
+    assert.ok(html.includes('<meta name="robots" content="index, follow" />'))
+    assert.ok(
+      html.includes('<link rel="canonical" href="https://www.example.com/blog/un-carrousel"'),
+    )
+    assert.ok(html.includes('<meta property="og:type" content="article" />'))
+    assert.ok(html.includes('content="http://localhost:8090/media/a2-960.webp"'))
+    assert.ok(html.includes('"@type":"BlogPosting"'))
+    assert.ok(html.includes('"@type":"BreadcrumbList"'))
+  })
+
+  it('produit un HTML valide', async () => {
+    assert.deepEqual(await validate(html, 'blog/un-carrousel/index.html'), [])
+  })
+
+  it('ajoute les fiches au sitemap', () => {
+    assert.equal(
+      withArticlesInSitemap('<urlset>\n</urlset>', ['a', 'b'], 'https://www.example.com/'),
+      '<urlset>\n  <url><loc>https://www.example.com/blog/a</loc></url>\n  <url><loc>https://www.example.com/blog/b</loc></url>\n</urlset>',
+    )
   })
 })

@@ -53,6 +53,14 @@ server {
         try_files $uri $uri/index.html =404;
     }
 
+    # Fiche article : page pré-rendue à la construction de l'image si elle existe, sinon le gabarit, rempli par JavaScript
+    location ~ ^/blog/([a-z0-9-]+)/?$ {
+        if ($maintenance) {
+            return 503;
+        }
+        try_files /blog/$1/index.html /blog/fiche.html;
+    }
+
     location ~* \.(css|js|map|svg|png|ico|jpg|webp|avif|webmanifest)$ {
         try_files $uri =404;
         expires 1h;

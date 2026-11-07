@@ -1,6 +1,6 @@
 import { fillPicture } from '/js/shared/picture.js'
 
-import { formatPublishedAt } from '../domain/article.js'
+import { articleHref, formatPublishedAt } from '../domain/article.js'
 import { ArticlesLoadError } from '../infrastructure/ArticlesLoadError.js'
 import { findLatestArticles } from '../infrastructure/http/articleRepository.js'
 
@@ -16,7 +16,9 @@ const fromTemplate = (id) => document.getElementById(id).content.cloneNode(true)
 const renderCard = (article) => {
   const card = cardTemplate.content.firstElementChild.cloneNode(true)
   fillPicture(card.querySelector('picture'), article.image)
-  card.querySelector('[data-blog-title]').textContent = article.title
+  const link = card.querySelector('[data-blog-title]')
+  link.textContent = article.title
+  link.href = articleHref(article.slug)
   card.querySelector('[data-blog-excerpt]').textContent = article.excerpt
   const date = card.querySelector('[data-blog-date]')
   date.dateTime = article.publishedAt
