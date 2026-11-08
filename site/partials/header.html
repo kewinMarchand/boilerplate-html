@@ -230,6 +230,11 @@
             </div>
           </div>
         </li>
+        <!--# if expr="$page = blog" -->
+        <li><a href="/blog" aria-current="page">Blog</a></li>
+        <!--# else -->
+        <li><a href="/blog">Blog</a></li>
+        <!--# endif -->
         <!--# if expr="$page = taches" -->
         <li><a href="/taches" aria-current="page">Tâches</a></li>
         <!--# else -->

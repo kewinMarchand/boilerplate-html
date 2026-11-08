@@ -1254,6 +1254,23 @@
     }
   }
 
+  .blog-all {
+    margin-block-start: var(--space-m);
+  }
+
+  .blog-list {
+    display: grid;
+    gap: var(--space-m);
+
+    @media (width >= 640px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (width >= 1024px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
   .blog-card {
     container: blog-card / inline-size;
     display: flex;
@@ -1267,6 +1284,11 @@
 
     & > p {
       flex-grow: 1;
+    }
+
+    /* Titre de carte en <h2> sur /blog, sous le <h1> : même taille que le <h3> de l'accueil */
+    & > h2 {
+      font-size: var(--font-size-h3);
     }
   }
 

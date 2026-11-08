@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="fr" data-color-scheme="auto">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blog, tous les articles · Boilerplate HTML</title>
+    <meta
+      name="description"
+      content="Tous les articles du blog, du plus récent au plus ancien : accessibilité, performance, composants et retours d’expérience front-end."
+    />
+    <link rel="canonical" href="https://www.example.com/blog" />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Boilerplate HTML" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="Blog, tous les articles · Boilerplate HTML" />
+    <meta
+      property="og:description"
+      content="Tous les articles du blog, du plus récent au plus ancien : accessibilité, performance, composants et retours d’expérience front-end."
+    />
+    <meta property="og:url" content="https://www.example.com/blog" />
+    <meta property="og:image" content="https://www.example.com/images/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Boilerplate HTML" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Blog, tous les articles · Boilerplate HTML" />
+    <meta
+      name="twitter:description"
+      content="Tous les articles du blog, du plus récent au plus ancien : accessibilité, performance, composants et retours d’expérience front-end."
+    />
+    <meta name="twitter:image" content="https://www.example.com/images/og-image.jpg" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#1d4ed8" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      document.documentElement.dataset.js = ''
+      try {
+        if (localStorage.getItem('a11y-mode') === 'enhanced') {
+          document.documentElement.dataset.a11yMode = 'enhanced'
+        }
+        const colorScheme = localStorage.getItem('color-scheme')
+        if (colorScheme === 'auto' || colorScheme === 'light' || colorScheme === 'dark') {
+          document.documentElement.dataset.colorScheme = colorScheme
+        }
+      } catch {}
+    </script>
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/vendor/boilerplates-ui.css" />
+    <script type="module" src="/js/shared/a11yModeToggle.js"></script>
+    <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
+    <script type="module" src="/js/shared/categoryMenu.js"></script>
+    <script type="module" src="/js/modules/cart/ui/cartLink.js"></script>
+    <script type="module" src="/js/modules/blog/ui/blogList.js"></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "name": "Blog",
+        "description": "Tous les articles du blog, du plus récent au plus ancien : accessibilité, performance, composants et retours d’expérience front-end.",
+        "url": "https://www.example.com/blog",
+        "inLanguage": "fr-FR"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Accueil",
+            "item": "https://www.example.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Blog",
+            "item": "https://www.example.com/blog"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <!--# set var="page" value="blog" -->
+    <!--# include virtual="/partials/header.html" -->
+    <main id="main">
+      <div class="container page blog">
+        <nav class="bui-breadcrumb" aria-label="Fil d'Ariane" data-testid="layout-breadcrumb">
+          <ol class="bui-breadcrumb__list">
+            <li class="bui-breadcrumb__item"><a class="bui-link" href="/">Accueil</a></li>
+            <li class="bui-breadcrumb__item">
+              <span class="bui-breadcrumb__current" aria-current="page">Blog</span>
+            </li>
+          </ol>
+        </nav>
+        <h1>Blog</h1>
+        <div data-blog-state>
+          <div class="skeleton-list" role="status" data-testid="blog-loading">
+            <span class="visually-hidden">Chargement des articles…</span>
+            <span class="bui-skeleton skeleton-card" aria-hidden="true"></span>
+          </div>
+        </div>
+        <noscript>
+          <div class="bui-alert bui-alert--info" data-testid="blog-noscript">
+            <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#info"></use>
+            </svg>
+            <div class="bui-alert__content">
+              <span class="bui-visually-hidden">Information :</span>
+              <div class="bui-alert__body">
+                <p>
+                  Les articles sont lus dans l'API par JavaScript. Activez-le pour les afficher.
+                </p>
+              </div>
+            </div>
+          </div>
+        </noscript>
+        <div class="blog-list" data-blog-list data-testid="blog-list"></div>
+        <template id="blog-card-template">
+          <article class="blog-card" data-testid="blog-card">
+            <picture class="blog-card-media">
+              <source
+                type="image/avif"
+                sizes="(width >= 1024px) 460px, (width >= 640px) 50vw, 100vw"
+                data-blog-avif
+              />
+              <source
+                type="image/webp"
+                sizes="(width >= 1024px) 460px, (width >= 640px) 50vw, 100vw"
+                data-blog-webp
+              />
+              <img
+                src="/images/hero-640.webp"
+                alt=""
+                width="960"
+                height="540"
+                loading="lazy"
+                decoding="async"
+                data-blog-image
+              />
+            </picture>
+            <h2><a class="blog-card-link" href="/" data-blog-title>Article</a></h2>
+            <p data-blog-excerpt></p>
+            <footer class="blog-card-meta">
+              <time data-blog-date></time>
+            </footer>
+          </article>
+        </template>
+        <template id="blog-loading-template">
+          <div class="skeleton-list" role="status" data-testid="blog-loading">
+            <span class="visually-hidden">Chargement des articles…</span>
+            <span class="bui-skeleton skeleton-card" aria-hidden="true"></span>
+          </div>
+        </template>
+        <template id="blog-error-template">
+          <div class="bui-alert bui-alert--error" role="alert" data-testid="blog-error">
+            <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#circle-alert"></use>
+            </svg>
+            <div class="bui-alert__content">
+              <span class="bui-visually-hidden">Erreur :</span>
+              <div class="bui-alert__body"><p data-blog-error-message></p></div>
+            </div>
+            <div class="bui-alert__action">
+              <button
+                type="button"
+                class="bui-button bui-button--outline"
+                data-blog-retry
+                data-testid="blog-retry"
+              >
+                Réessayer
+              </button>
+            </div>
+          </div>
+        </template>
+        <template id="blog-empty-template">
+          <p class="blog-empty" data-testid="blog-empty">
+            Aucun article pour le moment. Revenez bientôt, la rédaction est au travail.
+          </p>
+        </template>
+      </div>
+    </main>
+    <!--# include virtual="/partials/footer.html" -->
+  </body>
+</html>

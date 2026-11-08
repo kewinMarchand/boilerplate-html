@@ -8,7 +8,7 @@ set -eu
 IMAGE=boilerplate-html:test
 PORT=3140
 NAME=boilerplate-html-prod-test
-PAGES='/ /catalogue /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages /taches /contact /mentions-legales /donnees-personnelles /accessibilite /plan-du-site /panier /route-inexistante'
+PAGES='/ /catalogue /blog /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages /taches /contact /mentions-legales /donnees-personnelles /accessibilite /plan-du-site /panier /route-inexistante'
 
 if [ "${1:-}" = checks ]; then
   FAILED=0
@@ -56,7 +56,7 @@ if [ "${1:-}" = checks ]; then
 
   case "$2" in
   normal)
-    for route in / /catalogue /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages \
+    for route in / /catalogue /blog /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages \
       /taches /contact /mentions-legales /donnees-personnelles /accessibilite /plan-du-site \
       /panier /sitemap.xml /robots.txt /vendor/embla-carousel.esm.js; do
       expect_status "$route" 200
@@ -103,6 +103,15 @@ if [ "${1:-}" = checks ]; then
       echo "ok   carrousel et pages légales pré-rendus"
     else
       echo "FAIL carrousel ou pages légales non pré-rendus : API injoignable à la construction ?"
+      FAILED=1
+    fi
+    blog=$(curl --silent "http://localhost:$PORT/blog")
+    if printf '%s' "$blog" | grep --quiet 'data-testid="blog-card"' \
+      && printf '%s' "$blog" | grep --quiet 'href="/blog/le-mode-accessibilite-renforcee"' \
+      && ! printf '%s' "$blog" | grep --quiet 'data-testid="blog-noscript"'; then
+      echo "ok   liste des articles pré-rendue"
+    else
+      echo "FAIL liste des articles non pré-rendue : API injoignable à la construction ?"
       FAILED=1
     fi
     product=$(curl --silent "http://localhost:$PORT/produit/monstera-deliciosa")

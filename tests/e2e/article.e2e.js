@@ -39,6 +39,29 @@ test.describe('Fiche article', () => {
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index, follow')
   })
 
+  test('propose le lien « Tous les articles » vers la liste', async ({ page }) => {
+    await page.goto(ARTICLE)
+
+    await page.getByTestId('article-back').click()
+
+    await expect(page).toHaveURL(/\/blog$/)
+  })
+
+  test('a un fil d’Ariane Accueil › Blog › titre, qui mène à la liste', async ({ page }) => {
+    await page.goto(ARTICLE)
+
+    const breadcrumb = page.getByTestId('layout-breadcrumb')
+    await expect(breadcrumb.getByRole('listitem')).toHaveText([
+      'Accueil',
+      'Blog',
+      'Un carrousel accessible sans dépendance',
+    ])
+    await breadcrumb.getByRole('link', { name: 'Blog' }).click()
+
+    await expect(page).toHaveURL(/\/blog$/)
+    await expect(page.getByTestId('blog-list')).toBeVisible()
+  })
+
   test('signale un article inconnu, hors de l’index', async ({ page }) => {
     await page.goto('/blog/article-inconnu')
 

@@ -6,10 +6,11 @@ import { largestWebp, withPicture } from './prerenderPicture.js'
 
 /**
  * Pré-rendu du contenu administré dans l'API, à la construction de l'image, sur le modèle du
- * catalogue (ADR 0002) : diapositives de l'accueil, texte des pages légales et fiches des articles
- * (une page par article, à partir du gabarit blog/fiche.html, ajoutée au sitemap), écrits à partir des
- * `<template>` des pages, les mêmes que ceux du navigateur, qui relit l'API au chargement. Sans API
- * joignable, la page reste telle quelle et se remplit dans le navigateur.
+ * catalogue (ADR 0002) : diapositives de l'accueil, texte des pages légales, liste des articles
+ * (/blog) et fiches des articles (une page par article, à partir du gabarit blog/fiche.html, ajoutée
+ * au sitemap), écrits à partir des `<template>` des pages, les mêmes que ceux du navigateur, qui
+ * relit l'API au chargement. Sans API joignable, la page reste telle quelle et se remplit dans le
+ * navigateur.
  *
  * Usage : node --import ./tests/unit/siteResolver.js scripts/prerender-content.js <site> <API_URL>
  */
@@ -153,7 +154,13 @@ export const prerenderArticle = (html, article, siteUrl) => {
           name: 'Accueil',
           item: `${siteUrl.replace(/\/$/, '')}/`,
         },
-        { '@type': 'ListItem', position: 2, name: article.title, item: url },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Blog',
+          item: `${siteUrl.replace(/\/$/, '')}/blog`,
+        },
+        { '@type': 'ListItem', position: 3, name: article.title, item: url },
       ],
     }),
   ].join('\n    ')
@@ -179,6 +186,28 @@ export const prerenderArticle = (html, article, siteUrl) => {
     )
     .replace('<div data-article-content hidden>', '<div data-article-content>')
   return withoutNoscript(withoutLoading(page, 'data-article-state'), 'article-noscript')
+}
+
+const blogCard = (template, article) =>
+  withPicture(template, article.image)
+    .replace(/href="\/"/, `href="/blog/${escapeHtml(article.slug)}"`)
+    .replace(/(data-blog-title>)[^<]*/, (_, open) => `${open}${escapeHtml(article.title)}`)
+    .replace(/(data-blog-excerpt>)/, (_, open) => `${open}${escapeHtml(article.excerpt)}`)
+    .replace(
+      /<time data-blog-date>/,
+      `<time data-blog-date datetime="${escapeHtml(article.publishedAt)}">${DATE_FORMAT.format(new Date(`${article.publishedAt}T00:00:00Z`))}`,
+    )
+
+/** HTML de /blog, une carte par article, liée à sa fiche. Liste vide : page inchangée. */
+export const prerenderBlogList = (html, articles) => {
+  if (!articles.length) return html
+  const template = templateOf(html, 'blog-card-template')
+  const cards = articles.map((article) => blogCard(template, article)).join('')
+  const page = html.replace(
+    /(<div class="blog-list" data-blog-list data-testid="blog-list">)(<\/div>)/,
+    (_, open, close) => `${open}${cards}${close}`,
+  )
+  return withoutNoscript(withoutLoading(page, 'data-blog-state'), 'blog-noscript')
 }
 
 /** Sitemap avec les fiches, avant la fermeture de la liste. */
@@ -453,6 +482,11 @@ const prerenderArticles = async (siteDir, apiUrl) => {
     console.warn(`[contenu] fiches rendues dans le navigateur, API injoignable (${error.message})`)
     return
   }
+  writeFileSync(
+    join(siteDir, 'blog', 'index.html'),
+    prerenderBlogList(readFileSync(join(siteDir, 'blog', 'index.html'), 'utf8'), articles),
+  )
+  console.info('[contenu] /blog pré-rendue')
   const template = readFileSync(join(siteDir, 'blog', 'fiche.html'), 'utf8')
   const written = []
   for (const { slug } of articles) {

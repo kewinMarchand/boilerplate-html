@@ -64,6 +64,7 @@
         <nav class="bui-breadcrumb" aria-label="Fil d'Ariane" data-testid="layout-breadcrumb">
           <ol class="bui-breadcrumb__list">
             <li class="bui-breadcrumb__item"><a class="bui-link" href="/">Accueil</a></li>
+            <li class="bui-breadcrumb__item"><a class="bui-link" href="/blog">Blog</a></li>
             <li class="bui-breadcrumb__item">
               <span class="bui-breadcrumb__current" aria-current="page" data-article-crumb
                 >Article</span
@@ -121,7 +122,9 @@
             </picture>
             <p class="article-excerpt" data-article-excerpt></p>
             <div data-article-body data-testid="article-body"></div>
-            <p class="article-back"><a class="bui-link" href="/">Retour à l’accueil</a></p>
+            <p class="article-back">
+              <a class="bui-link" href="/blog" data-testid="article-back">Tous les articles</a>
+            </p>
           </div>
         </article>
         <template id="article-error-template">

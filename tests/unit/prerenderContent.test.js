@@ -6,6 +6,7 @@ import { FileSystemConfigLoader, HtmlValidate } from 'html-validate'
 
 import {
   prerenderArticle,
+  prerenderBlogList,
   prerenderCarousel,
   prerenderLegalPage,
   prerenderProduct,
@@ -18,6 +19,7 @@ import { renderPage, SITE_DIR } from './renderedPages.js'
 
 const HOME = readFileSync(join(SITE_DIR, 'index.html'), 'utf8')
 const LEGAL = readFileSync(join(SITE_DIR, 'accessibilite/index.html'), 'utf8')
+const BLOG = readFileSync(join(SITE_DIR, 'blog/index.html'), 'utf8')
 const FICHE = readFileSync(join(SITE_DIR, 'blog/fiche.html'), 'utf8')
 const PRODUCT_FICHE = readFileSync(join(SITE_DIR, 'produit/fiche.html'), 'utf8')
 
@@ -113,6 +115,50 @@ describe('pré-rendu des pages légales', () => {
   })
 })
 
+describe('pré-rendu de la liste des articles', () => {
+  const ARTICLES = [
+    {
+      id: '3',
+      slug: 'le-mode-renforce',
+      title: 'Le mode <renforcé> $1',
+      excerpt: 'Texte agrandi.',
+      publishedAt: '2026-10-01',
+      image: apiImage('a3', [480, 960], { alt: 'Mode renforcé' }),
+    },
+    {
+      id: '2',
+      slug: 'un-carrousel',
+      title: 'Un carrousel',
+      excerpt: 'Défilement natif.',
+      publishedAt: '2026-09-22',
+      image: null,
+    },
+  ]
+  const html = prerenderBlogList(BLOG, ARTICLES)
+  const page = outsideTemplates(html)
+
+  it('écrit une carte par article, liée à sa fiche, sans squelette ni message sans JavaScript', () => {
+    assert.equal(page.match(/data-testid="blog-card"/g)?.length, 2)
+    assert.ok(
+      page.includes('href="/blog/le-mode-renforce" data-blog-title>Le mode &lt;renforcé&gt; $1'),
+    )
+    assert.ok(page.includes('data-blog-excerpt>Texte agrandi.'))
+    assert.ok(page.includes('<time data-blog-date datetime="2026-09-22">22 septembre 2026'))
+    assert.ok(page.includes('srcset="http://localhost:8090/media/a3-480.avif 480w'))
+    assert.equal(page.match(/<picture/g)?.length, 1)
+    assert.ok(!page.includes('data-testid="blog-loading"'))
+    assert.ok(!page.includes('data-testid="blog-noscript"'))
+  })
+
+  it('produit un HTML valide', async () => {
+    assert.deepEqual(await validate(html, 'blog/index.html'), [])
+  })
+
+  it('laisse la page telle quelle sans article', () => {
+    assert.equal(prerenderBlogList(BLOG, []), BLOG)
+  })
+})
+
 describe('pré-rendu d’une fiche article', () => {
   const ARTICLE = {
     id: '2',
@@ -148,6 +194,7 @@ describe('pré-rendu d’une fiche article', () => {
     assert.ok(html.includes('content="http://localhost:8090/media/a2-960.webp"'))
     assert.ok(html.includes('"@type":"BlogPosting"'))
     assert.ok(html.includes('"@type":"BreadcrumbList"'))
+    assert.ok(html.includes('"position":2,"name":"Blog","item":"https://www.example.com/blog"'))
   })
 
   it('produit un HTML valide', async () => {

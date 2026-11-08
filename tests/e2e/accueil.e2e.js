@@ -145,6 +145,27 @@ test.describe('Accueil', () => {
     await expect(page.getByTestId('home-blog-empty')).toBeHidden()
   })
 
+  test('la grille de blog garde les trois articles les plus récents quand l’API en renvoie plus', async ({
+    page,
+  }) => {
+    await page.route('**/api/articles', async (route) => {
+      const response = await route.fetch()
+      const articles = await response.json()
+      const older = {
+        ...articles.at(-1),
+        id: 99,
+        slug: 'article-plus-ancien',
+        title: 'Plus ancien',
+      }
+      await route.fulfill({ response, json: [...articles.slice(0, 3), older] })
+    })
+    await page.goto('/')
+
+    const cards = page.getByTestId('home-blog-card')
+    await expect(cards).toHaveCount(3)
+    await expect(cards.filter({ hasText: 'Plus ancien' })).toHaveCount(0)
+  })
+
   test('la grille de blog met l’article à la une sur 8 colonnes et empile les deux autres en desktop', async ({
     page,
     isMobile,

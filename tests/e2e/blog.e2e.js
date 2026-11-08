@@ -1,0 +1,94 @@
+import { expect, test } from '@playwright/test'
+
+import { withScenario } from './routes.js'
+
+const apiArticles = async (request) => {
+  const response = await request.get(
+    `${process.env.API_URL || 'http://localhost:8090'}/api/articles`,
+  )
+  return response.json()
+}
+
+test.describe('Liste des articles', () => {
+  test('affiche tous les articles de l’API, du plus récent au plus ancien', async ({
+    page,
+    request,
+  }) => {
+    const articles = await apiArticles(request)
+    await page.goto('/blog')
+
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Blog')
+    const cards = page.getByTestId('blog-list').getByTestId('blog-card')
+    await expect(cards).toHaveCount(articles.length)
+    await expect(cards.locator('h2')).toHaveText(articles.map((article) => article.title))
+    await expect(cards.first().locator('time')).toHaveAttribute('datetime', articles[0].publishedAt)
+    await expect(page.getByTestId('blog-empty')).toHaveCount(0)
+    await expect(page.getByTestId('layout-breadcrumb').getByRole('listitem')).toHaveText([
+      'Accueil',
+      'Blog',
+    ])
+  })
+
+  test('une carte ouvre la fiche de son article', async ({ page }) => {
+    await page.goto('/blog')
+
+    const card = page.getByTestId('blog-card').first()
+    await expect(card.locator('h2')).not.toHaveText('Article')
+    const title = ((await card.locator('h2').textContent()) ?? '').trim()
+    await card.getByRole('link').click()
+
+    await expect(page).toHaveURL(/\/blog\/[a-z0-9-]+$/)
+    await expect(page.getByTestId('article-title')).toHaveText(title)
+  })
+
+  test('répartit les cartes sur trois colonnes en desktop', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'une seule colonne en mobile, vérifiée par le test suivant')
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto('/blog')
+
+    const cards = page.getByTestId('blog-card')
+    await expect(cards.nth(2)).toBeVisible()
+    const boxes = await Promise.all([0, 1, 2].map((index) => cards.nth(index).boundingBox()))
+    expect(new Set(boxes.map((box) => Math.round(box.y))).size).toBe(1)
+  })
+
+  test('empile les cartes sur une colonne en mobile', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'mobile seulement')
+    await page.goto('/blog')
+
+    const cards = page.getByTestId('blog-card')
+    await expect(cards.nth(1)).toBeVisible()
+    const [first, second] = await Promise.all([
+      cards.nth(0).boundingBox(),
+      cards.nth(1).boundingBox(),
+    ])
+    expect(second.y).toBeGreaterThan(first.y + first.height - 1)
+    expect(Math.round(second.x)).toBe(Math.round(first.x))
+  })
+
+  test('affiche un message amical quand l’API ne renvoie aucun article', async ({ page }) => {
+    await withScenario(page, 'empty')
+    await page.goto('/blog')
+
+    await expect(page.getByTestId('blog-empty')).toBeVisible()
+    await expect(page.getByTestId('blog-card')).toHaveCount(0)
+  })
+
+  test('propose de réessayer quand l’API échoue', async ({ page }) => {
+    await withScenario(page, 'error')
+    await page.goto('/blog')
+
+    await expect(page.getByTestId('blog-error')).toContainText(
+      'Impossible de charger les articles pour le moment.',
+    )
+    await page.getByTestId('blog-retry').click()
+    await expect(page.getByTestId('blog-error')).toBeVisible()
+  })
+
+  test('est liée depuis la grille de l’accueil', async ({ page }) => {
+    await page.goto('/')
+    await page.getByTestId('home-blog-all').click()
+
+    await expect(page).toHaveURL(/\/blog$/)
+  })
+})

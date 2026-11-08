@@ -2,6 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://www.example.com/</loc></url>
   <url><loc>https://www.example.com/catalogue</loc></url>
+  <url><loc>https://www.example.com/blog</loc></url>
   <url><loc>https://www.example.com/taches</loc></url>
   <url><loc>https://www.example.com/contact</loc></url>
   <url><loc>https://www.example.com/catalogue/plantes-interieur</loc></url>

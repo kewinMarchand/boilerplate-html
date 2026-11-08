@@ -48,7 +48,8 @@ const addJsonLd = (article, url, home) => {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Accueil', item: home },
-        { '@type': 'ListItem', position: 2, name: article.title, item: url },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: new URL('/blog', home).href },
+        { '@type': 'ListItem', position: 3, name: article.title, item: url },
       ],
     },
   ]) {
