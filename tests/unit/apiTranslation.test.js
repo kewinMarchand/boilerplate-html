@@ -7,6 +7,7 @@ import {
 } from '../../site/js/modules/blog/infrastructure/http/articleTranslation.js'
 import { DEFAULT_QUERY } from '../../site/js/modules/catalog/domain/catalogQuery.js'
 import {
+  toFacetsQuery,
   toProductDetail,
   toProducts,
   toProductsQuery,
@@ -54,26 +55,38 @@ describe('traduction des réponses de l’API', () => {
         itemsPerPage: 12,
       },
     )
+    assert.deepEqual(toFacetsQuery('feuillages', { ...DEFAULT_QUERY, sort: 'nom', page: 3 }), {
+      category: 'feuillages',
+      'exposure[]': [],
+      'size[]': [],
+    })
   })
 
   it('traduit une liste de produits et ses facettes', () => {
-    const result = toSearchResult({
-      items: [PRODUCT],
-      totalItems: 6,
-      page: 1,
-      itemsPerPage: 12,
-      totalPages: 1,
-      facets: {
+    const result = toSearchResult(
+      [PRODUCT],
+      {
+        totalItems: 6,
         exposure: [{ value: 'mi-ombre', count: 4 }],
         size: [{ value: 'M', count: 2 }],
         category: [{ slug: 'monstera', name: 'Monstera', count: 3 }],
       },
-    })
+      1,
+    )
     assert.equal(result.items[0].price, 3490)
     assert.deepEqual(result.exposureCounts, { soleil: 0, 'mi-ombre': 4, ombre: 0 })
     assert.deepEqual(result.categoryCounts, [
       { category: { slug: 'monstera', name: 'Monstera' }, count: 3 },
     ])
+  })
+
+  it('calcule le nombre de pages à partir du total des facettes, au moins une', () => {
+    const facets = (totalItems) => ({ totalItems, exposure: [], size: [], category: [] })
+    const result = toSearchResult([], facets(25), 3)
+    assert.equal(result.total, 25)
+    assert.equal(result.page, 3)
+    assert.equal(result.pageCount, 3)
+    assert.equal(toSearchResult([], facets(0), 1).pageCount, 1)
   })
 
   it('traduit les produits à la une, la fiche produit et les pages légales', () => {
@@ -150,7 +163,12 @@ describe('traduction des réponses de l’API', () => {
       ApiContractError,
     )
     assert.throws(
-      () => toSearchResult({ items: [{ ...PRODUCT, exposure: 'lune' }], facets: {} }),
+      () =>
+        toSearchResult(
+          [{ ...PRODUCT, exposure: 'lune' }],
+          { totalItems: 1, exposure: [], size: [], category: [] },
+          1,
+        ),
       ApiContractError,
     )
   })

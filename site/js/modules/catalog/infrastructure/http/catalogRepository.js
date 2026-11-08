@@ -3,15 +3,20 @@ import { ApiError, apiGet } from '/js/shared/api.js'
 import { SIMILAR_PRODUCTS_LIMIT } from '../../domain/product.js'
 
 import {
+  toFacetsQuery,
   toProductDetail,
-  toProductItems,
   toProducts,
   toProductsQuery,
   toSearchResult,
 } from './catalogTranslation.js'
 
-export const searchProducts = async ({ categorySlug, query }) =>
-  toSearchResult(await apiGet('/api/products', toProductsQuery(categorySlug, query)))
+export const searchProducts = async ({ categorySlug, query }) => {
+  const [products, facets] = await Promise.all([
+    apiGet('/api/products', toProductsQuery(categorySlug, query)),
+    apiGet('/api/product-facets', toFacetsQuery(categorySlug, query)),
+  ])
+  return toSearchResult(products, facets, query.page)
+}
 
 /** `null` si l'API ne connaît pas le produit (404). */
 export const findProduct = async (slug) => {
@@ -25,7 +30,7 @@ export const findProduct = async (slug) => {
 
 /** Produits de la catégorie, sans celui affiché : le carrousel de la fiche. */
 export const findSimilarProducts = async (categorySlug, excludedSlug) =>
-  toProductItems(
+  toProducts(
     await apiGet('/api/products', {
       category: categorySlug,
       itemsPerPage: SIMILAR_PRODUCTS_LIMIT + 1,

@@ -15,6 +15,7 @@ import { largestWebp, withPicture } from './prerenderPicture.js'
  */
 
 const API_TIMEOUT_MS = 10_000
+const PRODUCTS_PER_PAGE = 48
 const LEGAL_PAGES = ['mentions-legales', 'donnees-personnelles', 'accessibilite']
 
 const escapeHtml = (value) =>
@@ -384,9 +385,12 @@ const prerenderProducts = async (siteDir, apiUrl) => {
   const slugs = []
   try {
     for (let page = 1; ; page += 1) {
-      const list = await fetchJson(apiUrl, `/api/products?page=${page}&itemsPerPage=48`)
-      slugs.push(...list.items.map((item) => item.slug))
-      if (page >= list.totalPages) break
+      const list = await fetchJson(
+        apiUrl,
+        `/api/products?page=${page}&itemsPerPage=${PRODUCTS_PER_PAGE}`,
+      )
+      slugs.push(...list.map((item) => item.slug))
+      if (list.length < PRODUCTS_PER_PAGE) break
     }
   } catch (error) {
     console.warn(

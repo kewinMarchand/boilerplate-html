@@ -12,14 +12,19 @@ const SORT_PARAMS = {
   nom: { 'order[name]': 'asc' },
 }
 
-/** Euros de l'URL en centimes, tri du front en `order[...]`, listes en clés répétées. */
-export const toProductsQuery = (categorySlug, query) => ({
+/** Filtres communs à la liste et aux facettes : euros de l'URL en centimes, listes en clés répétées. */
+export const toFacetsQuery = (categorySlug, query) => ({
   ...(categorySlug && { category: categorySlug }),
   'exposure[]': query.exposures,
   'size[]': query.sizes,
   ...(query.priceMin !== null && { priceMin: eurosToCents(query.priceMin) }),
   ...(query.priceMax !== null && { priceMax: eurosToCents(query.priceMax) }),
   ...(query.inStock && { inStock: true }),
+})
+
+/** Filtres, tri du front en `order[...]` et page demandée. */
+export const toProductsQuery = (categorySlug, query) => ({
+  ...toFacetsQuery(categorySlug, query),
   ...SORT_PARAMS[query.sort],
   page: query.page,
   itemsPerPage: ITEMS_PER_PAGE,
@@ -47,13 +52,14 @@ const toCounts = (values, dtos) =>
     values.map((value) => [value, dtos.find((dto) => dto?.value === value)?.count ?? 0]),
   )
 
-export const toSearchResult = (dto) => {
-  const facets = field(dto, 'facets', 'object')
+/** Une page de la liste et les facettes des mêmes filtres ; le nombre de pages vient du total. */
+export const toSearchResult = (productsDto, facets, page) => {
+  const total = field(facets, 'totalItems', 'number')
   return {
-    items: field(dto, 'items', 'array').map(toProduct),
-    total: field(dto, 'totalItems', 'number'),
-    page: field(dto, 'page', 'number'),
-    pageCount: Math.max(1, field(dto, 'totalPages', 'number')),
+    items: toProducts(productsDto),
+    total,
+    page,
+    pageCount: Math.max(1, Math.ceil(total / ITEMS_PER_PAGE)),
     exposureCounts: toCounts(EXPOSURES, field(facets, 'exposure', 'array')),
     sizeCounts: toCounts(SIZES, field(facets, 'size', 'array')),
     categoryCounts: field(facets, 'category', 'array').map((child) => ({
@@ -87,9 +93,6 @@ export const toProductDetail = (dto) => {
       .filter((paragraph) => paragraph !== ''),
   }
 }
-
-/** Produits d'une page de liste, sans ses compteurs ni ses facettes. */
-export const toProductItems = (dto) => field(dto, 'items', 'array').map(toProduct)
 
 export const toProducts = (dto) => {
   if (!Array.isArray(dto)) throw new ApiContractError('products')

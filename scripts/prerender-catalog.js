@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { DEFAULT_QUERY, EXPOSURES, SIZES } from '/js/modules/catalog/domain/catalogQuery.js'
 import { formatPrice } from '/js/modules/catalog/domain/price.js'
 import {
+  toFacetsQuery,
   toProductsQuery,
   toSearchResult,
 } from '/js/modules/catalog/infrastructure/http/catalogTranslation.js'
@@ -122,21 +123,25 @@ export const prerenderCatalogPage = (html, result) => {
   return page
 }
 
-const productsUrl = (apiUrl, categorySlug) => {
-  const url = new URL('/api/products', apiUrl)
-  for (const [name, value] of Object.entries(toProductsQuery(categorySlug, DEFAULT_QUERY))) {
+const fetchApi = async (apiUrl, path, params) => {
+  const url = new URL(path, apiUrl)
+  for (const [name, value] of Object.entries(params)) {
     for (const item of [value].flat()) url.searchParams.append(name, String(item))
   }
-  return url
-}
-
-const fetchFirstPage = async (apiUrl, categorySlug) => {
-  const response = await fetch(productsUrl(apiUrl, categorySlug), {
+  const response = await fetch(url, {
     headers: { accept: 'application/json' },
     signal: AbortSignal.timeout(API_TIMEOUT_MS),
   })
   if (!response.ok) throw new Error(`réponse ${response.status}`)
-  return toSearchResult(await response.json())
+  return response.json()
+}
+
+const fetchFirstPage = async (apiUrl, categorySlug) => {
+  const [products, facets] = await Promise.all([
+    fetchApi(apiUrl, '/api/products', toProductsQuery(categorySlug, DEFAULT_QUERY)),
+    fetchApi(apiUrl, '/api/product-facets', toFacetsQuery(categorySlug, DEFAULT_QUERY)),
+  ])
+  return toSearchResult(products, facets, DEFAULT_QUERY.page)
 }
 
 const main = async ([siteDir, apiUrl]) => {
