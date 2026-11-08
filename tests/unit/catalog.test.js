@@ -21,10 +21,21 @@ describe('requête du catalogue', () => {
     assert.equal(serializeQuery(parseQuery(new URLSearchParams(url))), url)
   })
 
+  it('fait l’aller-retour des attributs, une valeur par occurrence de attr-<code>', () => {
+    const url = 'taille=M&attr-feuillage=persistant&attr-feuillage=caduc&attr-hauteur-adulte=300'
+    const query = parseQuery(new URLSearchParams(url))
+    assert.deepEqual(query.attributes, {
+      feuillage: ['persistant', 'caduc'],
+      'hauteur-adulte': ['300'],
+    })
+    assert.equal(serializeQuery(query), url)
+    assert.equal(countActiveFilters(query), 4)
+  })
+
   it('ignore les valeurs invalides', () => {
     const query = parseQuery(
       new URLSearchParams(
-        'exposition=lune&taille=XL&prix_min=-3&tri=hasard&vue=mosaique&page=1&en_stock=oui',
+        'exposition=lune&taille=XL&prix_min=-3&tri=hasard&vue=mosaique&page=1&en_stock=oui&attr-Feuillage=caduc&attr-feuillage=Caduc&attr-=x',
       ),
     )
     assert.deepEqual(query, DEFAULT_QUERY)
@@ -46,6 +57,24 @@ describe('requête du catalogue', () => {
       activeFilters(query).map((filter) => filter.label),
       ['Mi-ombre', 'Prix maximum : 30 €', 'En stock'],
     )
+    const attributes = { ...DEFAULT_QUERY, attributes: { feuillage: ['caduc', 'inconnue'] } }
+    const facets = [
+      {
+        code: 'feuillage',
+        label: 'Feuillage',
+        values: [{ value: 'caduc', label: 'Caduc', count: 2 }],
+      },
+    ]
+    const filters = activeFilters(attributes, facets)
+    assert.deepEqual(
+      filters.map((filter) => filter.label),
+      ['Caduc', 'inconnue'],
+    )
+    assert.deepEqual(withFilters(attributes, filters[0].remove(attributes)).attributes, {
+      feuillage: ['inconnue'],
+    })
+    assert.equal(isFiltered(attributes), true)
+    assert.deepEqual(clearFilters(attributes).attributes, {})
     assert.equal(isFiltered(DEFAULT_QUERY), false)
     assert.equal(isFiltered({ ...DEFAULT_QUERY, sort: 'nom' }), true)
   })

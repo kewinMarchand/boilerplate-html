@@ -55,6 +55,18 @@ describe('traduction des réponses de l’API', () => {
         itemsPerPage: 12,
       },
     )
+    assert.deepEqual(
+      toFacetsQuery(null, {
+        ...DEFAULT_QUERY,
+        attributes: { feuillage: ['persistant', 'caduc'], 'hauteur-adulte': [] },
+      }),
+      {
+        'exposure[]': [],
+        'size[]': [],
+        'attributes[feuillage][]': ['persistant', 'caduc'],
+        'attributes[hauteur-adulte][]': [],
+      },
+    )
     assert.deepEqual(toFacetsQuery('feuillages', { ...DEFAULT_QUERY, sort: 'nom', page: 3 }), {
       category: 'feuillages',
       'exposure[]': [],
@@ -78,6 +90,65 @@ describe('traduction des réponses de l’API', () => {
     assert.deepEqual(result.categoryCounts, [
       { category: { slug: 'monstera', name: 'Monstera' }, count: 3 },
     ])
+  })
+
+  it('traduit les facettes des attributs, et une API qui ne les sert pas en facettes vides', () => {
+    const facets = { totalItems: 8, exposure: [], size: [], category: [] }
+    const attributes = [
+      {
+        code: 'feuillage',
+        label: 'Feuillage',
+        values: [
+          { value: 'persistant', label: 'Persistant', count: 6 },
+          { value: 'caduc', label: 'Caduc', count: 0 },
+        ],
+      },
+    ]
+    assert.deepEqual(toSearchResult([], { ...facets, attributes }, 1).attributeFacets, attributes)
+    assert.deepEqual(toSearchResult([], facets, 1).attributeFacets, [])
+    assert.throws(
+      () =>
+        toSearchResult(
+          [],
+          { ...facets, attributes: [{ ...attributes[0], code: 'Feuillage"' }] },
+          1,
+        ),
+      ApiContractError,
+    )
+  })
+
+  it('traduit les attributs de la fiche produit, unité absente comprise', () => {
+    const detail = toProductDetail({
+      ...PRODUCT,
+      categoryPath: [],
+      description: '',
+      attributes: [
+        {
+          code: 'feuillage',
+          label: 'Feuillage',
+          type: 'choice',
+          value: 'persistant',
+          valueLabel: 'Persistant',
+          unit: null,
+        },
+        {
+          code: 'hauteur-adulte',
+          label: 'Hauteur adulte',
+          type: 'number',
+          value: '300',
+          valueLabel: '300',
+          unit: 'cm',
+        },
+      ],
+    })
+    assert.deepEqual(detail.attributes, [
+      { code: 'feuillage', label: 'Feuillage', valueLabel: 'Persistant', unit: null },
+      { code: 'hauteur-adulte', label: 'Hauteur adulte', valueLabel: '300', unit: 'cm' },
+    ])
+    assert.deepEqual(
+      toProductDetail({ ...PRODUCT, categoryPath: [], description: '' }).attributes,
+      [],
+    )
   })
 
   it('calcule le nombre de pages à partir du total des facettes, au moins une', () => {

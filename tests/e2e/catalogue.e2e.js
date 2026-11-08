@@ -37,6 +37,37 @@ test.describe('Catalogue', () => {
     await expect(page.getByTestId('catalog-results-count')).toHaveText('24 produits')
   })
 
+  test('filtre par attribut, met à jour l’URL, remet la page à 1 et ajoute la puce', async ({
+    page,
+    isMobile,
+  }) => {
+    await page.goto('/catalogue?page=2')
+    await openFilters(page, isMobile)
+    const caduc = page.getByTestId('catalog-filter-attribute-feuillage-caduc')
+    await expect(caduc).toHaveAccessibleName('Caduc (2)')
+
+    await caduc.check()
+    await expect(page).toHaveURL(/\/catalogue\?attr-feuillage=caduc$/)
+    await expect(caduc).toBeFocused()
+    await closeFilters(page, isMobile)
+
+    await expect(page.getByTestId('catalog-results-count')).toHaveText('2 produits')
+    await expect(page.getByTestId('catalog-product')).toHaveCount(2)
+    await expect(page.getByTestId('catalog-active-filter')).toHaveAccessibleName(
+      'Retirer le filtre : Caduc',
+    )
+
+    await page.getByTestId('catalog-active-filter').click()
+    await expect(page).toHaveURL(/\/catalogue$/)
+    await expect(page.getByTestId('catalog-results-count')).toHaveText('24 produits')
+  })
+
+  test('n’affiche aucune facette d’attribut dans une branche sans attribut', async ({ page }) => {
+    await page.goto('/catalogue/plantes-exterieur/arbustes-a-fleurs')
+    await expect(page.getByTestId('catalog-product')).toHaveCount(6)
+    await expect(page.locator('[data-testid^="catalog-filter-attribute-"]')).toHaveCount(0)
+  })
+
   test('Tout effacer garde la catégorie et la vue', async ({ page }) => {
     await page.goto('/catalogue/plantes-interieur?taille=S&en_stock=1&tri=nom&vue=liste')
     await expect(page.getByTestId('catalog-active-filter')).toHaveCount(2)

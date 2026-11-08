@@ -17,6 +17,9 @@ export const toFacetsQuery = (categorySlug, query) => ({
   ...(categorySlug && { category: categorySlug }),
   'exposure[]': query.exposures,
   'size[]': query.sizes,
+  ...Object.fromEntries(
+    Object.entries(query.attributes).map(([code, values]) => [`attributes[${code}][]`, values]),
+  ),
   ...(query.priceMin !== null && { priceMin: eurosToCents(query.priceMin) }),
   ...(query.priceMax !== null && { priceMax: eurosToCents(query.priceMax) }),
   ...(query.inStock && { inStock: true }),
@@ -47,6 +50,38 @@ export const toProduct = (dto) => ({
   image: imageField(dto, 'image'),
 })
 
+const matching = (value, pattern, name) => {
+  if (!pattern.test(value)) throw new ApiContractError(name)
+  return value
+}
+
+const ATTRIBUTE_CODE = /^[a-z][a-z0-9-]{0,39}$/
+const ATTRIBUTE_VALUE = /^[a-z0-9][a-z0-9-]{0,39}$/
+
+/** Une API qui ne sert pas encore les attributs (section 23 de la spec commune) en vaut une sans attribut. */
+const optionalArray = (dto, name) => (dto?.[name] === undefined ? [] : field(dto, name, 'array'))
+
+/** Facettes des attributs filtrables : codes et valeurs sûrs pour l'URL, les `id` et les sélecteurs. */
+const toAttributeFacets = (facets) =>
+  optionalArray(facets, 'attributes').map((attribute) => ({
+    code: matching(field(attribute, 'code', 'string'), ATTRIBUTE_CODE, 'attributes.code'),
+    label: field(attribute, 'label', 'string'),
+    values: field(attribute, 'values', 'array').map((value) => ({
+      value: matching(field(value, 'value', 'string'), ATTRIBUTE_VALUE, 'attributes.values.value'),
+      label: field(value, 'label', 'string'),
+      count: field(value, 'count', 'number'),
+    })),
+  }))
+
+/** Attributs renseignés sur un produit, dans l'ordre de l'API. */
+const toProductAttributes = (dto) =>
+  optionalArray(dto, 'attributes').map((attribute) => ({
+    code: field(attribute, 'code', 'string'),
+    label: field(attribute, 'label', 'string'),
+    valueLabel: field(attribute, 'valueLabel', 'string'),
+    unit: attribute?.unit === null ? null : field(attribute, 'unit', 'string'),
+  }))
+
 const toCounts = (values, dtos) =>
   Object.fromEntries(
     values.map((value) => [value, dtos.find((dto) => dto?.value === value)?.count ?? 0]),
@@ -62,6 +97,7 @@ export const toSearchResult = (productsDto, facets, page) => {
     pageCount: Math.max(1, Math.ceil(total / ITEMS_PER_PAGE)),
     exposureCounts: toCounts(EXPOSURES, field(facets, 'exposure', 'array')),
     sizeCounts: toCounts(SIZES, field(facets, 'size', 'array')),
+    attributeFacets: toAttributeFacets(facets),
     categoryCounts: field(facets, 'category', 'array').map((child) => ({
       category: { slug: field(child, 'slug', 'string'), name: field(child, 'name', 'string') },
       count: field(child, 'count', 'number'),
@@ -91,6 +127,7 @@ export const toProductDetail = (dto) => {
       .split(/\n\s*\n/)
       .map((paragraph) => paragraph.trim())
       .filter((paragraph) => paragraph !== ''),
+    attributes: toProductAttributes(dto),
   }
 }
 

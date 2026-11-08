@@ -1,6 +1,11 @@
 import { EXPOSURE_LABELS, SIZE_LABELS } from './labels.js'
 
-export const activeFilters = (query) => [
+const attributeValueLabel = (attributeFacets, code, value) =>
+  attributeFacets.find((facet) => facet.code === code)?.values.find((item) => item.value === value)
+    ?.label ?? value
+
+/** Libellés des valeurs d'attribut lus dans les facettes de l'API ; valeur inconnue : son code. */
+export const activeFilters = (query, attributeFacets = []) => [
   ...query.exposures.map((value) => ({
     label: EXPOSURE_LABELS[value],
     remove: (q) => ({ exposures: q.exposures.filter((item) => item !== value) }),
@@ -9,6 +14,17 @@ export const activeFilters = (query) => [
     label: SIZE_LABELS[value],
     remove: (q) => ({ sizes: q.sizes.filter((item) => item !== value) }),
   })),
+  ...Object.entries(query.attributes).flatMap(([code, values]) =>
+    values.map((value) => ({
+      label: attributeValueLabel(attributeFacets, code, value),
+      remove: (q) => ({
+        attributes: {
+          ...q.attributes,
+          [code]: q.attributes[code].filter((item) => item !== value),
+        },
+      }),
+    })),
+  ),
   ...(query.priceMin === null
     ? []
     : [{ label: `Prix minimum : ${query.priceMin} €`, remove: () => ({ priceMin: null }) }]),

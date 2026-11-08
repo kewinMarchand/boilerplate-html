@@ -36,6 +36,22 @@ const breadcrumbItem = (step) => {
   return item
 }
 
+const attributeValue = ({ valueLabel, unit }) => (unit ? `${valueLabel}\u00a0${unit}` : valueLabel)
+
+const renderAttributes = (attributes) => {
+  const list = content.querySelector('[data-product-attributes]')
+  if (attributes.length === 0) {
+    list?.remove()
+    return
+  }
+  list.replaceChildren(
+    ...attributes.flatMap((attribute) => [
+      Object.assign(document.createElement('dt'), { textContent: attribute.label }),
+      Object.assign(document.createElement('dd'), { textContent: attributeValue(attribute) }),
+    ]),
+  )
+}
+
 const paragraph = (text) => {
   const element = document.createElement('p')
   element.textContent = text
@@ -105,6 +121,7 @@ const renderProduct = (product, prerendered) => {
   const stock = content.querySelector('[data-product-stock]')
   if (product.inStock) stock.textContent = 'En stock'
   else stock.innerHTML = '<span class="bui-badge bui-badge--error">Rupture de stock</span>'
+  renderAttributes(product.attributes)
   const category = product.categoryPath.at(-1)
   const categoryLink = content.querySelector('[data-product-category]')
   if (category) {

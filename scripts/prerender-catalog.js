@@ -9,6 +9,7 @@ import {
   toProductsQuery,
   toSearchResult,
 } from '/js/modules/catalog/infrastructure/http/catalogTranslation.js'
+import { attributeFacetsHtml } from '/js/modules/catalog/ui/attributeFacets.js'
 import { EXPOSURE_LABELS, formatResultsCount } from '/js/modules/catalog/ui/labels.js'
 
 import { largestWebp, withPicture } from './prerenderPicture.js'
@@ -103,6 +104,11 @@ export const prerenderCatalogPage = (html, result) => {
       "$1Sans JavaScript, seule la première page s'affiche, sans filtre ni tri.$2",
     )
     .replace('</head>', `${next}${jsonLd}</head>`)
+    .replace(
+      /(<div class="attribute-facets" data-catalog-attribute-facets>)(<\/div>)/,
+      (_, open, close) =>
+        `${open}${attributeFacetsHtml(result.attributeFacets, DEFAULT_QUERY)}${close}`,
+    )
   for (const [facet, values, counts] of [
     ['exposures', EXPOSURES, result.exposureCounts],
     ['sizes', SIZES, result.sizeCounts],

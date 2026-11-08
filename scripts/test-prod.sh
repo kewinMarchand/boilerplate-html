@@ -89,6 +89,15 @@ if [ "${1:-}" = checks ]; then
       echo "FAIL catalogue non pré-rendu : API injoignable à la construction ?"
       FAILED=1
     fi
+    if printf '%s' "$catalog" | grep --quiet 'data-testid="catalog-filter-attribute-feuillage-persistant"' \
+      && curl --silent "http://localhost:$PORT/produit/monstera-deliciosa" | grep --after-context=1 'data-testid="product-attributes"' | grep --quiet '><dt>'; then
+      echo "ok   facette d'attribut et attributs de la fiche pré-rendus"
+    elif curl --silent "${API_URL:-http://localhost:8090}/api/product-facets" | grep --quiet '"attributes"'; then
+      echo "FAIL facette d'attribut ou attributs de la fiche non pré-rendus"
+      FAILED=1
+    else
+      echo "ok   API sans attributs (section 23) : rien à pré-rendre"
+    fi
     sections=$(curl --silent "http://localhost:$PORT/accessibilite" | grep --only-matching 'data-testid="legal-section"' | wc -l)
     if curl --silent "http://localhost:$PORT/" | grep --quiet 'aria-label="1 sur ' && [ "$sections" -gt 1 ]; then
       echo "ok   carrousel et pages légales pré-rendus"

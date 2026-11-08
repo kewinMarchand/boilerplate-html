@@ -51,6 +51,12 @@ for (const mode of MODES) {
       await audit(page)
     })
 
+    test('facette d’attribut cochée sans violation axe', async ({ page }) => {
+      await page.goto('/catalogue?attr-feuillage=persistant')
+      await expect(page.getByTestId('catalog-filter-attribute-feuillage-persistant')).toBeChecked()
+      await audit(page)
+    })
+
     test('menu ouvert sans violation axe', async ({ page, isMobile }) => {
       await page.goto('/')
       if (isMobile) {

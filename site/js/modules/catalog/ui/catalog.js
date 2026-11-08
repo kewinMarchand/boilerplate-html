@@ -16,6 +16,7 @@ import { productHref } from '../domain/product.js'
 import { loadCatalogPage } from '../application/loadCatalogPage.js'
 
 import { activeFilters } from './activeFilters.js'
+import { attributeFacetsHtml, attributeInputId } from './attributeFacets.js'
 import { EXPOSURE_LABELS, formatResultsCount } from './labels.js'
 import { paginationWindow } from './pagination.js'
 
@@ -36,11 +37,13 @@ const activeCount = $('[data-catalog-active-count]')
 const dialog = $('[data-catalog-filters-dialog]')
 const dialogBody = $('[data-catalog-dialog-body]')
 const doneButton = $('[data-catalog-dialog-done]')
+const attributeFacetsSlot = $('[data-catalog-attribute-facets]')
 
 const BASE_PATH = form.getAttribute('action')
 const categorySlug = root.dataset.category || null
 const productTemplate = document.getElementById('catalog-product-template')
 let query = parseQuery(new URLSearchParams(location.search))
+let attributeFacets = []
 
 const urlFor = (nextQuery) => {
   const search = serializeQuery(nextQuery)
@@ -61,6 +64,9 @@ const syncControls = () => {
   })
   form.querySelectorAll('[data-facet="sizes"]').forEach((input) => {
     input.checked = query.sizes.includes(input.value)
+  })
+  form.querySelectorAll('[data-facet="attributes"]').forEach((input) => {
+    input.checked = query.attributes[input.dataset.attribute]?.includes(input.value) ?? false
   })
   form.querySelector('[data-facet="priceMin"]').value = query.priceMin ?? ''
   form.querySelector('[data-facet="priceMax"]').value = query.priceMax ?? ''
@@ -109,8 +115,27 @@ const updateCounts = (result) => {
   }
 }
 
+// Mêmes cases qu'au rendu précédent : compteurs mis à jour en place, la case cochée garde le focus
+const renderAttributeFacets = () => {
+  const ids = attributeFacets.flatMap(({ code, values }) =>
+    values.map(({ value }) => attributeInputId(code, value)),
+  )
+  const current = [...attributeFacetsSlot.querySelectorAll('input')].map((input) => input.id)
+  if (ids.join() !== current.join()) {
+    attributeFacetsSlot.innerHTML = attributeFacetsHtml(attributeFacets, query)
+    return
+  }
+  for (const { code, values } of attributeFacets) {
+    for (const { value, count: total } of values) {
+      const input = document.getElementById(attributeInputId(code, value))
+      form.querySelector(`[data-count="attribute-${code}-${value}"]`).textContent = `(${total})`
+      input.disabled = total === 0 && !input.checked
+    }
+  }
+}
+
 const renderChips = () => {
-  const filters = activeFilters(query)
+  const filters = activeFilters(query, attributeFacets)
   activeWrapper.hidden = filters.length === 0
   activeCount.textContent = filters.length ? `(${countActiveFilters(query)})` : ''
   chips.replaceChildren(
@@ -215,6 +240,8 @@ const renderResult = (result) => {
   count.textContent = formatResultsCount(result.total)
   doneButton.textContent = `Voir les ${formatResultsCount(result.total)}`
   updateCounts(result)
+  attributeFacets = result.attributeFacets
+  renderAttributeFacets()
   renderChips()
   renderPagination(result)
   updateHead(result)
@@ -274,6 +301,13 @@ form.addEventListener('change', (event) => {
   const changes = {
     exposures: () => ({ exposures: checkedValues('exposures') }),
     sizes: () => ({ sizes: checkedValues('sizes') }),
+    attributes: () => {
+      const { attribute } = event.target.dataset
+      const values = [...form.querySelectorAll(`[data-attribute="${attribute}"]:checked`)]
+      return {
+        attributes: { ...query.attributes, [attribute]: values.map((input) => input.value) },
+      }
+    },
     priceMin: readPrices,
     priceMax: readPrices,
     inStock: () => ({ inStock: event.target.checked }),

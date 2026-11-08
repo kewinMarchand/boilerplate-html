@@ -32,6 +32,16 @@ const RESULT = {
   exposureCounts: { soleil: 0, 'mi-ombre': 9, ombre: 4 },
   sizeCounts: { S: 3, M: 6, L: 4 },
   categoryCounts: [{ category: { slug: 'feuillages', name: 'Feuillages' }, count: 7 }],
+  attributeFacets: [
+    {
+      code: 'feuillage',
+      label: 'Feuillage <persistant>',
+      values: [
+        { value: 'persistant', label: 'Persistant', count: 6 },
+        { value: 'caduc', label: 'Caduc', count: 0 },
+      ],
+    },
+  ],
 }
 
 const outsideTemplates = (html) => html.replace(/<template[\s\S]*?<\/template>/g, '')
@@ -74,6 +84,16 @@ describe('pré-rendu du catalogue', () => {
     assert.equal(list.numberOfItems, 13)
     assert.equal(list.itemListElement[0].item.offers.price, '29.90')
     assert.equal(list.itemListElement[1].item.offers.availability, 'https://schema.org/OutOfStock')
+  })
+
+  it('écrit la facette de chaque attribut filtrable, case à 0 désactivée, formulaire GET', () => {
+    assert.ok(page.includes('<summary>Feuillage &lt;persistant&gt;</summary>'))
+    assert.match(
+      page,
+      /<input [^>]*name="attr-feuillage" value="persistant"[^>]*data-testid="catalog-filter-attribute-feuillage-persistant" \/>/,
+    )
+    assert.ok(page.includes('data-count="attribute-feuillage-persistant">(6)'))
+    assert.match(page, /data-testid="catalog-filter-attribute-feuillage-caduc" disabled \/>/)
   })
 
   it('produit un HTML valide', async () => {

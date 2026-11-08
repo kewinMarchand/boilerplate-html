@@ -37,6 +37,19 @@ test.describe('Fiche produit', () => {
     )
   })
 
+  test('affiche ses attributs en liste de définitions, et aucune liste sans attribut', async ({
+    page,
+  }) => {
+    await page.goto(PRODUCT)
+    const attributes = page.getByTestId('product-attributes')
+    await expect(attributes.locator('dt')).toHaveText(['Feuillage', 'Hauteur adulte'])
+    await expect(attributes.locator('dd')).toHaveText(['Persistant', '300\u00a0cm'])
+
+    await page.goto('/produit/anthurium-andreanum-rouge')
+    await expect(page.getByTestId('product-title')).toHaveText(/Anthurium/)
+    await expect(page.getByTestId('product-attributes')).toHaveCount(0)
+  })
+
   test('expose ses données structurées de produit', async ({ page }) => {
     await page.goto(PRODUCT)
 

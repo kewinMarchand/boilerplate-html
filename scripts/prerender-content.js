@@ -210,7 +210,18 @@ export const withCategoryHrefs = (dto) => ({
     .split(/\n\s*\n/)
     .map((paragraph) => paragraph.trim())
     .filter((paragraph) => paragraph !== ''),
+  attributes: dto.attributes ?? [],
 })
+
+const attributeValue = ({ valueLabel, unit }) => (unit ? `${valueLabel}\u00a0${unit}` : valueLabel)
+
+const attributesList = (attributes) =>
+  attributes
+    .map(
+      (attribute) =>
+        `<dt>${escapeHtml(attribute.label)}</dt><dd>${escapeHtml(attributeValue(attribute))}</dd>`,
+    )
+    .join('')
 
 const EXPOSURE_LABELS = { soleil: 'Soleil', 'mi-ombre': 'Mi-ombre', ombre: 'Ombre' }
 
@@ -323,6 +334,13 @@ export const prerenderProduct = (html, product, siteUrl) => {
       category
         ? `<a class="bui-link" href="${escapeHtml(category.href)}" data-product-category>Voir les autres produits : ${escapeHtml(category.name)}`
         : (match) => match,
+    )
+    .replace(
+      /\s*<dl\s+class="product-page-features"\s+data-product-attributes\s+data-testid="product-attributes"\s*><\/dl>/,
+      (match) =>
+        product.attributes.length > 0
+          ? match.replace('></dl>', () => `>${attributesList(product.attributes)}</dl>`)
+          : '',
     )
     .replace(
       '<div class="product-page-layout" data-product-content hidden>',

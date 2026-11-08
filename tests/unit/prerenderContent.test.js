@@ -171,6 +171,10 @@ describe('pré-rendu d’une fiche produit', () => {
       { slug: 'anthurium', name: 'Anthurium' },
     ],
     description: 'Spathes <rouges> $1.\n\nArrosage modéré.',
+    attributes: [
+      { label: 'Feuillage', valueLabel: 'Persistant <vert> $1', unit: null },
+      { label: 'Hauteur adulte', valueLabel: '300', unit: 'cm' },
+    ],
   })
   const html = prerenderProduct(PRODUCT_FICHE, product, 'https://www.example.com/')
 
@@ -194,6 +198,19 @@ describe('pré-rendu d’une fiche produit', () => {
       ),
     )
     assert.ok(html.includes('"description":"Spathes \\u003crouges> $1. Arrosage modéré."'))
+  })
+
+  it('écrit les attributs en liste de définitions, et la retire sans attribut', () => {
+    assert.match(
+      html,
+      /data-testid="product-attributes"\s*><dt>Feuillage<\/dt><dd>Persistant &lt;vert&gt; \$1<\/dd><dt>Hauteur adulte<\/dt><dd>300\u00a0cm<\/dd><\/dl>/,
+    )
+    const without = prerenderProduct(
+      PRODUCT_FICHE,
+      { ...product, attributes: [] },
+      'https://www.example.com/',
+    )
+    assert.ok(!without.includes('product-attributes'))
   })
 
   it('laisse la description cachée, et hors des données structurées, quand elle est vide', () => {
