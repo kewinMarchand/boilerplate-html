@@ -275,8 +275,9 @@ check() {
   docker compose run --rm -T node sh scripts/test-prod.sh checks "$1" || FAILED=1
 }
 
-# Le catalogue est pré-rendu à la construction (ADR 0002) : l'API doit répondre sur API_URL
-docker build --quiet --network host --build-arg "API_URL=${API_URL:-http://localhost:8090}" --tag "$IMAGE" . > /dev/null
+# Le catalogue est pré-rendu à la construction (ADR 0002) : l'API doit répondre sur API_URL. Sans cache : BuildKit
+# resservait la copie du site d'une construction précédente, pré-rendue contre d'autres données de l'API.
+docker build --quiet --no-cache --network host --build-arg "API_URL=${API_URL:-http://localhost:8090}" --tag "$IMAGE" . > /dev/null
 
 start 0
 check normal
