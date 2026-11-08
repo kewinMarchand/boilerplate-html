@@ -98,9 +98,10 @@ if [ "${1:-}" = checks ]; then
     fi
     product=$(curl --silent "http://localhost:$PORT/produit/monstera-deliciosa")
     if printf '%s' "$product" | grep --quiet '"@type":"Product"' \
+      && printf '%s' "$product" | grep --quiet 'data-testid="product-description"><p>' \
       && curl --silent "http://localhost:$PORT/" | grep --quiet 'href="/produit/' \
       && curl --silent "http://localhost:$PORT/sitemap.xml" | grep --quiet '/produit/monstera-deliciosa'; then
-      echo "ok   fiches produit pré-rendues, liées depuis le carrousel et listées dans le sitemap"
+      echo "ok   fiches produit pré-rendues avec leur description, liées depuis le carrousel et listées dans le sitemap"
     else
       echo "FAIL fiches produit non pré-rendues : API injoignable à la construction ?"
       FAILED=1

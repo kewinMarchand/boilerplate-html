@@ -192,8 +192,9 @@ export const withPagesInSitemap = (xml, route, slugs, siteUrl) =>
   )
 
 /**
- * Fiche produit de l'API avec l'adresse de chaque étape de `categoryPath`, comme `toProductDetail` du
- * navigateur : le serveur de développement, sans le résolveur des chemins servis, ne peut pas l'importer.
+ * Fiche produit de l'API avec l'adresse de chaque étape de `categoryPath` et les paragraphes de sa
+ * description, comme `toProductDetail` du navigateur : le serveur de développement, sans le résolveur
+ * des chemins servis, ne peut pas l'importer.
  */
 export const withCategoryHrefs = (dto) => ({
   ...dto,
@@ -204,6 +205,10 @@ export const withCategoryHrefs = (dto) => ({
       .map(({ slug }) => slug)
       .join('/')}`,
   })),
+  description: dto.description
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph !== ''),
 })
 
 const EXPOSURE_LABELS = { soleil: 'Soleil', 'mi-ombre': 'Mi-ombre', ombre: 'Ombre' }
@@ -250,6 +255,7 @@ export const prerenderProduct = (html, product, siteUrl) => {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: product.name,
+      ...(product.description.length > 0 && { description: product.description.join(' ') }),
       sku: product.slug,
       url,
       ...(category && { category: category.name }),
@@ -295,6 +301,11 @@ export const prerenderProduct = (html, product, siteUrl) => {
     .replace(
       /(data-product-price data-testid="product-price">)/,
       (_, open) => `${open}${escapeHtml(formatPrice(product.price))}`,
+    )
+    .replace(/(data-testid="product-description")\s*hidden\s*>/, (match, open) =>
+      product.description.length > 0
+        ? `${open}>${product.description.map((text) => `<p>${escapeHtml(text)}</p>`).join('')}`
+        : match,
     )
     .replace(
       /(<dd data-product-exposure>)/,

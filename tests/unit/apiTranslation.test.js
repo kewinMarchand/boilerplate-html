@@ -89,16 +89,19 @@ describe('traduction des réponses de l’API', () => {
       image: PRODUCT_IMAGE,
     }
     assert.deepEqual(toProducts([product]), [product])
+    const detail = toProductDetail({
+      ...product,
+      categoryPath: [
+        { slug: 'plantes-exterieur', name: 'Plantes d’extérieur' },
+        { slug: 'heliconia', name: 'Heliconia' },
+      ],
+      description: '',
+    })
     assert.deepEqual(
-      toProductDetail({
-        ...product,
-        categoryPath: [
-          { slug: 'plantes-exterieur', name: 'Plantes d’extérieur' },
-          { slug: 'heliconia', name: 'Heliconia' },
-        ],
-      }).categoryPath.map(({ href }) => href),
+      detail.categoryPath.map(({ href }) => href),
       ['/catalogue/plantes-exterieur', '/catalogue/plantes-exterieur/heliconia'],
     )
+    assert.deepEqual(detail.description, [])
     assert.deepEqual(
       toLegalPage({
         slug: 'accessibilite',
@@ -113,6 +116,15 @@ describe('traduction des réponses de l’API', () => {
         sections: [{ title: 'État de conformité', html: '<p>Non conforme.</p>' }],
       },
     )
+  })
+
+  it('découpe la description de la fiche produit en paragraphes aux lignes vides', () => {
+    const detail = toProductDetail({
+      ...PRODUCT,
+      categoryPath: [{ slug: 'monstera', name: 'Monstera' }],
+      description: 'Rustique.\n\n  \nRésiste au vent,\naux embruns.',
+    })
+    assert.deepEqual(detail.description, ['Rustique.', 'Résiste au vent,\naux embruns.'])
   })
 
   it('traduit la fiche d’un article, texte en HTML compris', () => {

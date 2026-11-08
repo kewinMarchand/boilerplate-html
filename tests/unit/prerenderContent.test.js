@@ -170,6 +170,7 @@ describe('pré-rendu d’une fiche produit', () => {
       { slug: 'plantes-a-fleurs', name: 'Plantes à fleurs' },
       { slug: 'anthurium', name: 'Anthurium' },
     ],
+    description: 'Spathes <rouges> $1.\n\nArrosage modéré.',
   })
   const html = prerenderProduct(PRODUCT_FICHE, product, 'https://www.example.com/')
 
@@ -184,6 +185,25 @@ describe('pré-rendu d’une fiche produit', () => {
     assert.ok(html.includes('"availability":"https://schema.org/OutOfStock"'))
     assert.ok(!html.includes('data-product-content hidden'))
     assert.ok(!html.includes('data-testid="product-noscript"'))
+  })
+
+  it('écrit la description, un paragraphe échappé par bloc, et la reprend dans les données structurées', () => {
+    assert.ok(
+      html.includes(
+        'data-testid="product-description"><p>Spathes &lt;rouges&gt; $1.</p><p>Arrosage modéré.</p></div>',
+      ),
+    )
+    assert.ok(html.includes('"description":"Spathes \\u003crouges> $1. Arrosage modéré."'))
+  })
+
+  it('laisse la description cachée, et hors des données structurées, quand elle est vide', () => {
+    const empty = prerenderProduct(
+      PRODUCT_FICHE,
+      { ...product, description: [] },
+      'https://www.example.com/',
+    )
+    assert.match(empty, /data-testid="product-description"\s*hidden\s*><\/div>/)
+    assert.ok(!empty.includes('"description":'))
   })
 
   it('produit un HTML valide', async () => {

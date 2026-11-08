@@ -1492,6 +1492,10 @@
     font-weight: 700;
   }
 
+  .product-page-description {
+    margin-block-start: var(--space-l);
+  }
+
   .product-page-features {
     display: grid;
     grid-template-columns: max-content 1fr;

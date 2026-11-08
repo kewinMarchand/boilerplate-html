@@ -63,7 +63,10 @@ export const toSearchResult = (dto) => {
   }
 }
 
-/** Fiche : le produit et le chemin de sa catégorie, chaque étape avec l'adresse de sa page du catalogue. */
+/**
+ * Fiche : le produit, les paragraphes de sa description (séparés par une ligne vide dans le contrat) et
+ * le chemin de sa catégorie, chaque étape avec l'adresse de sa page du catalogue.
+ */
 export const toProductDetail = (dto) => {
   const steps = field(dto, 'categoryPath', 'array').map((step) => ({
     slug: field(step, 'slug', 'string'),
@@ -78,6 +81,10 @@ export const toProductDetail = (dto) => {
         .map(({ slug }) => slug)
         .join('/')}`,
     })),
+    description: field(dto, 'description', 'string')
+      .split(/\n\s*\n/)
+      .map((paragraph) => paragraph.trim())
+      .filter((paragraph) => paragraph !== ''),
   }
 }
 

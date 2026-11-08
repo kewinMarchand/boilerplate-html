@@ -35,6 +35,12 @@ const breadcrumbItem = (step) => {
   return item
 }
 
+const paragraph = (text) => {
+  const element = document.createElement('p')
+  element.textContent = text
+  return element
+}
+
 /** Données structurées de la fiche, comme celles écrites au pré-rendu (absentes d'une fiche déjà pré-rendue). */
 const addJsonLd = (product, url, home) => {
   if (document.head.querySelector('script[type="application/ld+json"]')) return
@@ -49,6 +55,7 @@ const addJsonLd = (product, url, home) => {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: product.name,
+      ...(product.description.length > 0 && { description: product.description.join(' ') }),
       sku: product.slug,
       url,
       ...(category && { category: category.name }),
@@ -89,6 +96,9 @@ const renderProduct = (product, prerendered) => {
   const picture = content.querySelector('picture')
   if (picture) fillPicture(picture, product.image)
   content.querySelector('[data-product-price]').textContent = formatPrice(product.price)
+  const descriptionBlock = content.querySelector('[data-product-description]')
+  descriptionBlock.replaceChildren(...product.description.map(paragraph))
+  descriptionBlock.hidden = product.description.length === 0
   content.querySelector('[data-product-exposure]').textContent = EXPOSURE_LABELS[product.exposure]
   content.querySelector('[data-product-size]').textContent = product.size
   const stock = content.querySelector('[data-product-stock]')
