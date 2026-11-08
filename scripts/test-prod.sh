@@ -79,8 +79,8 @@ if [ "${1:-}" = checks ]; then
     fi
     expect_header / "content-security-policy: default-src 'self'; script-src 'self' 'sha256-"
     expect_header /route-inexistante "x-content-type-options: nosniff"
-    expect_header / "content-security-policy: .*connect-src 'self' http://localhost:8090 *;"
-    expect_body / '<link rel="preconnect" href="http://localhost:8090" crossorigin data-api-url'
+    expect_header / "content-security-policy: .*connect-src 'self' ${API_URL:-http://localhost:8090} *;"
+    expect_body / "<link rel=\"preconnect\" href=\"${API_URL:-http://localhost:8090}\" crossorigin data-api-url"
     expect_no_ssi_error "sans traceur"
     catalog=$(curl --silent "http://localhost:$PORT/catalogue/plantes-interieur")
     if printf '%s' "$catalog" | grep --quiet 'data-product-id=' && printf '%s' "$catalog" | grep --quiet '"@type":"ItemList"'; then
@@ -241,7 +241,7 @@ EOF
     else
       echo "ok   GlitchTip absent d'une 404"
     fi
-    expect_header / "content-security-policy: .*connect-src 'self' http://localhost:8090 https://glitchtip.example.com https://matomo.example.com"
+    expect_header / "content-security-policy: .*connect-src 'self' ${API_URL:-http://localhost:8090} https://glitchtip.example.com https://matomo.example.com"
     ;;
   maintenance)
     expect_status / 503
@@ -259,7 +259,9 @@ start() {
   maintenance=$1
   shift
   docker rm --force "$NAME" > /dev/null 2>&1 || true
-  docker run --detach --name "$NAME" --publish "$PORT:80" --env "MAINTENANCE=$maintenance" "$@" "$IMAGE" > /dev/null
+  # Même API à l'exécution qu'à la construction : la CSP doit autoriser l'origine des médias pré-rendus
+  docker run --detach --name "$NAME" --publish "$PORT:80" --env "MAINTENANCE=$maintenance" \
+    --env "API_URL=${API_URL:-http://localhost:8090}" "$@" "$IMAGE" > /dev/null
   tries=0
   until docker exec "$NAME" nc -z 127.0.0.1 80; do
     tries=$((tries + 1))
