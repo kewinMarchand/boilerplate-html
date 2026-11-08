@@ -38,6 +38,7 @@ server {
     set $matomo_url "${MATOMO_URL}";
     set $matomo_site_id "${MATOMO_SITE_ID}";
     set $api_url "${API_URL}";
+    include /etc/nginx/snippets/identity-style.conf;
 
     include /etc/nginx/snippets/security-headers.conf;
 

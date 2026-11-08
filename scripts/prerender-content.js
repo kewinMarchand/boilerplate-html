@@ -331,7 +331,7 @@ export const prerenderProduct = (html, product, siteUrl) => {
   return withoutNoscript(withoutLoading(page, 'data-product-state'), 'product-noscript')
 }
 
-const fetchJson = async (apiUrl, path) => {
+export const fetchJson = async (apiUrl, path) => {
   const response = await fetch(new URL(path, apiUrl), {
     headers: { accept: 'application/json' },
     signal: AbortSignal.timeout(API_TIMEOUT_MS),

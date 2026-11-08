@@ -46,7 +46,7 @@
           document.documentElement.dataset.a11yMode = 'enhanced'
         }
         const colorScheme = localStorage.getItem('color-scheme')
-        if (colorScheme === 'light' || colorScheme === 'dark') {
+        if (colorScheme === 'auto' || colorScheme === 'light' || colorScheme === 'dark') {
           document.documentElement.dataset.colorScheme = colorScheme
         }
       } catch {}

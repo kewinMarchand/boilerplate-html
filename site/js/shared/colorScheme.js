@@ -10,11 +10,7 @@ export const applyColorScheme = ({ root, storage }, scheme) => {
   root.dataset.colorScheme = scheme
 
   try {
-    if (scheme === 'auto') {
-      storage.removeItem(COLOR_SCHEME_KEY)
-    } else {
-      storage.setItem(COLOR_SCHEME_KEY, scheme)
-    }
+    storage.setItem(COLOR_SCHEME_KEY, scheme)
   } catch {
     // Stockage bloqué (navigation privée, données de site refusées) : le choix vaut pour la page.
   }

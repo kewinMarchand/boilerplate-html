@@ -106,6 +106,34 @@ if [ "${1:-}" = checks ]; then
       echo "FAIL fiches produit non pré-rendues : API injoignable à la construction ?"
       FAILED=1
     fi
+    # Identité de l'API écrite à la construction (section 22 de la spec commune), ou celle de
+    # site.config.json si l'API ne la sert pas ; bloc de couleurs autorisé par son empreinte
+    node --input-type=module - "http://localhost:$PORT" "${API_URL:-http://localhost:8090}" <<'EOF' || FAILED=1
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+
+const [site, api] = process.argv.slice(2)
+const identity = await fetch(`${api}/api/site-identity`)
+  .then((response) => (response.ok ? response.json() : null))
+  .catch(() => null)
+const name = identity?.name ?? JSON.parse(readFileSync('site.config.json', 'utf8')).name
+const response = await fetch(`${site}/contact`)
+const html = await response.text()
+const csp = response.headers.get('content-security-policy')
+const css = html.match(/<style>([\s\S]*?)<\/style>/)?.[1]
+const hash = css && `'sha256-${createHash('sha256').update(css).digest('base64')}'`
+const manifest = await (await fetch(`${site}/manifest.webmanifest`)).json()
+const checks = [
+  [`titre et header au nom « ${name} »`, html.includes(` · ${name}</title>`) &&
+    html.includes(identity?.logo ? `alt="${name}"` : `<span>${name}</span>`)],
+  [`manifeste au nom « ${name} »`, manifest.name === name],
+  [identity?.theme ? 'bloc de couleurs autorisé par son empreinte' : 'aucun bloc de couleurs',
+    identity?.theme ? Boolean(hash) && csp.includes(`style-src 'self' ${hash}`)
+      : css === undefined && !csp.includes("style-src 'self' 'sha256-")],
+]
+for (const [label, ok] of checks) console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`)
+process.exit(checks.every(([, ok]) => ok) ? 0 : 1)
+EOF
     if curl --silent "http://localhost:$PORT/" | grep --quiet 'data-glitchtip-dsn\|data-matomo-url'; then
       echo "FAIL un traceur est injecté sans configuration"
       FAILED=1

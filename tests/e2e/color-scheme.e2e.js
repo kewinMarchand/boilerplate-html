@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { BRANDED_IDENTITY, withIdentity } from './routes.js'
+
 const html = (page) => page.locator('html')
 
 const choose = async (page, choice) => {
@@ -46,18 +48,15 @@ test.describe('Thème', () => {
     await expect(page.getByTestId('color-scheme-toggle')).toHaveAccessibleName('Thème : sombre')
   })
 
-  test('« système » retire le choix mémorisé et remet auto', async ({ page }) => {
-    await page.addInitScript(() => {
-      if (!sessionStorage.getItem('init')) {
-        sessionStorage.setItem('init', '1')
-        localStorage.setItem('color-scheme', 'dark')
-      }
-    })
+  test('« système » écrit auto ; avec un défaut sombre, il persiste après rechargement', async ({
+    page,
+  }) => {
+    await withIdentity(page, { ...BRANDED_IDENTITY, theme: null, defaultColorScheme: 'dark' })
     await page.goto('/')
     await expect(html(page)).toHaveAttribute('data-color-scheme', 'dark')
 
     await choose(page, 'auto')
-    expect(await page.evaluate(() => localStorage.getItem('color-scheme'))).toBeNull()
+    expect(await page.evaluate(() => localStorage.getItem('color-scheme'))).toBe('auto')
 
     await page.reload()
     await expect(html(page)).toHaveAttribute('data-color-scheme', 'auto')

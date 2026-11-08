@@ -335,6 +335,13 @@
     text-decoration-line: var(--nav-link-decoration);
   }
 
+  /* Logo administré dans l'API, écrit par scripts/prerender-identity.js */
+  .logo-image {
+    inline-size: auto;
+    block-size: 40px;
+    object-fit: contain;
+  }
+
   .main-nav {
     margin-inline-end: auto;
   }

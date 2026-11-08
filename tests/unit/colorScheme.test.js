@@ -27,7 +27,7 @@ describe('applyColorScheme', () => {
     assert.equal(storage.values.get('color-scheme'), 'dark')
   })
 
-  it('« système » remet auto et oublie le choix', () => {
+  it('« système » remet auto et le mémorise', () => {
     const root = { dataset: { colorScheme: 'light' } }
     const storage = fakeStorage()
     storage.setItem('color-scheme', 'light')
@@ -35,7 +35,7 @@ describe('applyColorScheme', () => {
     applyColorScheme({ root, storage }, 'auto')
 
     assert.equal(root.dataset.colorScheme, 'auto')
-    assert.equal(storage.values.has('color-scheme'), false)
+    assert.equal(storage.values.get('color-scheme'), 'auto')
   })
 
   it('reste utilisable quand le stockage est indisponible', () => {
