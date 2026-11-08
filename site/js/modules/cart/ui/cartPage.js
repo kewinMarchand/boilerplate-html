@@ -8,6 +8,18 @@ const productHref = (slug) => `/produit/${slug}`
 
 const fromTemplate = (id) => document.getElementById(id).content.cloneNode(true)
 
+/**
+ * Après un retrait, le focus va au bouton « Retirer » de la ligne qui prend la place, sinon de la
+ * précédente, sinon au message de panier vide : sans cela, il retombe en haut de la page.
+ */
+const focusAfterRemoval = (removedIndex) => {
+  const buttons = container.querySelectorAll('[data-cart-line-remove]')
+  const target =
+    buttons[Math.min(removedIndex, buttons.length - 1)] ??
+    container.querySelector('[data-cart-empty]')
+  target.focus()
+}
+
 const createLine = (line) => {
   const element = lineTemplate.content.firstElementChild.cloneNode(true)
   element.dataset.slug = line.slug
@@ -26,7 +38,11 @@ const createLine = (line) => {
   })
   const remove = element.querySelector('[data-cart-line-remove]')
   remove.setAttribute('aria-label', `Retirer ${line.name}`)
-  remove.addEventListener('click', () => saveCart(removeItem(readCart(), line.slug)))
+  remove.addEventListener('click', () => {
+    const index = [...element.parentElement.children].indexOf(element)
+    saveCart(removeItem(readCart(), line.slug))
+    focusAfterRemoval(index)
+  })
   return element
 }
 

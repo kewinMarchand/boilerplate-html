@@ -2,6 +2,8 @@ import { addItem } from '../domain/cart.js'
 import { readCart, saveCart } from '../infrastructure/cartStorage.js'
 
 const CART_PATH = '/panier'
+// Vider puis remplir la région : un lecteur d'écran ne relit pas un texte identique
+const ANNOUNCE_DELAY_MS = 100
 
 const slot = document.querySelector('[data-add-to-cart]')
 const template = document.getElementById('add-to-cart-template')
@@ -18,6 +20,10 @@ document.addEventListener('product:shown', ({ detail: product }) => {
     link.className = 'bui-link'
     link.href = CART_PATH
     link.textContent = 'Voir le panier'
-    status.replaceChildren(`${product.name} ajouté au panier. `, link)
+    status.replaceChildren()
+    window.setTimeout(
+      () => status.replaceChildren(`${product.name} ajouté au panier. `, link),
+      ANNOUNCE_DELAY_MS,
+    )
   })
 })
