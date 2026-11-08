@@ -55,7 +55,7 @@ test.describe('Fiche produit', () => {
   }) => {
     await page.goto(PRODUCT)
     const gallery = page.getByTestId('product-gallery')
-    const main = gallery.locator('picture img')
+    const main = gallery.locator('picture img').first()
     const thumbs = gallery.getByTestId('product-gallery-thumb')
 
     await expect(thumbs).toHaveCount(3)

@@ -53,6 +53,27 @@ test.describe('Image de l’API en échec', () => {
     await expect(picture.locator('img')).toHaveCSS('opacity', '0')
   })
 
+  test('une vignette de la galerie en 404 est marquée, à taille inchangée', async ({ page }) => {
+    const thumb = page.getByTestId('product-gallery-thumb').nth(1)
+    await page.goto('/produit/monstera-deliciosa')
+    await expect(thumb).toHaveJSProperty('tagName', 'BUTTON')
+    const size = async () => {
+      const { width, height } = (await thumb.boundingBox()) ?? {}
+      return { width, height }
+    }
+    const loaded = await size()
+
+    await failApiImages(page)
+    await page.reload()
+    await expect(thumb).toHaveJSProperty('tagName', 'BUTTON')
+    await thumb.scrollIntoViewIfNeeded()
+    const picture = thumb.locator('picture')
+    await expect(picture).toHaveAttribute('data-image-error', '')
+    await expect(picture.locator('img')).toHaveCSS('opacity', '0')
+    expect(await size()).toEqual(loaded)
+    expect(await picture.boundingBox()).toEqual(await picture.locator('img').boundingBox())
+  })
+
   for (const mode of MODES) {
     test(`fond de remplacement sans violation axe, mode ${mode.name}`, async ({ page }) => {
       await mode.setup?.(page)

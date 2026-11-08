@@ -290,15 +290,17 @@
         <template id="product-gallery-thumb-template">
           <li>
             <button type="button" class="product-gallery-thumb" data-testid="product-gallery-thumb">
-              <img
-                src="/images/hero-640.webp"
-                alt=""
-                width="800"
-                height="800"
-                loading="lazy"
-                decoding="async"
-                data-product-gallery-thumb-image
-              />
+              <picture class="bui-picture">
+                <img
+                  src="/images/hero-640.webp"
+                  alt=""
+                  width="800"
+                  height="800"
+                  loading="lazy"
+                  decoding="async"
+                  data-product-gallery-thumb-image
+                />
+              </picture>
               <span class="bui-visually-hidden" data-product-gallery-thumb-label>Voir l'image</span>
             </button>
           </li>
