@@ -53,6 +53,8 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
+    <script type="module" src="/js/modules/cart/ui/cartLink.js"></script>
+    <script type="module" src="/js/modules/cart/ui/addToCart.js"></script>
     <script type="module" src="/js/modules/catalog/ui/productPage.js"></script>
   </head>
   <body>
@@ -134,6 +136,7 @@
                 <dt>Disponibilité</dt>
                 <dd data-product-stock>En stock</dd>
               </dl>
+              <div class="add-to-cart" data-add-to-cart></div>
               <p>
                 <a class="bui-link" href="/catalogue" data-product-category
                   >Voir les autres produits</a
@@ -142,6 +145,131 @@
             </div>
           </div>
         </article>
+        <section
+          class="carousel similar-products"
+          aria-labelledby="similar-title"
+          aria-roledescription="carrousel"
+          data-carousel
+          data-similar-products
+          data-testid="product-similar"
+          hidden
+        >
+          <div class="carousel-header">
+            <h2 id="similar-title">Produits similaires</h2>
+            <div class="carousel-controls">
+              <button
+                type="button"
+                class="bui-button bui-button--outline"
+                aria-controls="similar-track"
+                data-carousel-prev
+                data-testid="carousel-prev"
+                disabled
+              >
+                <svg
+                  class="bui-icon bui-icon--md"
+                  aria-hidden="true"
+                  focusable="false"
+                  width="20"
+                  height="20"
+                >
+                  <use href="/icons.svg#chevron-left"></use>
+                </svg>
+                Précédent
+              </button>
+              <button
+                type="button"
+                class="bui-button bui-button--outline"
+                aria-controls="similar-track"
+                data-carousel-next
+                data-testid="carousel-next"
+              >
+                Suivant
+                <svg
+                  class="bui-icon bui-icon--md"
+                  aria-hidden="true"
+                  focusable="false"
+                  width="20"
+                  height="20"
+                >
+                  <use href="/icons.svg#chevron-right"></use>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div
+            class="carousel-viewport"
+            id="similar-track"
+            role="group"
+            aria-label="Diapositives"
+            tabindex="0"
+            data-carousel-viewport
+            data-testid="carousel-track"
+          >
+            <div class="carousel-container" data-carousel-slides></div>
+          </div>
+          <div
+            class="carousel-dots"
+            role="group"
+            aria-label="Choix de la diapositive"
+            data-carousel-dots
+          ></div>
+        </section>
+        <template id="carousel-slide-template">
+          <div
+            class="carousel-slide"
+            role="group"
+            aria-roledescription="diapositive"
+            data-testid="carousel-slide"
+          >
+            <figure>
+              <picture>
+                <source
+                  type="image/avif"
+                  sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
+                  data-slide-avif
+                />
+                <source
+                  type="image/webp"
+                  sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
+                  data-slide-webp
+                />
+                <img
+                  src="/images/hero-640.webp"
+                  alt=""
+                  width="800"
+                  height="800"
+                  loading="lazy"
+                  decoding="async"
+                  data-slide-image
+                />
+              </picture>
+              <figcaption>
+                <h3>
+                  <a
+                    class="carousel-link"
+                    href="/catalogue"
+                    draggable="false"
+                    data-testid="carousel-slide-link"
+                    data-slide-title
+                    >Diapositive</a
+                  >
+                </h3>
+                <p data-slide-text></p>
+              </figcaption>
+            </figure>
+          </div>
+        </template>
+        <template id="add-to-cart-template">
+          <button
+            type="button"
+            class="bui-button"
+            data-add-to-cart-button
+            data-testid="add-to-cart"
+          >
+            Ajouter au panier
+          </button>
+          <p role="status" data-add-to-cart-status data-testid="add-to-cart-status"></p>
+        </template>
         <template id="product-error-template">
           <div class="bui-alert bui-alert--error" role="alert" data-testid="product-error">
             <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">

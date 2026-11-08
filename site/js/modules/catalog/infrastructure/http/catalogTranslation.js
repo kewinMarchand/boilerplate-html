@@ -88,6 +88,9 @@ export const toProductDetail = (dto) => {
   }
 }
 
+/** Produits d'une page de liste, sans ses compteurs ni ses facettes. */
+export const toProductItems = (dto) => field(dto, 'items', 'array').map(toProduct)
+
 export const toProducts = (dto) => {
   if (!Array.isArray(dto)) throw new ApiContractError('products')
   return dto.map(toProduct)

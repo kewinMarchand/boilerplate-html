@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="fr" data-color-scheme="auto">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Panier · Boilerplate HTML</title>
+    <meta
+      name="description"
+      content="Votre panier : les produits choisis, leurs quantités et le total, gardés dans ce navigateur."
+    />
+    <link rel="canonical" href="https://www.example.com/panier" />
+    <meta name="robots" content="noindex" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Boilerplate HTML" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="Panier · Boilerplate HTML" />
+    <meta
+      property="og:description"
+      content="Votre panier : les produits choisis, leurs quantités et le total, gardés dans ce navigateur."
+    />
+    <meta property="og:url" content="https://www.example.com/panier" />
+    <meta property="og:image" content="https://www.example.com/images/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Boilerplate HTML" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Panier · Boilerplate HTML" />
+    <meta
+      name="twitter:description"
+      content="Votre panier : les produits choisis, leurs quantités et le total, gardés dans ce navigateur."
+    />
+    <meta name="twitter:image" content="https://www.example.com/images/og-image.jpg" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#1d4ed8" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      document.documentElement.dataset.js = ''
+      try {
+        if (localStorage.getItem('a11y-mode') === 'enhanced') {
+          document.documentElement.dataset.a11yMode = 'enhanced'
+        }
+        const colorScheme = localStorage.getItem('color-scheme')
+        if (colorScheme === 'light' || colorScheme === 'dark') {
+          document.documentElement.dataset.colorScheme = colorScheme
+        }
+      } catch {}
+    </script>
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/vendor/boilerplates-ui.css" />
+    <script type="module" src="/js/shared/a11yModeToggle.js"></script>
+    <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
+    <script type="module" src="/js/shared/categoryMenu.js"></script>
+    <script type="module" src="/js/modules/cart/ui/cartLink.js"></script>
+    <script type="module" src="/js/modules/cart/ui/cartPage.js"></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Accueil",
+            "item": "https://www.example.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Panier",
+            "item": "https://www.example.com/panier"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <!--# set var="page" value="panier" -->
+    <!--# include virtual="/partials/header.html" -->
+    <main id="main">
+      <div class="container page">
+        <nav class="bui-breadcrumb" aria-label="Fil d'Ariane" data-testid="layout-breadcrumb">
+          <ol class="bui-breadcrumb__list">
+            <li class="bui-breadcrumb__item"><a class="bui-link" href="/">Accueil</a></li>
+            <li class="bui-breadcrumb__item">
+              <span class="bui-breadcrumb__current" aria-current="page">Panier</span>
+            </li>
+          </ol>
+        </nav>
+        <h1>Panier</h1>
+        <noscript
+          ><div class="bui-alert bui-alert--info" data-testid="cart-noscript">
+            <svg class="bui-icon bui-alert__icon" aria-hidden="true" focusable="false">
+              <use href="/icons.svg#info"></use>
+            </svg>
+            <div class="bui-alert__content">
+              <span class="bui-visually-hidden">Information :</span>
+              <div class="bui-alert__body"><p>Le panier demande JavaScript.</p></div>
+            </div>
+          </div></noscript
+        >
+        <div data-cart></div>
+        <template id="cart-empty-template">
+          <p data-testid="cart-empty">
+            Votre panier est vide. <a class="bui-link" href="/catalogue">Parcourir le catalogue</a>
+          </p>
+        </template>
+        <template id="cart-summary-template">
+          <ul class="cart-lines" data-cart-lines></ul>
+          <p class="cart-total">Total : <span data-cart-total data-testid="cart-total"></span></p>
+          <p>La commande en ligne arrive bientôt.</p>
+        </template>
+        <template id="cart-line-template">
+          <li class="cart-line" data-testid="cart-line">
+            <a class="bui-link cart-line-name" href="/catalogue" data-cart-line-link>Produit</a>
+            <span data-cart-line-price></span>
+            <div class="bui-field">
+              <label class="bui-field__label" for="quantite">Quantité</label>
+              <input
+                class="bui-field__input"
+                id="quantite"
+                type="number"
+                min="1"
+                max="99"
+                inputmode="numeric"
+                data-cart-line-quantity
+                data-testid="cart-quantity"
+              />
+            </div>
+            <span class="cart-line-subtotal" data-cart-line-subtotal></span>
+            <button
+              type="button"
+              class="bui-button bui-button--outline"
+              data-cart-line-remove
+              data-testid="cart-remove"
+            >
+              Retirer
+            </button>
+          </li>
+        </template>
+      </div>
+    </main>
+    <!--# include virtual="/partials/footer.html" -->
+  </body>
+</html>

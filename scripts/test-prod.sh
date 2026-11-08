@@ -8,7 +8,7 @@ set -eu
 IMAGE=boilerplate-html:test
 PORT=3140
 NAME=boilerplate-html-prod-test
-PAGES='/ /catalogue /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages /taches /contact /mentions-legales /donnees-personnelles /accessibilite /plan-du-site /route-inexistante'
+PAGES='/ /catalogue /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages /taches /contact /mentions-legales /donnees-personnelles /accessibilite /plan-du-site /panier /route-inexistante'
 
 if [ "${1:-}" = checks ]; then
   FAILED=0
@@ -58,7 +58,7 @@ if [ "${1:-}" = checks ]; then
   normal)
     for route in / /catalogue /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages \
       /taches /contact /mentions-legales /donnees-personnelles /accessibilite /plan-du-site \
-      /sitemap.xml /robots.txt /vendor/embla-carousel.esm.js; do
+      /panier /sitemap.xml /robots.txt /vendor/embla-carousel.esm.js; do
       expect_status "$route" 200
     done
     expect_status /route-inexistante 404

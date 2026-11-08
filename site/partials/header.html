@@ -242,6 +242,33 @@
         <!--# endif -->
       </ul>
     </nav>
+    <!--# if expr="$page = panier" -->
+    <a class="cart-link" href="/panier" aria-current="page" data-cart-link data-testid="cart-link">
+      <svg
+        class="bui-icon bui-icon--md"
+        aria-hidden="true"
+        focusable="false"
+        width="20"
+        height="20"
+      >
+        <use href="/icons.svg#shopping-cart"></use>
+      </svg>
+      <span class="cart-link-label">Panier</span>
+    </a>
+    <!--# else -->
+    <a class="cart-link" href="/panier" data-cart-link data-testid="cart-link">
+      <svg
+        class="bui-icon bui-icon--md"
+        aria-hidden="true"
+        focusable="false"
+        width="20"
+        height="20"
+      >
+        <use href="/icons.svg#shopping-cart"></use>
+      </svg>
+      <span class="cart-link-label">Panier</span>
+    </a>
+    <!--# endif -->
     <button
       type="button"
       class="bui-button bui-button--outline header-icon-button mobile-menu-toggle"

@@ -1,10 +1,9 @@
 import { initCarousel } from '/js/shared/carousel/carousel.js'
-import { fillPicture } from '/js/shared/picture.js'
 
-import { formatPrice } from '../domain/price.js'
-import { productHref } from '../domain/product.js'
 import { FeaturedProductsLoadError } from '../application/FeaturedProductsLoadError.js'
 import { loadFeaturedProducts } from '../application/products.js'
+
+import { renderProductSlide } from './productSlide.js'
 
 const carousel = document.querySelector('[data-carousel]')
 const state = carousel.querySelector('[data-carousel-state]')
@@ -14,17 +13,6 @@ const slidesContainer = carousel.querySelector('[data-carousel-slides]')
 const slideTemplate = document.getElementById('carousel-slide-template')
 // Absent d'un accueil pré-rendu dans l'image de production, qui sert déjà ses diapositives
 const loading = state.firstElementChild?.cloneNode(true)
-
-const renderSlide = (product, index, products) => {
-  const element = slideTemplate.content.firstElementChild.cloneNode(true)
-  element.setAttribute('aria-label', `${index + 1} sur ${products.length}`)
-  fillPicture(element.querySelector('picture'), product.image)
-  const link = element.querySelector('[data-slide-title]')
-  link.textContent = product.name
-  link.href = productHref(product.slug)
-  element.querySelector('[data-slide-text]').textContent = formatPrice(product.price)
-  return element
-}
 
 const renderError = () => {
   controls.hidden = true
@@ -53,7 +41,11 @@ const loadSlides = async () => {
   controls.hidden = false
   viewport.hidden = false
   state.replaceChildren()
-  slidesContainer.replaceChildren(...products.map(renderSlide))
+  slidesContainer.replaceChildren(
+    ...products.map((product, index) =>
+      renderProductSlide(slideTemplate, product, index, products.length),
+    ),
+  )
   initCarousel(carousel)
 }
 

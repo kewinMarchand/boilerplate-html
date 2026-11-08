@@ -14,6 +14,8 @@ const ERROR_PAGES = ['/404', '/405', '/50x', '/503']
 const DEV_PAGES = ['/charte-graphique']
 // Gabarit de la fiche article, servi pour /blog/<slug> et rempli par JavaScript (ou pré-rendu dans l'image)
 const TEMPLATE_PAGES = ['/blog/fiche', '/produit/fiche']
+// Contenu propre au navigateur, hors de l'index et du sitemap
+const NOINDEX_PAGES = ['/panier']
 
 const attribute = (html, pattern) => html.match(pattern)?.[1]
 const hrefsIn = (html, label) => {
@@ -22,7 +24,10 @@ const hrefsIn = (html, label) => {
 }
 const PUBLIC_ROUTES = PAGES.map((page) => page.route).filter(
   (route) =>
-    !ERROR_PAGES.includes(route) && !DEV_PAGES.includes(route) && !TEMPLATE_PAGES.includes(route),
+    !ERROR_PAGES.includes(route) &&
+    !DEV_PAGES.includes(route) &&
+    !TEMPLATE_PAGES.includes(route) &&
+    !NOINDEX_PAGES.includes(route),
 )
 
 describe('pages statiques', () => {

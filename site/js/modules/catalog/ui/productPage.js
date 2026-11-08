@@ -6,6 +6,7 @@ import { ProductLoadError } from '../application/ProductLoadError.js'
 import { loadProduct } from '../application/products.js'
 
 import { EXPOSURE_LABELS } from './labels.js'
+import { showSimilarProducts } from './similarProducts.js'
 
 const page = document.querySelector('[data-product-page]')
 const title = page.querySelector('[data-product-title]')
@@ -123,6 +124,18 @@ const renderProduct = (product, prerendered) => {
   setMeta('meta[property="og:title"]', document.title)
   setMeta('meta[property="og:description"]', description)
   addJsonLd(product, url, new URL('/', url).href)
+  // Annonce le produit aux scripts que la page branche sur la fiche (bouton d'achat), sans les connaître
+  document.dispatchEvent(
+    new CustomEvent('product:shown', {
+      detail: {
+        slug: product.slug,
+        name: product.name,
+        price: product.price,
+        inStock: product.inStock,
+      },
+    }),
+  )
+  showSimilarProducts(product)
 }
 
 /** Produit inconnu de l'API : message, et la page reste hors de l'index (pas de vraie 404 sans serveur). */

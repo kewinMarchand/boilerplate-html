@@ -350,6 +350,7 @@
 
   .main-nav-list > li > a,
   .category-menu-toggle,
+  .cart-link,
   .site-footer a {
     display: inline-flex;
     gap: var(--space-2xs);
@@ -1511,6 +1512,19 @@
     }
   }
 
+  /* Place du bouton d'ajout réservée dès le premier rendu : il arrive avec la réponse de l'API (CLS) */
+  :root[data-js] .add-to-cart {
+    display: grid;
+    gap: var(--space-xs);
+    justify-items: start;
+    min-block-size: var(--tap-target);
+    margin-block-end: var(--space-l);
+  }
+
+  .similar-products {
+    margin-block-start: var(--space-2xl);
+  }
+
   /* Lien étiré sur toute la carte produit ou la diapositive : un seul lien, nommé par le titre */
   .product-card,
   .carousel-slide {
@@ -1555,6 +1569,67 @@
     & thead th {
       background-color: var(--color-surface);
     }
+  }
+}
+
+/* Panier */
+@layer components {
+  .cart-link {
+    flex-shrink: 0;
+  }
+
+  /* Icône seule en mobile, libellé toujours lu */
+  @media (width < 640px) {
+    .cart-link-label {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+
+  .cart-count {
+    min-inline-size: 1.5em;
+    padding-inline: 0.35em;
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    line-height: 1.5;
+    color: var(--color-on-primary);
+    text-align: center;
+    background-color: var(--color-primary);
+    border-radius: 999px;
+  }
+
+  .cart-lines {
+    display: grid;
+    gap: var(--space-m);
+    padding: 0;
+    list-style: none;
+  }
+
+  .cart-line {
+    display: grid;
+    gap: var(--space-xs);
+    place-items: center start;
+    padding-block-end: var(--space-m);
+    border-block-end: 1px solid var(--color-border);
+
+    @media (width >= 768px) {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 160px minmax(0, 1fr) auto;
+    }
+  }
+
+  .cart-line-name,
+  .cart-line-subtotal {
+    font-weight: 700;
+  }
+
+  .cart-total {
+    margin-block: var(--space-l) var(--space-xs);
+    font-size: var(--font-size-h3);
+    font-weight: 700;
   }
 }
 

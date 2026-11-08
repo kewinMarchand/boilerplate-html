@@ -14,6 +14,7 @@ const EXTRA_ROUTES = [
   '/_erreur-test',
   '/charte-graphique',
   '/catalogue?exposition=soleil&tri=prix-asc',
+  '/panier',
 ]
 
 const audit = async (page) => {
@@ -40,6 +41,15 @@ for (const mode of MODES) {
         await audit(page)
       })
     }
+
+    test('panier rempli sans violation axe', async ({ page }) => {
+      await page.goto('/produit/monstera-deliciosa')
+      await page.getByTestId('add-to-cart').click()
+      await expect(page.getByTestId('cart-count')).toHaveText('1')
+      await page.goto('/panier')
+      await expect(page.getByTestId('cart-line')).toHaveCount(1)
+      await audit(page)
+    })
 
     test('menu ouvert sans violation axe', async ({ page, isMobile }) => {
       await page.goto('/')

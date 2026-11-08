@@ -1,7 +1,10 @@
 import { ApiError, apiGet } from '/js/shared/api.js'
 
+import { SIMILAR_PRODUCTS_LIMIT } from '../../domain/product.js'
+
 import {
   toProductDetail,
+  toProductItems,
   toProducts,
   toProductsQuery,
   toSearchResult,
@@ -19,6 +22,17 @@ export const findProduct = async (slug) => {
     throw error
   }
 }
+
+/** Produits de la catégorie, sans celui affiché : le carrousel de la fiche. */
+export const findSimilarProducts = async (categorySlug, excludedSlug) =>
+  toProductItems(
+    await apiGet('/api/products', {
+      category: categorySlug,
+      itemsPerPage: SIMILAR_PRODUCTS_LIMIT + 1,
+    }),
+  )
+    .filter((product) => product.slug !== excludedSlug)
+    .slice(0, SIMILAR_PRODUCTS_LIMIT)
 
 /** Produits « À la une » : le carrousel de l'accueil. */
 export const findFeaturedProducts = async () => toProducts(await apiGet('/api/featured-products'))
