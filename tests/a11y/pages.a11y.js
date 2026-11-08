@@ -15,6 +15,7 @@ const EXTRA_ROUTES = [
   '/charte-graphique',
   '/catalogue?exposition=soleil&tri=prix-asc',
   '/panier',
+  '/contact?produit=monstera-deliciosa',
   '/blog?rubrique=conseils',
   '/blog/un-carrousel-accessible-sans-dependance',
 ]

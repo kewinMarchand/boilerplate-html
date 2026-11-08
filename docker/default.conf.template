@@ -13,6 +13,12 @@ map "${API_URL}" $api_origin {
     default "";
 }
 
+# Demande de renseignement (/contact?produit=<slug>) : seul un slug valide désigne une page pré-rendue
+map $arg_produit $contact_product {
+    "~^[a-z0-9-]+$" $arg_produit;
+    default "";
+}
+
 map "${MAINTENANCE}" $maintenance {
     default 0;
     1 1;
@@ -68,6 +74,19 @@ server {
             return 503;
         }
         try_files /produit/$1/index.html /produit/fiche.html;
+    }
+
+    # Contact avec un produit : page pré-rendue à la construction si l'API connaissait le produit, sinon le
+    # formulaire de contact simple
+    location ~ ^/contact/?$ {
+        if ($maintenance) {
+            return 503;
+        }
+        try_files /contact/demande/$contact_product.html /contact/index.html;
+    }
+
+    location /contact/demande/ {
+        internal;
     }
 
     location ~* \.(css|js|map|svg|png|ico|jpg|webp|avif|webmanifest)$ {

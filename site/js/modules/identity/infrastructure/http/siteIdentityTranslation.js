@@ -62,6 +62,7 @@ export const toSiteIdentity = (dto) => {
     theme: toTheme(dto),
     shareImage: toShareImage(dto),
     icon: toIcon(dto),
+    salesEnabled: field(dto, 'salesEnabled', 'boolean'),
   }
 }
 

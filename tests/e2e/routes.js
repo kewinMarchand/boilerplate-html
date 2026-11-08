@@ -4,6 +4,7 @@ import {
   identityStyle,
   PAGE_META_KEYS,
   prerenderIdentity,
+  SALES_PAGES,
   styleHash,
 } from '../../scripts/prerender-identity.js'
 
@@ -40,11 +41,18 @@ const pageFile = (url) =>
 
 // Le serveur de développement ne pré-rend pas l'identité : chaque document est réécrit ici comme dans
 // l'image, avec les métadonnées des pages fixes (`pageMetas`, par clé), et l'empreinte du bloc de
-// couleurs ajoutée à la CSP comme le fait nginx.
-export const withIdentity = (page, identity, pageMetas = {}) =>
-  page.route('**/*', async (route) => {
+// couleurs ajoutée à la CSP comme le fait nginx. Sans vente en ligne, les pages de `SALES_PAGES`,
+// retirées de l'image, répondent la 404 du serveur. Un document servi par `route.fulfill` n'a pas
+// d'adresse : Chromium le tient pour public et lui refuse l'API locale (Local Network Access) sans
+// la permission accordée ici.
+export const withIdentity = async (page, identity, pageMetas = {}) => {
+  await page.context().grantPermissions(['local-network-access'])
+  await page.route('**/*', async (route) => {
     if (route.request().resourceType() !== 'document') return route.fallback()
-    const response = await route.fetch()
+    const removed = !identity.salesEnabled && SALES_PAGES.includes(pageFile(route.request().url()))
+    const response = await route.fetch(
+      removed ? { url: new URL('/page-retiree-sans-vente', route.request().url()).href } : {},
+    )
     const { 'content-encoding': _, 'content-length': __, ...headers } = response.headers()
     if (identity.theme) {
       headers['content-security-policy'] = headers['content-security-policy'].replace(
@@ -56,6 +64,7 @@ export const withIdentity = (page, identity, pageMetas = {}) =>
     const body = prerenderIdentity(await response.text(), identity, SITE.name, pageMeta)
     return route.fulfill({ status: response.status(), headers, body })
   })
+}
 
 const tokens = (colors) =>
   Object.fromEntries(
@@ -88,6 +97,7 @@ export const BRANDED_IDENTITY = {
     src: '/images/hero-640.webp',
   },
   defaultColorScheme: 'auto',
+  salesEnabled: true,
   theme: {
     light: tokens([
       '#c2410c',

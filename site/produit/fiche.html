@@ -53,8 +53,8 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
-    <script type="module" src="/js/modules/cart/ui/cartLink.js"></script>
-    <script type="module" src="/js/modules/cart/ui/addToCart.js"></script>
+    <script type="module" src="/js/modules/cart/ui/cartLink.js" data-sales></script>
+    <script type="module" src="/js/modules/cart/ui/addToCart.js" data-sales></script>
     <script type="module" src="/js/modules/catalog/ui/productPage.js"></script>
   </head>
   <body>
@@ -124,7 +124,12 @@
               <ul class="product-gallery-thumbs" data-product-gallery-thumbs></ul>
             </div>
             <div>
-              <p class="product-page-price" data-product-price data-testid="product-price"></p>
+              <p
+                class="product-page-price"
+                data-sales
+                data-product-price
+                data-testid="product-price"
+              ></p>
               <div
                 class="product-page-description"
                 data-product-description
@@ -144,7 +149,21 @@
                 data-product-attributes
                 data-testid="product-attributes"
               ></dl>
-              <div class="add-to-cart" data-add-to-cart></div>
+              <div class="add-to-cart" data-add-to-cart data-sales></div>
+              <template id="product-inquiry-template">
+                <p class="product-inquiry">
+                  <a
+                    class="bui-button"
+                    href="/contact"
+                    data-product-inquiry
+                    data-testid="product-inquiry"
+                    >Demande de renseignement<span
+                      class="bui-visually-hidden"
+                      data-product-inquiry-name
+                    ></span
+                  ></a>
+                </p>
+              </template>
               <p>
                 <a class="bui-link" href="/catalogue" data-product-category
                   >Voir les autres produits</a
@@ -262,7 +281,7 @@
                     >Diapositive</a
                   >
                 </h3>
-                <p data-slide-text></p>
+                <p data-sales data-slide-text></p>
               </figcaption>
             </figure>
           </div>
@@ -283,7 +302,7 @@
             </button>
           </li>
         </template>
-        <template id="add-to-cart-template">
+        <template id="add-to-cart-template" data-sales>
           <button
             type="button"
             class="bui-button"

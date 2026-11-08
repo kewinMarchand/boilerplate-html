@@ -3,12 +3,14 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
+import { FileSystemConfigLoader, HtmlValidate } from 'html-validate'
 
 import {
   toPageMetas,
   toSiteIdentity,
 } from '/js/modules/identity/infrastructure/http/siteIdentityTranslation.js'
 
+import { prerenderProduct, withCategoryHrefs } from '../../scripts/prerender-content.js'
 import {
   identityManifest,
   identityStyle,
@@ -16,7 +18,7 @@ import {
   styleHash,
 } from '../../scripts/prerender-identity.js'
 import { apiImage } from './apiImage.js'
-import { SITE_DIR } from './renderedPages.js'
+import { renderPage, SITE_DIR } from './renderedPages.js'
 
 const CONFIG_NAME = JSON.parse(readFileSync(join(SITE_DIR, '..', 'site.config.json'), 'utf8')).name
 const HOME = readFileSync(join(SITE_DIR, 'index.html'), 'utf8')
@@ -47,6 +49,7 @@ const DTO = {
   theme: null,
   shareImage: null,
   icon: null,
+  salesEnabled: true,
 }
 const ICON = {
   png32: 'http://localhost:8090/media/i-32.png',
@@ -110,6 +113,12 @@ describe('traduction de l’identité du site', () => {
       /secondary/,
     )
     assert.throws(() => toSiteIdentity({ ...DTO, name: undefined }), /name/)
+    assert.throws(() => toSiteIdentity({ ...DTO, salesEnabled: undefined }), /salesEnabled/)
+    assert.throws(() => toSiteIdentity({ ...DTO, salesEnabled: 'non' }), /salesEnabled/)
+  })
+
+  it('lit la vente en ligne coupée', () => {
+    assert.equal(toSiteIdentity({ ...DTO, salesEnabled: false }).salesEnabled, false)
   })
 })
 
@@ -277,6 +286,102 @@ describe('pré-rendu de l’identité', () => {
     assert.equal(
       JSON.parse(identityManifest(MANIFEST, identity)).theme_color,
       JSON.parse(MANIFEST).theme_color,
+    )
+  })
+})
+
+describe('pré-rendu sans vente en ligne', () => {
+  const withSales = toSiteIdentity(DTO)
+  const withoutSales = toSiteIdentity({ ...DTO, salesEnabled: false })
+  const CATALOG = readFileSync(join(SITE_DIR, 'catalogue/index.html'), 'utf8')
+  const product = withCategoryHrefs({
+    id: 1,
+    slug: 'monstera-deliciosa',
+    name: 'Monstera <deliciosa>',
+    categorySlug: 'monstera',
+    price: 3490,
+    exposure: 'mi-ombre',
+    size: 'M',
+    inStock: false,
+    image: null,
+    categoryPath: [{ slug: 'monstera', name: 'Monstera' }],
+    description: 'Grandes feuilles.',
+  })
+  const FICHE = prerenderProduct(
+    readFileSync(join(SITE_DIR, 'produit/fiche.html'), 'utf8'),
+    product,
+    'https://www.example.com/',
+  )
+  const fiche = prerenderIdentity(FICHE, withoutSales, CONFIG_NAME)
+  const jsonLd = (page) =>
+    [...page.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(
+      ([, json]) => JSON.parse(json),
+    )
+
+  it('laisse la page inchangée quand la vente est active', () => {
+    const page = prerenderIdentity(FICHE, withSales, CONFIG_NAME)
+    assert.ok(page.includes('data-testid="product-price"'))
+    assert.ok(page.includes('data-add-to-cart'))
+    assert.ok(page.includes('<template id="product-inquiry-template">'))
+    assert.ok(jsonLd(page).some((data) => data.offers))
+  })
+
+  it('remplace l’ajout au panier par la demande de renseignement, même en rupture de stock', () => {
+    assert.ok(!fiche.includes('data-testid="product-price"'))
+    assert.ok(!fiche.includes('data-add-to-cart'))
+    assert.ok(!fiche.includes('addToCart.js'))
+    assert.ok(!fiche.includes('product-inquiry-template'))
+    assert.match(
+      fiche,
+      /<a\s+class="bui-button"\s+href="\/contact\?produit=monstera-deliciosa"\s+data-product-inquiry\s+data-testid="product-inquiry"\s*>Demande de renseignement<span\s+class="bui-visually-hidden"\s+data-product-inquiry-name\s*> sur Monstera &lt;deliciosa&gt;<\/span/,
+    )
+  })
+
+  it('retire les offres des données structurées et le prix de la description', () => {
+    const [data] = jsonLd(fiche)
+    assert.equal(data['@type'], 'Product')
+    assert.equal(data.offers, undefined)
+    assert.ok(!/content="[^"]*€/.test(fiche))
+    assert.match(
+      fiche,
+      /name="description"\s+content="Monstera &lt;deliciosa&gt; : exposition mi-ombre, taille M\. En rupture/,
+    )
+  })
+
+  it('marque la page pour les scripts', () => {
+    assert.ok(fiche.includes('data-color-scheme="auto" data-sales-disabled>'))
+    assert.ok(!prerenderIdentity(FICHE, withSales, CONFIG_NAME).includes('data-sales-disabled'))
+  })
+
+  it('retire prix, filtre et tris par prix du catalogue', () => {
+    const page = prerenderIdentity(CATALOG, withoutSales, CONFIG_NAME)
+    for (const removed of [
+      'catalog-product-price',
+      'catalog-filter-price-min',
+      'catalog-filter-price-max',
+      'value="prix-asc"',
+      'value="prix-desc"',
+      'cartLink.js',
+    ]) {
+      assert.ok(!page.includes(removed), removed)
+    }
+    assert.ok(page.includes('value="nom"'))
+    assert.ok(page.includes('data-testid="catalog-filter-in-stock"'))
+  })
+
+  it('retire le lien du panier du header et le prix des diapositives', () => {
+    assert.ok(!prerenderIdentity(HEADER, withoutSales, CONFIG_NAME).includes('cart-link'))
+    assert.ok(!prerenderIdentity(HOME, withoutSales, CONFIG_NAME).includes('data-slide-text'))
+  })
+
+  it('produit un HTML valide', async () => {
+    const report = await new HtmlValidate(new FileSystemConfigLoader()).validateString(
+      renderPage(fiche),
+      join(SITE_DIR, 'produit/fiche.html'),
+    )
+    assert.deepEqual(
+      report.results.flatMap((result) => result.messages.map((message) => message.message)),
+      [],
     )
   })
 })

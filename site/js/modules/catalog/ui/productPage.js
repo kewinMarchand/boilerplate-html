@@ -14,6 +14,8 @@ const title = page.querySelector('[data-product-title]')
 const crumb = page.querySelector('[data-product-crumb]')
 const state = page.querySelector('[data-product-state]')
 const content = page.querySelector('[data-product-content]')
+// Sans vente en ligne : ni prix, ni offre, et la demande de renseignement à la place du panier (section 27)
+const salesEnabled = !document.documentElement.hasAttribute('data-sales-disabled')
 // Absent d'une fiche pré-rendue dans l'image de production, qui sert déjà son contenu
 const loading = state.firstElementChild?.cloneNode(true)
 
@@ -22,9 +24,9 @@ const fromTemplate = (id) => document.getElementById(id).content.cloneNode(true)
 const setMeta = (selector, value) =>
   document.head.querySelector(selector)?.setAttribute('content', value)
 
-/** Description de la fiche, la même qu'au pré-rendu. */
+/** Description de la fiche, la même qu'au pré-rendu (prix retiré sans vente en ligne). */
 const productDescription = (product) =>
-  `${product.name} : exposition ${EXPOSURE_LABELS[product.exposure].toLowerCase()}, taille ${product.size}, ${formatPrice(product.price)}. ${product.inStock ? 'En stock' : 'En rupture de stock'}, rayon ${product.categoryPath.at(-1)?.name ?? 'catalogue'}.`
+  `${product.name} : exposition ${EXPOSURE_LABELS[product.exposure].toLowerCase()}, taille ${product.size}${salesEnabled ? `, ${formatPrice(product.price)}` : ''}. ${product.inStock ? 'En stock' : 'En rupture de stock'}, rayon ${product.categoryPath.at(-1)?.name ?? 'catalogue'}.`
 
 const breadcrumbItem = (step) => {
   const item = document.createElement('li')
@@ -78,13 +80,15 @@ const addJsonLd = (product, url, home) => {
       url,
       ...(category && { category: category.name }),
       ...(image && { image }),
-      offers: {
-        '@type': 'Offer',
-        url,
-        priceCurrency: 'EUR',
-        price: (product.price / 100).toFixed(2),
-        availability: `https://schema.org/${product.inStock ? 'InStock' : 'OutOfStock'}`,
-      },
+      ...(salesEnabled && {
+        offers: {
+          '@type': 'Offer',
+          url,
+          priceCurrency: 'EUR',
+          price: (product.price / 100).toFixed(2),
+          availability: `https://schema.org/${product.inStock ? 'InStock' : 'OutOfStock'}`,
+        },
+      }),
     },
     {
       '@context': 'https://schema.org',
@@ -114,7 +118,13 @@ const renderProduct = (product, prerendered) => {
   const picture = content.querySelector('picture')
   if (picture) fillPicture(picture, product.image)
   renderProductGallery(content.querySelector('[data-product-gallery]'), product)
-  content.querySelector('[data-product-price]').textContent = formatPrice(product.price)
+  if (salesEnabled) {
+    content.querySelector('[data-product-price]').textContent = formatPrice(product.price)
+  } else {
+    const inquiry = content.querySelector('[data-product-inquiry]')
+    inquiry.href = `/contact?produit=${encodeURIComponent(product.slug)}`
+    inquiry.querySelector('[data-product-inquiry-name]').textContent = ` sur ${product.name}`
+  }
   const descriptionBlock = content.querySelector('[data-product-description]')
   descriptionBlock.replaceChildren(...product.description.map(paragraph))
   descriptionBlock.hidden = product.description.length === 0

@@ -418,7 +418,7 @@ export const prerenderProduct = (html, product, siteUrl) => {
           : `${open}${picture}`,
     )
     .replace(
-      /(data-product-price data-testid="product-price">)/,
+      /(data-product-price\s+data-testid="product-price"\s*>)/,
       (_, open) => `${open}${escapeHtml(formatPrice(product.price))}`,
     )
     .replace(/(data-testid="product-description")\s*hidden\s*>/, (match, open) =>
@@ -450,11 +450,41 @@ export const prerenderProduct = (html, product, siteUrl) => {
           : '',
     )
     .replace(
+      /(href=")\/contact("\s+data-product-inquiry)/,
+      (_, open, rest) => `${open}${contactHref(product.slug)}${rest}`,
+    )
+    .replace(/(data-product-inquiry-name\s*>)/, (_, open) => `${open} sur ${name}`)
+    .replace(
       '<div class="product-page-layout" data-product-content hidden>',
       '<div class="product-page-layout" data-product-content>',
     )
   return withoutNoscript(withoutLoading(page, 'data-product-state'), 'product-noscript')
 }
+
+/** Adresse de la demande de renseignement sur un produit (section 27 de la spec commune). */
+const contactHref = (slug) => `/contact?produit=${encodeURIComponent(slug)}`
+
+/**
+ * Page contact d'une demande de renseignement (`/contact?produit=<slug>`, servie par nginx depuis
+ * `contact/demande/<slug>.html`) : la ligne du produit au-dessus du formulaire, le champ caché
+ * `product` envoyé avec le message, et la confirmation propre à la demande. La canonique reste /contact.
+ */
+export const prerenderContactProduct = (html, product) =>
+  html
+    .replace(
+      /(\s*)(<div class="contact-layout">)/,
+      (_, space, layout) =>
+        `${space}<p class="contact-product" data-testid="contact-product">Votre demande concerne : <a class="bui-link" href="/produit/${escapeHtml(product.slug)}">${escapeHtml(product.name)}</a></p>${space}${layout}`,
+    )
+    .replace(
+      /(<form[^>]*data-contact-form[^>]*>)/,
+      (_, form) =>
+        `${form}<input type="hidden" name="product" value="${escapeHtml(product.slug)}" />`,
+    )
+    .replace(
+      '<p>Merci, votre message a bien été envoyé.</p>',
+      '<p>Votre demande de renseignement a bien été envoyée.</p>',
+    )
 
 export const fetchJson = async (apiUrl, path) => {
   const response = await fetch(new URL(path, apiUrl), {
@@ -502,7 +532,10 @@ const main = async ([siteDir, apiUrl]) => {
   await prerenderProducts(siteDir, apiUrl)
 }
 
-/** Une page par produit connu de l'API ; sans API, les fiches sont rendues dans le navigateur. */
+/**
+ * Une page par produit connu de l'API, et sa page de demande de renseignement ; sans API, les fiches
+ * sont rendues dans le navigateur, et /contact?produit=… sert le formulaire de contact simple.
+ */
 const prerenderProducts = async (siteDir, apiUrl) => {
   const { toProductDetail } =
     await import('/js/modules/catalog/infrastructure/http/catalogTranslation.js')
@@ -524,6 +557,8 @@ const prerenderProducts = async (siteDir, apiUrl) => {
     return
   }
   const template = readFileSync(join(siteDir, 'produit', 'fiche.html'), 'utf8')
+  const contact = readFileSync(join(siteDir, 'contact', 'index.html'), 'utf8')
+  mkdirSync(join(siteDir, 'contact', 'demande'), { recursive: true })
   const written = []
   for (const slug of slugs) {
     try {
@@ -534,6 +569,10 @@ const prerenderProducts = async (siteDir, apiUrl) => {
       writeFileSync(
         join(siteDir, 'produit', slug, 'index.html'),
         prerenderProduct(template, product, siteUrl),
+      )
+      writeFileSync(
+        join(siteDir, 'contact', 'demande', `${slug}.html`),
+        prerenderContactProduct(contact, product),
       )
       written.push(slug)
     } catch (error) {

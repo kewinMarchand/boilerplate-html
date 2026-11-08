@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -33,6 +33,17 @@ export const PAGE_META_KEYS = {
   'donnees-personnelles/index.html': 'privacy',
   'accessibilite/index.html': 'accessibility',
 }
+/** Pages servies seulement quand la vente en ligne est active : retirées de l'image sinon (404 de nginx). */
+export const SALES_PAGES = ['panier/index.html']
+// Élément marqué `data-sales` (prix, filtre et tris par prix, lien et bouton du panier, leurs scripts) :
+// présent seulement quand la vente est active. Aucun ne contient un élément de même nom.
+const SALES_ELEMENT = /\s*<(\w+)\b[^>]*\sdata-sales(?=[\s>])[^>]*>[\s\S]*?<\/\1>/g
+const INQUIRY_TEMPLATE = /<template id="product-inquiry-template">\s*([\s\S]*?)\s*<\/template>/
+// Prix écrit dans la description construite de la fiche (« …, taille M, 34,90 €. En stock… »)
+const DESCRIBED_PRICE =
+  /(<meta\s+(?:name|property)="(?:og:|twitter:)?description"\s+content="[^"]*), \d[\d\u00a0\u202f]*,\d{2}\u00a0€(?=\.)/g
+// Contact avec un produit (`contact/demande/<slug>.html`, section 27) : métadonnées de la page contact
+const pageMetaFile = (file) => (file.startsWith('contact/demande/') ? 'contact/index.html' : file)
 const LOGO_MARK =
   /<img src="\/logo-mark\.svg" alt="" width="32" height="32" \/>\s*<span>[^<]*<\/span>/g
 const JSON_LD = '<script type="application/ld\\+json">([\\s\\S]*?)</script>'
@@ -66,19 +77,48 @@ const logoImage = (logo, name) => {
   return `<img class="logo-image" src="${escapeHtml(logo.src)}"${responsive} alt="${escapeHtml(name)}" width="${width}" height="${LOGO_HEIGHT}" fetchpriority="high" />`
 }
 
-/** Nom de l'API dans `WebSite` et `Organization`, et son icône (512) en logo d'`Organization` si elle est saisie. */
+/** Sans vente en ligne, aucune offre (`offers`) dans les données structurées, à toute profondeur. */
+const withoutOffers = (node) => {
+  if (Array.isArray(node)) return node.map(withoutOffers)
+  if (node === null || typeof node !== 'object') return node
+  return Object.fromEntries(
+    Object.entries(node)
+      .filter(([key]) => key !== 'offers')
+      .map(([key, value]) => [key, withoutOffers(value)]),
+  )
+}
+
+/**
+ * Nom de l'API dans `WebSite` et `Organization`, son icône (512) en logo d'`Organization` si elle est
+ * saisie, et les offres retirées sans vente en ligne.
+ */
 const withSiteName = (json, identity) => {
-  const data = JSON.parse(json)
+  const data = identity.salesEnabled ? JSON.parse(json) : withoutOffers(JSON.parse(json))
   const nodes = (data['@graph'] ?? [data]).filter((node) =>
     ['WebSite', 'Organization'].includes(node['@type']),
   )
-  if (!nodes.length) return json
+  if (!nodes.length && identity.salesEnabled) return json
   for (const node of nodes) {
     node.name = identity.name
     if (node['@type'] === 'Organization' && identity.icon) node.logo = identity.icon.png512
   }
   return JSON.stringify(data).replaceAll('<', '\\u003c')
 }
+
+/**
+ * Sans vente en ligne (section 27 de la spec commune) : éléments `data-sales` retirés, demande de
+ * renseignement de la fiche sortie de son `<template>`, prix retiré de la description, et
+ * `data-sales-disabled` sur `<html>` pour les scripts qui écrivent des cartes ou lisent l'URL du catalogue.
+ */
+const withoutSales = (html) =>
+  html
+    .replace(SALES_ELEMENT, '')
+    .replace(INQUIRY_TEMPLATE, (_, link) => link)
+    .replace(DESCRIBED_PRICE, '$1')
+    .replace(
+      /<html lang="fr" data-color-scheme="(\w+)">/,
+      '<html lang="fr" data-color-scheme="$1" data-sales-disabled>',
+    )
 
 /** Titre et description saisis pour la page fixe ; vides : ceux de la page. */
 const withPageMeta = (html, meta) => {
@@ -130,7 +170,7 @@ const withIcon = (html, icon) =>
  * Page ou partial avec l'identité de l'API à la place de celle de la configuration (`configName`) :
  * nom partout où il est écrit (texte, métadonnées, JSON-LD `WebSite` et `Organization`), accroche du
  * hero, logo du header, thème servi par défaut et bloc de couleurs dans `<head>`, titre et description
- * saisis pour la page fixe (`pageMeta`), image de partage et icônes.
+ * saisis pour la page fixe (`pageMeta`), image de partage, icônes, et page sans vente en ligne.
  */
 export const prerenderIdentity = (html, identity, configName, pageMeta = null) => {
   const name = escapeHtml(identity.name)
@@ -154,6 +194,7 @@ export const prerenderIdentity = (html, identity, configName, pageMeta = null) =
     withShareImage(withPageMeta(page, pageMeta), identity.shareImage, identity.name),
     identity.icon,
   )
+  if (!identity.salesEnabled) page = withoutSales(page)
   if (identity.theme) {
     page = page.replace(
       '</head>',
@@ -200,19 +241,22 @@ const main = async ([siteDir, apiUrl, nginxFile]) => {
   const hash = identity.theme ? styleHash(identityStyle(identity.theme)) : ''
   writeFileSync(nginxFile, `set $identity_style_hash "${hash}";\n`)
   const { name } = JSON.parse(readFileSync(join(siteDir, '..', 'site.config.json'), 'utf8'))
+  if (!identity.salesEnabled) {
+    for (const page of SALES_PAGES) rmSync(join(siteDir, page))
+  }
   const files = [
     ...sitePages(siteDir),
     join(siteDir, 'partials', 'header.html'),
     join(siteDir, 'partials', 'footer.html'),
   ]
   for (const file of files) {
-    const pageMeta = pageMetas[PAGE_META_KEYS[relative(siteDir, file)]] ?? null
+    const pageMeta = pageMetas[PAGE_META_KEYS[pageMetaFile(relative(siteDir, file))]] ?? null
     writeFileSync(file, prerenderIdentity(readFileSync(file, 'utf8'), identity, name, pageMeta))
   }
   const manifest = join(siteDir, 'manifest.webmanifest')
   writeFileSync(manifest, identityManifest(readFileSync(manifest, 'utf8'), identity))
   console.info(
-    `[identité] « ${identity.name} » écrite dans les pages${hash ? ', avec ses couleurs' : ''}`,
+    `[identité] « ${identity.name} » écrite dans les pages${hash ? ', avec ses couleurs' : ''}${identity.salesEnabled ? '' : ', sans vente en ligne'}`,
   )
 }
 

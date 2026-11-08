@@ -1,6 +1,7 @@
 export const EXPOSURES = ['soleil', 'mi-ombre', 'ombre']
 export const SIZES = ['S', 'M', 'L']
 export const SORTS = ['pertinence', 'prix-asc', 'prix-desc', 'nom']
+const PRICE_SORTS = ['prix-asc', 'prix-desc']
 export const VIEWS = ['grille', 'liste']
 
 /** Paramètre d'URL d'un attribut filtrable : `attr-<code>`, répété, une valeur par occurrence. */
@@ -42,16 +43,18 @@ const parseAttributes = (params) => {
   return attributes
 }
 
-export const parseQuery = (params) => {
+/** Sans vente en ligne (`prices` à faux), filtre et tris par prix sont ignorés comme une valeur invalide. */
+export const parseQuery = (params, { prices = true } = {}) => {
   const sort = params.get('tri')
+  const sorts = prices ? SORTS : SORTS.filter((value) => !PRICE_SORTS.includes(value))
   return {
     exposures: allowed(params.getAll('exposition'), EXPOSURES),
     sizes: allowed(params.getAll('taille'), SIZES),
     attributes: parseAttributes(params),
-    priceMin: parsePrice(params.get('prix_min')),
-    priceMax: parsePrice(params.get('prix_max')),
+    priceMin: prices ? parsePrice(params.get('prix_min')) : null,
+    priceMax: prices ? parsePrice(params.get('prix_max')) : null,
     inStock: params.get('en_stock') === '1',
-    sort: SORTS.includes(sort) ? sort : DEFAULT_QUERY.sort,
+    sort: sorts.includes(sort) ? sort : DEFAULT_QUERY.sort,
     view: params.get('vue') === 'liste' ? 'liste' : DEFAULT_QUERY.view,
     page: parsePage(params.get('page')),
   }

@@ -5,7 +5,8 @@ import { sendContactMessage } from '../infrastructure/http/sendContactMessage.js
 const form = document.querySelector('[data-contact-form]')
 const status = form.querySelector('[data-contact-status]')
 const submit = form.querySelector('[type="submit"]')
-const fields = [...form.querySelectorAll('input, textarea')]
+// Le champ caché `product` (demande de renseignement) n'a pas de règle de saisie
+const fields = [...form.querySelectorAll('input:not([type="hidden"]), textarea')]
 let isSending = false
 
 const showFieldError = (field, message) => {

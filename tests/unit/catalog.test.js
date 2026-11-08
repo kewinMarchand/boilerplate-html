@@ -21,6 +21,16 @@ describe('requête du catalogue', () => {
     assert.equal(serializeQuery(parseQuery(new URLSearchParams(url))), url)
   })
 
+  it('ignore filtre et tris par prix sans vente en ligne, comme une valeur invalide', () => {
+    const params = new URLSearchParams('prix_min=10&prix_max=50&tri=prix-desc&taille=M')
+    const query = parseQuery(params, { prices: false })
+    assert.equal(query.priceMin, null)
+    assert.equal(query.priceMax, null)
+    assert.equal(query.sort, 'pertinence')
+    assert.equal(serializeQuery(query), 'taille=M')
+    assert.equal(parseQuery(new URLSearchParams('tri=nom'), { prices: false }).sort, 'nom')
+  })
+
   it('fait l’aller-retour des attributs, une valeur par occurrence de attr-<code>', () => {
     const url = 'taille=M&attr-feuillage=persistant&attr-feuillage=caduc&attr-hauteur-adulte=300'
     const query = parseQuery(new URLSearchParams(url))

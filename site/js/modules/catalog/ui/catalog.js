@@ -42,7 +42,10 @@ const attributeFacetsSlot = $('[data-catalog-attribute-facets]')
 const BASE_PATH = form.getAttribute('action')
 const categorySlug = root.dataset.category || null
 const productTemplate = document.getElementById('catalog-product-template')
-let query = parseQuery(new URLSearchParams(location.search))
+// Sans vente en ligne, la page n'a ni prix, ni filtre, ni tri par prix (section 27 de la spec commune)
+const prices = !document.documentElement.hasAttribute('data-sales-disabled')
+const parse = (params) => parseQuery(params, { prices })
+let query = parse(new URLSearchParams(location.search))
 let attributeFacets = []
 
 const urlFor = (nextQuery) => {
@@ -68,8 +71,10 @@ const syncControls = () => {
   form.querySelectorAll('[data-facet="attributes"]').forEach((input) => {
     input.checked = query.attributes[input.dataset.attribute]?.includes(input.value) ?? false
   })
-  form.querySelector('[data-facet="priceMin"]').value = query.priceMin ?? ''
-  form.querySelector('[data-facet="priceMax"]').value = query.priceMax ?? ''
+  if (prices) {
+    form.querySelector('[data-facet="priceMin"]').value = query.priceMin ?? ''
+    form.querySelector('[data-facet="priceMax"]').value = query.priceMax ?? ''
+  }
   form.querySelector('[data-facet="inStock"]').checked = query.inStock
   sort.value = query.sort
   list.dataset.view = query.view
@@ -223,7 +228,7 @@ const renderProduct = (product, index) => {
   fillPicture($item('picture'), product.image)
   $item('[data-product-name]').textContent = product.name
   $item('[data-product-link]').href = productHref(product.slug)
-  $item('[data-product-price]').textContent = formatPrice(product.price)
+  if (prices) $item('[data-product-price]').textContent = formatPrice(product.price)
   $item('[data-product-exposure]').textContent = EXPOSURE_LABELS[product.exposure]
   $item('[data-product-size]').textContent = product.size
   $item('[data-product-out-of-stock]').hidden = product.inStock
@@ -292,8 +297,8 @@ const checkedValues = (facet) =>
   [...form.querySelectorAll(`[data-facet="${facet}"]:checked`)].map((input) => input.value)
 
 const readPrices = () => {
-  const prices = parseQuery(new URLSearchParams(new FormData(form)))
-  return { priceMin: prices.priceMin, priceMax: prices.priceMax }
+  const { priceMin, priceMax } = parse(new URLSearchParams(new FormData(form)))
+  return { priceMin, priceMax }
 }
 
 form.addEventListener('change', (event) => {
@@ -329,7 +334,7 @@ $('[data-catalog-clear]').addEventListener('click', () =>
   navigate(clearFilters(query), { focusTitle: true }),
 )
 window.addEventListener('popstate', () => {
-  query = parseQuery(new URLSearchParams(location.search))
+  query = parse(new URLSearchParams(location.search))
   syncControls()
   load()
 })

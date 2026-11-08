@@ -248,7 +248,14 @@
       </ul>
     </nav>
     <!--# if expr="$page = panier" -->
-    <a class="cart-link" href="/panier" aria-current="page" data-cart-link data-testid="cart-link">
+    <a
+      class="cart-link"
+      href="/panier"
+      data-sales
+      aria-current="page"
+      data-cart-link
+      data-testid="cart-link"
+    >
       <svg
         class="bui-icon bui-icon--md"
         aria-hidden="true"
@@ -261,7 +268,7 @@
       <span class="cart-link-label">Panier</span>
     </a>
     <!--# else -->
-    <a class="cart-link" href="/panier" data-cart-link data-testid="cart-link">
+    <a class="cart-link" href="/panier" data-sales data-cart-link data-testid="cart-link">
       <svg
         class="bui-icon bui-icon--md"
         aria-hidden="true"

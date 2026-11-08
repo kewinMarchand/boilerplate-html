@@ -5,7 +5,12 @@ import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
-import { prerenderArticle, prerenderProduct, withCategoryHrefs } from './prerender-content.js'
+import {
+  prerenderArticle,
+  prerenderContactProduct,
+  prerenderProduct,
+  withCategoryHrefs,
+} from './prerender-content.js'
 import { resolveVariables, runtimeVariables } from './runtimeVariables.js'
 import { renderSsi } from './ssi.js'
 
@@ -18,6 +23,7 @@ const STYLEGUIDE_MARKER = '<!-- dev:styleguide -->'
 const PARTIALS = '/partials/'
 const ARTICLE_PATH = /^\/blog\/([a-z0-9-]+)\/?$/
 const PRODUCT_PATH = /^\/produit\/([a-z0-9-]+)\/?$/
+const PRODUCT_SLUG = /^[a-z0-9-]+$/
 const STYLEGUIDE_LINK = '<p><a href="/charte-graphique">Charte graphique (développement)</a></p>'
 
 const TYPES = {
@@ -137,12 +143,18 @@ const prerenderedProduct = (pathname, template) =>
     prerenderProduct(html, withCategoryHrefs(dto), SITE_URL),
   )
 
+// Comme nginx, qui sert contact/demande/<slug>.html quand le produit était connu à la construction
+const prerenderedContact = (slug, template) =>
+  PRODUCT_SLUG.test(slug ?? '')
+    ? prerendered(`/api/products/${slug}`, template, prerenderContactProduct)
+    : undefined
+
 createServer(async (request, response) => {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     await send(request, response, 405, join(ROOT, '405.html'), { Allow: 'GET, HEAD' })
     return
   }
-  const { pathname } = new URL(request.url, 'http://localhost')
+  const { pathname, searchParams } = new URL(request.url, 'http://localhost')
   const file = await resolveFile(pathname)
   const isPage = !file || extname(file) === '.html'
 
@@ -156,6 +168,9 @@ createServer(async (request, response) => {
     await send(request, response, 200, file, {}, html)
   } else if (file?.endsWith('/produit/fiche.html')) {
     await send(request, response, 200, file, {}, await prerenderedProduct(pathname, file))
+  } else if (file?.endsWith('/contact/index.html')) {
+    const html = await prerenderedContact(searchParams.get('produit'), file)
+    await send(request, response, 200, file, {}, html)
   } else if (file) {
     await send(request, response, 200, file)
   } else {

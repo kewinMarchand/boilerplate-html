@@ -8,6 +8,7 @@ import {
   prerenderArticle,
   prerenderBlogList,
   prerenderCarousel,
+  prerenderContactProduct,
   prerenderLegalPage,
   prerenderProduct,
   withArticlesInSitemap,
@@ -396,6 +397,20 @@ describe('pré-rendu d’une fiche produit', () => {
     assert.deepEqual(await validate(html, 'produit/fiche.html'), [])
   })
 
+  it('prépare la demande de renseignement dans son gabarit, retiré par l’identité', () => {
+    const template = html.match(/<template id="product-inquiry-template">[\s\S]*?<\/template>/)[0]
+    assert.match(template, /href="\/contact\?produit=anthurium-andreanum-rouge"/)
+    assert.match(template, /data-product-inquiry-name\s*> sur Anthurium<\/span/)
+    assert.match(html, /data-product-price\s+data-testid="product-price"\s*>24,90/)
+  })
+
+  it('prépare la demande de renseignement dans son gabarit, retiré par l’identité', () => {
+    const template = html.match(/<template id="product-inquiry-template">[\s\S]*?<\/template>/)[0]
+    assert.match(template, /href="\/contact\?produit=anthurium-andreanum-rouge"/)
+    assert.match(template, /data-product-inquiry-name\s*> sur Anthurium<\/span/)
+    assert.match(html, /data-product-price\s+data-testid="product-price"\s*>24,90/)
+  })
+
   it('ajoute les fiches au sitemap', () => {
     assert.ok(
       withPagesInSitemap(
@@ -405,5 +420,31 @@ describe('pré-rendu d’une fiche produit', () => {
         'https://www.example.com',
       ).includes('<loc>https://www.example.com/produit/a</loc>'),
     )
+  })
+})
+
+describe('pré-rendu de la demande de renseignement', () => {
+  const CONTACT = readFileSync(join(SITE_DIR, 'contact/index.html'), 'utf8')
+  const html = prerenderContactProduct(CONTACT, PRODUCTS[0])
+
+  it('écrit la ligne du produit liée à sa fiche, au-dessus du formulaire', () => {
+    assert.match(
+      html,
+      /<p class="contact-product" data-testid="contact-product">Votre demande concerne : <a class="bui-link" href="\/produit\/heliconia-rostrata">Heliconia &lt;rouge&gt; \$1<\/a><\/p>\s*<div class="contact-layout">/,
+    )
+  })
+
+  it('envoie le produit avec le message, et confirme la demande', () => {
+    assert.match(
+      html,
+      /data-testid="contact-form"\s*><input type="hidden" name="product" value="heliconia-rostrata" \/>/,
+    )
+    assert.ok(html.includes('<p>Votre demande de renseignement a bien été envoyée.</p>'))
+    assert.ok(!html.includes('Merci, votre message a bien été envoyé.'))
+  })
+
+  it('garde la canonique de /contact et produit un HTML valide', async () => {
+    assert.ok(html.includes('<link rel="canonical" href="https://www.example.com/contact" />'))
+    assert.deepEqual(await validate(html, 'contact/index.html'), [])
   })
 })

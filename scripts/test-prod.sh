@@ -58,7 +58,7 @@ if [ "${1:-}" = checks ]; then
   normal)
     for route in / /catalogue /blog /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages \
       /taches /contact /mentions-legales /donnees-personnelles /accessibilite /plan-du-site \
-      /panier /sitemap.xml /robots.txt /vendor/embla-carousel.esm.js; do
+      /sitemap.xml /robots.txt /vendor/embla-carousel.esm.js; do
       expect_status "$route" 200
     done
     expect_status /route-inexistante 404
@@ -67,6 +67,8 @@ if [ "${1:-}" = checks ]; then
     expect_status /_erreur-test 404
     expect_status /404.html 404
     expect_status /partials/header.html 404
+    expect_status /contact/demande/monstera-deliciosa.html 404
+    expect_status '/contact?produit=produit-inconnu' 200
     expect_body / 'data-site-header'
     expect_body /contact '<a href="/contact" aria-current="page">Contact</a>'
     expect_body /route-inexistante 'class="site-footer"'
@@ -220,6 +222,40 @@ checks.push([
   identity?.icon ? 'JSON-LD Organization avec l’icône 512 de l’API' : 'JSON-LD Organization avec le logo du site',
   identity?.icon ? organization.logo === identity.icon.png512 : organization.logo.endsWith('/icons/icon-512.png'),
 ])
+for (const [label, ok] of checks) console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`)
+process.exit(checks.every(([, ok]) => ok) ? 0 : 1)
+EOF
+    # Vente en ligne (section 27 de la spec commune) : panier ou demande de renseignement selon l'API,
+    # et page contact d'une demande pré-rendue, servie seulement pour un produit connu
+    node --input-type=module - "http://localhost:$PORT" "${API_URL:-http://localhost:8090}" <<'EOF' || FAILED=1
+const [site, api] = process.argv.slice(2)
+const identity = await fetch(`${api}/api/site-identity`)
+  .then((response) => (response.ok ? response.json() : null))
+  .catch(() => null)
+const salesEnabled = identity?.salesEnabled ?? true
+const page = async (path) => {
+  const response = await fetch(`${site}${path}`)
+  return { status: response.status, html: await response.text() }
+}
+const cart = await page('/panier')
+const { html: product } = await page('/produit/monstera-deliciosa')
+const { html: contact } = await page('/contact?produit=monstera-deliciosa')
+const { html: unknown } = await page('/contact?produit=produit-inconnu')
+const { html: invalid } = await page('/contact?produit=..%2Fpanier%2Findex')
+const checks = [
+  salesEnabled
+    ? ['vente active : /panier, lien du panier et ajout au panier', cart.status === 200 &&
+        product.includes('data-testid="cart-link"') && product.includes('addToCart.js') &&
+        product.includes('data-testid="product-price"') && !product.includes('data-sales-disabled')]
+    : ['vente coupée : /panier en 404, demande de renseignement sans prix ni panier', cart.status === 404 &&
+        !product.includes('data-testid="cart-link"') && !product.includes('data-testid="product-price"') &&
+        product.includes('href="/contact?produit=monstera-deliciosa"') && !product.includes('"offers"')],
+  ['/contact?produit=… pré-rendue, avec la ligne et le champ caché', contact.includes('data-testid="contact-product"') &&
+    contact.includes('<input type="hidden" name="product" value="monstera-deliciosa" />') &&
+    contact.includes('<link rel="canonical" href="https://www.example.com/contact" />')],
+  ['/contact?produit= inconnu ou invalide : formulaire simple', [unknown, invalid].every((html) =>
+    html.includes('data-testid="contact-form"') && !html.includes('data-testid="contact-product"'))],
+]
 for (const [label, ok] of checks) console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`)
 process.exit(checks.every(([, ok]) => ok) ? 0 : 1)
 EOF

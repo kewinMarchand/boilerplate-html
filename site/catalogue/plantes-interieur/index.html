@@ -53,7 +53,7 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
-    <script type="module" src="/js/modules/cart/ui/cartLink.js"></script>
+    <script type="module" src="/js/modules/cart/ui/cartLink.js" data-sales></script>
     <script type="module" src="/js/modules/catalog/ui/catalog.js"></script>
     <script type="application/ld+json">
       {
@@ -231,7 +231,7 @@
                 </fieldset>
               </details>
               <div class="attribute-facets" data-catalog-attribute-facets></div>
-              <details class="facet" open>
+              <details class="facet" open data-sales>
                 <summary>Prix</summary>
                 <fieldset class="price-fields">
                   <legend class="visually-hidden">Prix en euros</legend>
@@ -328,8 +328,8 @@
                   data-testid="catalog-sort"
                 >
                   <option value="pertinence">Pertinence</option>
-                  <option value="prix-asc">Prix croissant</option>
-                  <option value="prix-desc">Prix décroissant</option>
+                  <option value="prix-asc" data-sales>Prix croissant</option>
+                  <option value="prix-desc" data-sales>Prix décroissant</option>
                   <option value="nom">Nom</option>
                 </select>
               </div>
@@ -453,6 +453,7 @@
                     </h2>
                     <p
                       class="product-price"
+                      data-sales
                       data-testid="catalog-product-price"
                       data-product-price
                     ></p>
