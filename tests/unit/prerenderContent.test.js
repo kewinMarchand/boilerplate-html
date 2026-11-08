@@ -83,7 +83,7 @@ describe('pré-rendu du carrousel', () => {
     assert.ok(page.includes('href="/produit/heliconia-rostrata"'))
     assert.match(page, /54,90\s€/)
     assert.ok(page.includes('http://localhost:8090/media/s2-800.avif 800w'))
-    assert.equal(page.match(/<picture>/g)?.length, 1)
+    assert.equal(page.match(/<picture class="bui-picture">/g)?.length, 1)
     assert.ok(!page.includes('data-testid="home-carousel-loading"'))
     assert.ok(!page.includes('data-testid="home-carousel-noscript"'))
   })
@@ -328,14 +328,17 @@ describe('pré-rendu d’une fiche produit', () => {
     assert.equal(gallery.match(/aria-current="true"/g)?.length, 1)
     assert.ok(gallery.includes("Voir l'image 3 sur 3"))
     assert.equal(gallery.match(/loading="lazy"/g)?.length, 3)
-    assert.match(gallery, /<picture class="product-page-media">[\s\S]*?fetchpriority="high"/)
+    assert.match(
+      gallery,
+      /<picture class="product-page-media bui-picture">[\s\S]*?fetchpriority="high"/,
+    )
   })
 
   it('n’écrit pas de galerie sans images supplémentaires', () => {
     const page = outsideTemplates(html)
     assert.ok(!page.includes('product-gallery-thumbs'))
     assert.ok(!page.includes('data-testid="product-gallery"'))
-    assert.ok(page.includes('<picture class="product-page-media">'))
+    assert.ok(page.includes('<picture class="product-page-media bui-picture">'))
   })
 
   it('écrit le titre et la description saisis, sinon ceux calculés', () => {

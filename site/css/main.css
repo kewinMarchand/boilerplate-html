@@ -1334,6 +1334,8 @@
   .blog-card-media {
     max-inline-size: none;
     margin: calc(-1 * var(--space-l)) calc(-1 * var(--space-l)) 0;
+    border-start-start-radius: var(--radius);
+    border-start-end-radius: var(--radius);
 
     & img {
       inline-size: 100%;
@@ -1539,6 +1541,12 @@
   .article-date {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
+  }
+
+  /* Coins arrondis aussi sur le fond de remplacement d'une image en échec (bui-picture) */
+  .article-media,
+  .product-page-media {
+    border-radius: var(--radius);
   }
 
   .article-media img {

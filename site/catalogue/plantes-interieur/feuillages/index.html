@@ -56,6 +56,7 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
+    <script type="module" src="/js/shared/imageFallback.js"></script>
     <script type="module" src="/js/modules/cart/ui/cartLink.js" data-sales></script>
     <script type="module" src="/js/modules/catalog/ui/catalog.js"></script>
     <script type="application/ld+json">
@@ -431,7 +432,7 @@
             <template id="catalog-product-template">
               <li class="product-item">
                 <article class="product-card" data-testid="catalog-product" data-product-card>
-                  <picture>
+                  <picture class="bui-picture">
                     <source
                       type="image/avif"
                       sizes="(width >= 1024px) 280px, (width >= 480px) 45vw, 100vw"

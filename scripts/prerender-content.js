@@ -208,7 +208,7 @@ export const prerenderArticle = (html, article, siteUrl) => {
       /<time data-article-date datetime="[^"]*">[^<]*/,
       `<time data-article-date datetime="${article.publishedAt}">${DATE_FORMAT.format(new Date(`${article.publishedAt}T00:00:00Z`))}`,
     )
-    .replace(/<picture class="article-media">[\s\S]*?<\/picture>/, (picture) =>
+    .replace(/<picture class="article-media bui-picture">[\s\S]*?<\/picture>/, (picture) =>
       withPicture(picture, article.image),
     )
     .replace(/(<p class="article-excerpt" data-article-excerpt)>/, (_, open) =>
@@ -407,7 +407,7 @@ export const prerenderProduct = (html, product, siteUrl) => {
     )
     .replace(/(data-product-crumb\s*>)[^<]*/, (_, open) => `${open}${name}`)
     .replace(/(data-testid="product-title">)[^<]*/, (_, open) => `${open}${name}`)
-    .replace(/<picture class="product-page-media">[\s\S]*?<\/picture>/, (picture) =>
+    .replace(/<picture class="product-page-media bui-picture">[\s\S]*?<\/picture>/, (picture) =>
       withPicture(picture, product.image),
     )
     .replace(

@@ -53,6 +53,7 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
+    <script type="module" src="/js/shared/imageFallback.js"></script>
     <script type="module" src="/js/modules/cart/ui/cartLink.js" data-sales></script>
     <script type="module" src="/js/modules/blog/ui/blogList.js"></script>
     <script type="application/ld+json">
@@ -135,7 +136,7 @@
         <div class="blog-list" data-blog-list data-testid="blog-list"></div>
         <template id="blog-card-template">
           <article class="blog-card" data-testid="blog-card">
-            <picture class="blog-card-media">
+            <picture class="blog-card-media bui-picture">
               <source
                 type="image/avif"
                 sizes="(width >= 1024px) 460px, (width >= 640px) 50vw, 100vw"

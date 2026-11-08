@@ -53,6 +53,7 @@
     <script type="module" src="/js/shared/a11yModeToggle.js"></script>
     <script type="module" src="/js/shared/colorSchemeToggle.js"></script>
     <script type="module" src="/js/shared/categoryMenu.js"></script>
+    <script type="module" src="/js/shared/imageFallback.js"></script>
     <script type="module" src="/js/modules/cart/ui/cartLink.js" data-sales></script>
     <script type="module" src="/js/modules/cart/ui/addToCart.js" data-sales></script>
     <script type="module" src="/js/modules/catalog/ui/productPage.js"></script>
@@ -100,7 +101,7 @@
           </noscript>
           <div class="product-page-layout" data-product-content hidden>
             <div class="product-gallery" data-product-gallery>
-              <picture class="product-page-media">
+              <picture class="product-page-media bui-picture">
                 <source
                   type="image/avif"
                   sizes="(width >= 1440px) 680px, (width >= 768px) 50vw, calc(100vw - 32px)"
@@ -249,7 +250,7 @@
             data-testid="carousel-slide"
           >
             <figure>
-              <picture>
+              <picture class="bui-picture">
                 <source
                   type="image/avif"
                   sizes="(width >= 1024px) 33vw, (width >= 640px) 50vw, 100vw"
