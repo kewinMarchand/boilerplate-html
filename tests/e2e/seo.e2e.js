@@ -12,7 +12,9 @@ test.describe('SEO', () => {
       await page.goto(route)
       const head = page.locator('head')
 
-      expect((await page.title()).length).toBeGreaterThan(0)
+      const title = await page.title()
+      expect(title.length).toBeGreaterThan(0)
+      expect(title.length).toBeLessThanOrEqual(60)
 
       const description = await head.locator('meta[name="description"]').getAttribute('content')
       expect(description?.length).toBeGreaterThanOrEqual(50)

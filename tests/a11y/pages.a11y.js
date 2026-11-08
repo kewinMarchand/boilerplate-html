@@ -15,6 +15,8 @@ const EXTRA_ROUTES = [
   '/charte-graphique',
   '/catalogue?exposition=soleil&tri=prix-asc',
   '/panier',
+  '/blog?rubrique=conseils',
+  '/blog/un-carrousel-accessible-sans-dependance',
 ]
 
 const audit = async (page) => {

@@ -29,6 +29,57 @@ test.describe('Liste des articles', () => {
     ])
   })
 
+  test('écrit la rubrique en sur-titre des cartes, sur /blog et sur l’accueil', async ({
+    page,
+    request,
+  }) => {
+    const articles = await apiArticles(request)
+    await page.goto('/blog')
+    await expect(page.getByTestId('blog-card').getByTestId('article-section')).toHaveText(
+      articles.map((article) => article.section.name),
+    )
+
+    await page.goto('/')
+    await expect(
+      page.getByTestId('home-blog-card').first().getByTestId('article-section'),
+    ).toHaveText(articles[0].section.name)
+  })
+
+  test('filtre par rubrique, active dans la navigation et dans l’adresse', async ({ page }) => {
+    await page.goto('/blog')
+    const nav = page.getByRole('navigation', { name: 'Rubriques' })
+
+    await expect(nav.getByRole('link')).toHaveText(['Toutes', 'Conseils', 'Actualités'])
+    await expect(nav.getByRole('link', { name: 'Toutes' })).toHaveAttribute('aria-current', 'page')
+    await nav.getByRole('link', { name: 'Conseils' }).click()
+
+    await expect(page).toHaveURL(/\/blog\?rubrique=conseils$/)
+    await expect(nav.getByRole('link', { name: 'Conseils' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    await expect(nav.getByRole('link', { name: 'Toutes' })).not.toHaveAttribute('aria-current')
+    const sections = page.getByTestId('blog-card').getByTestId('article-section')
+    await expect(sections).toHaveText(['Conseils', 'Conseils'])
+  })
+
+  test('sans rubrique, ni filtre ni sur-titre', async ({ page }) => {
+    await page.route('**/api/article-sections', (route) => route.fulfill({ json: [] }))
+    await page.route('**/api/articles', async (route) => {
+      const response = await route.fetch()
+      const articles = await response.json()
+      await route.fulfill({
+        response,
+        json: articles.map((article) => ({ ...article, section: null })),
+      })
+    })
+    await page.goto('/blog')
+
+    await expect(page.getByTestId('blog-card').first()).toBeVisible()
+    await expect(page.getByTestId('blog-sections')).toHaveCount(0)
+    await expect(page.getByTestId('article-section')).toHaveCount(0)
+  })
+
   test('une carte ouvre la fiche de son article', async ({ page }) => {
     await page.goto('/blog')
 

@@ -152,6 +152,77 @@ const checks = [
 for (const [label, ok] of checks) console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`)
 process.exit(checks.every(([, ok]) => ok) ? 0 : 1)
 EOF
+    # Galerie, rubriques, audio, métadonnées, image de partage et icônes (sections 22, 24, 25 et 26 de la
+    # spec commune), pré-rendus quand l'API les sert ; une API qui ne les sert pas (Hono) laisse les pages telles quelles
+    node --input-type=module - "http://localhost:$PORT" "${API_URL:-http://localhost:8090}" <<'EOF' || FAILED=1
+const [site, api] = process.argv.slice(2)
+const json = (path) =>
+  fetch(`${api}${path}`)
+    .then((response) => (response.ok ? response.json() : null))
+    .catch(() => null)
+const page = async (path) => {
+  const response = await fetch(`${site}${path}`)
+  return { html: await response.text(), csp: response.headers.get('content-security-policy') }
+}
+const escape = (value) => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;')
+const product = await json('/api/products/monstera-deliciosa')
+const sections = await json('/api/article-sections')
+const articles = (await json('/api/articles')) ?? []
+const withAudio = articles.find((article) => article.audio)
+const metas = await json('/api/page-metas')
+const identity = await json('/api/site-identity')
+const checks = []
+if (product?.gallery?.length) {
+  const { html } = await page('/produit/monstera-deliciosa')
+  const thumbs = html.match(/<a href="[^"]*"( aria-current="true")? class="product-gallery-thumb"/g) ?? []
+  checks.push([
+    `galerie pré-rendue, ${product.gallery.length + 1} vignettes en liens`,
+    html.includes('data-testid="product-gallery"') && thumbs.length === product.gallery.length + 1,
+  ])
+} else checks.push(['API sans galerie (section 24) : rien à pré-rendre', true])
+if (sections?.length) {
+  const { html } = await page('/blog')
+  const nav = html.match(/<nav\s+class="blog-sections"[\s\S]*?<\/nav>/)?.[0] ?? ''
+  checks.push([
+    'filtre par rubrique et sur-titres de /blog pré-rendus',
+    !/\shidden\s*>/.test(nav) &&
+      sections.every((section) => nav.includes(`>${escape(section.name)}</a>`)) &&
+      html.includes('data-testid="article-section">'),
+  ])
+} else checks.push(['API sans rubriques (section 25) : rien à pré-rendre', true])
+if (withAudio) {
+  const { html, csp } = await page(`/blog/${withAudio.slug}`)
+  checks.push([
+    'lecteur audio pré-rendu, origine de l’API en media-src',
+    html.includes(`<audio src="${withAudio.audio.src}"`) &&
+      csp.includes(`media-src 'self' ${new URL(api).origin}`),
+  ])
+}
+const blogMeta = metas?.find((meta) => meta.page === 'blog')
+if (blogMeta?.description) {
+  const { html } = await page('/blog')
+  checks.push(['description saisie pour /blog servie', html.includes(`content="${escape(blogMeta.description)}"`)])
+}
+const { html: contact } = await page('/contact')
+checks.push([
+  identity?.icon ? 'favicons de l’API' : 'favicons du site, sans icône dans l’API',
+  contact.includes(identity?.icon ? `href="${identity.icon.png32}"` : 'href="/favicon.svg"'),
+])
+checks.push([
+  identity?.shareImage ? 'image de partage de l’API' : 'og-image.jpg, sans image de partage dans l’API',
+  identity?.shareImage ? !contact.includes('og-image.jpg') : contact.includes('/images/og-image.jpg'),
+])
+const { html: home } = await page('/')
+const organization = JSON.parse(home.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1])[
+  '@graph'
+].find((node) => node['@type'] === 'Organization')
+checks.push([
+  identity?.icon ? 'JSON-LD Organization avec l’icône 512 de l’API' : 'JSON-LD Organization avec le logo du site',
+  identity?.icon ? organization.logo === identity.icon.png512 : organization.logo.endsWith('/icons/icon-512.png'),
+])
+for (const [label, ok] of checks) console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`)
+process.exit(checks.every(([, ok]) => ok) ? 0 : 1)
+EOF
     if curl --silent "http://localhost:$PORT/" | grep --quiet 'data-glitchtip-dsn\|data-matomo-url'; then
       echo "FAIL un traceur est injecté sans configuration"
       FAILED=1

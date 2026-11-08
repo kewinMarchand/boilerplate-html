@@ -124,3 +124,88 @@ test('le thème par défaut de l’API est servi, le choix mémorisé l’emport
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'light')
 })
+
+test.describe('métadonnées administrables, image de partage et icônes', () => {
+  const SHARE_IMAGE = {
+    alt: 'Serre de plantes tropicales',
+    width: 1200,
+    height: 630,
+    sources: [
+      { type: 'image/webp', srcset: 'https://www.example.com/images/partage-1200.webp 1200w' },
+    ],
+    src: 'https://www.example.com/images/partage-1200.webp',
+  }
+  const ICON = {
+    png32: '/icons/icon-192.png',
+    png180: '/apple-touch-icon.png',
+    png192: '/icons/icon-192.png',
+    png512: '/icons/icon-512.png',
+  }
+  const BLOG_META = {
+    title: 'Blog de la jardinerie : conseils et actualités',
+    description:
+      'Conseils d’entretien, nouveautés et actualités de la jardinerie, rédigés par l’équipe pour vos plantes rares.',
+  }
+
+  test('titre et description saisis pour une page fixe, image de partage et icônes de l’API', async ({
+    page,
+  }) => {
+    await withIdentity(
+      page,
+      { ...BRANDED_IDENTITY, shareImage: SHARE_IMAGE, icon: ICON },
+      {
+        blog: BLOG_META,
+      },
+    )
+    await page.goto('/blog')
+    const head = page.locator('head')
+
+    await expect(page).toHaveTitle(BLOG_META.title)
+    await expect(head.locator('meta[name="description"]')).toHaveAttribute(
+      'content',
+      BLOG_META.description,
+    )
+    await expect(head.locator('meta[property="og:title"]')).toHaveAttribute(
+      'content',
+      BLOG_META.title,
+    )
+    await expect(head.locator('meta[property="og:image"]')).toHaveAttribute(
+      'content',
+      SHARE_IMAGE.src,
+    )
+    await expect(head.locator('meta[property="og:image:alt"]')).toHaveAttribute(
+      'content',
+      SHARE_IMAGE.alt,
+    )
+    await expect(head.locator('link[rel="icon"]')).toHaveCount(1)
+    await expect(head.locator('link[rel="icon"]')).toHaveAttribute('href', ICON.png32)
+    await expect(head.locator('link[rel="icon"]')).toHaveAttribute('sizes', '32x32')
+    await expect(head.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', ICON.png180)
+
+    await page.goto('/contact')
+    await expect(page).toHaveTitle(/ · Oraki$/)
+  })
+
+  test('sans saisie, les valeurs du site restent', async ({ page }) => {
+    await withIdentity(
+      page,
+      { ...BRANDED_IDENTITY, shareImage: null, icon: null },
+      {
+        blog: { title: '', description: '' },
+      },
+    )
+    await page.goto('/blog')
+    const head = page.locator('head')
+
+    await expect(page).toHaveTitle('Blog, tous les articles · Oraki')
+    await expect(head.locator('meta[property="og:image"]')).toHaveAttribute(
+      'content',
+      /\/images\/og-image\.jpg$/,
+    )
+    await expect(head.locator('link[rel="icon"][href="/favicon.svg"]')).toHaveCount(1)
+    await expect(head.locator('link[rel="apple-touch-icon"]')).toHaveAttribute(
+      'href',
+      '/apple-touch-icon.png',
+    )
+  })
+})

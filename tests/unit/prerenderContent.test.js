@@ -134,7 +134,12 @@ describe('pré-rendu de la liste des articles', () => {
       image: null,
     },
   ]
-  const html = prerenderBlogList(BLOG, ARTICLES)
+  const SECTIONS = [
+    { slug: 'conseils', name: 'Conseils' },
+    { slug: 'actualites', name: 'Actualités' },
+  ]
+  ARTICLES[0].section = SECTIONS[0]
+  const html = prerenderBlogList(BLOG, ARTICLES, SECTIONS)
   const page = outsideTemplates(html)
 
   it('écrit une carte par article, liée à sa fiche, sans squelette ni message sans JavaScript', () => {
@@ -154,6 +159,28 @@ describe('pré-rendu de la liste des articles', () => {
     assert.deepEqual(await validate(html, 'blog/index.html'), [])
   })
 
+  it('écrit la rubrique en sur-titre de la carte qui en a une', () => {
+    assert.equal(page.match(/data-testid="article-section"/g)?.length, 1)
+    assert.ok(page.includes('data-testid="article-section">Conseils</p>'))
+  })
+
+  it('écrit le filtre par rubrique, « Toutes » active, et le retire sans rubrique', () => {
+    const nav = page.match(/<nav\s+class="blog-sections"[\s\S]*?<\/nav>/)[0]
+    assert.ok(!/\shidden\s*>/.test(nav))
+    assert.deepEqual(
+      [...nav.matchAll(/<a class="bui-link" href="([^"]*)"[^>]*>([^<]*)/g)].map(
+        ([, href, name]) => [href, name],
+      ),
+      [
+        ['/blog', 'Toutes'],
+        ['/blog?rubrique=conseils', 'Conseils'],
+        ['/blog?rubrique=actualites', 'Actualités'],
+      ],
+    )
+    assert.ok(nav.includes('href="/blog" aria-current="page"'))
+    assert.ok(!prerenderBlogList(BLOG, ARTICLES).includes('blog-sections'))
+  })
+
   it('laisse la page telle quelle sans article', () => {
     assert.equal(prerenderBlogList(BLOG, []), BLOG)
   })
@@ -171,6 +198,56 @@ describe('pré-rendu d’une fiche article', () => {
   }
   const html = prerenderArticle(FICHE, ARTICLE, 'https://www.example.com')
   const page = outsideTemplates(html)
+  const RICH = {
+    ...ARTICLE,
+    section: { slug: 'conseils', name: 'Conseils' },
+    format: { slug: 'guide', name: 'Guide <pas à pas>' },
+    audio: { src: 'http://localhost:8090/media/a.mp3', type: 'audio/mpeg', durationSeconds: 1560 },
+    speaker: 'Présenté par Hina',
+    metaTitle: 'Titre saisi pour les moteurs',
+    metaDescription: 'Description saisie pour les moteurs.',
+  }
+  const rich = prerenderArticle(FICHE, RICH, 'https://www.example.com')
+
+  it('écrit rubrique, format et lecteur audio avec sa durée et l’intervenant', () => {
+    assert.match(rich, /data-article-section-name>Conseils</)
+    assert.match(rich, /data-article-format-name>Guide &lt;pas à pas&gt;</)
+    assert.match(
+      rich,
+      /<audio src="http:\/\/localhost:8090\/media\/a\.mp3"\s+controls\s+preload="none"/,
+    )
+    assert.ok(
+      rich.includes("data-article-audio-caption>Écouter l'article (26 min) · Présenté par Hina<"),
+    )
+    assert.ok(!rich.includes('autoplay'))
+  })
+
+  it('retire rubrique, format et lecteur absents', () => {
+    assert.ok(!page.includes('article-taxonomy'))
+    assert.ok(!page.includes('<audio'))
+    const sectionOnly = prerenderArticle(
+      FICHE,
+      { ...ARTICLE, section: RICH.section },
+      'https://www.example.com',
+    )
+    assert.ok(sectionOnly.includes('data-testid="article-section"'))
+    assert.ok(!sectionOnly.includes('data-testid="article-format"'))
+  })
+
+  it('écrit le titre et la description saisis, sinon ceux calculés', () => {
+    assert.ok(rich.includes('<title>Titre saisi pour les moteurs</title>'))
+    assert.ok(rich.includes('<meta property="og:title" content="Titre saisi pour les moteurs" />'))
+    assert.match(rich, /name="description"\s+content="Description saisie pour les moteurs\."/)
+    assert.match(
+      rich,
+      /property="og:description"\s+content="Description saisie pour les moteurs\."/,
+    )
+    assert.match(html, /name="description"\s+content="Défilement natif\."/)
+  })
+
+  it('produit un HTML valide avec rubrique, format et audio', async () => {
+    assert.deepEqual(await validate(rich, 'blog/un-carrousel/index.html'), [])
+  })
 
   it('écrit le titre, la date, l’image, le chapeau et le texte, sans squelette ni message sans JavaScript', () => {
     assert.ok(page.includes('data-testid="article-title">Un carrousel &lt;accessible&gt;'))
@@ -224,6 +301,51 @@ describe('pré-rendu d’une fiche produit', () => {
     ],
   })
   const html = prerenderProduct(PRODUCT_FICHE, product, 'https://www.example.com/')
+  const GALLERY = [apiImage('g1', [400, 640]), apiImage('g2', [400])]
+  const withGallery = prerenderProduct(
+    PRODUCT_FICHE,
+    {
+      ...product,
+      gallery: GALLERY,
+      metaTitle: 'Titre saisi',
+      metaDescription: 'Description saisie.',
+    },
+    'https://www.example.com/',
+  )
+
+  it('écrit la galerie : vignettes en liens vers l’image en grand, la première courante', () => {
+    const gallery = outsideTemplates(withGallery).match(
+      /<div class="product-gallery"[\s\S]*?<\/ul>/,
+    )[0]
+    assert.ok(gallery.includes('data-testid="product-gallery"'))
+    const links = [...gallery.matchAll(/<a href="([^"]*)"/g)].map(([, href]) => href)
+    assert.deepEqual(links, [
+      'http://localhost:8090/media/s2-800.webp',
+      'http://localhost:8090/media/g1-640.webp',
+      'http://localhost:8090/media/g2-400.webp',
+    ])
+    assert.equal(gallery.match(/aria-current="true"/g)?.length, 1)
+    assert.ok(gallery.includes("Voir l'image 3 sur 3"))
+    assert.equal(gallery.match(/loading="lazy"/g)?.length, 3)
+    assert.match(gallery, /<picture class="product-page-media">[\s\S]*?fetchpriority="high"/)
+  })
+
+  it('n’écrit pas de galerie sans images supplémentaires', () => {
+    const page = outsideTemplates(html)
+    assert.ok(!page.includes('product-gallery-thumbs'))
+    assert.ok(!page.includes('data-testid="product-gallery"'))
+    assert.ok(page.includes('<picture class="product-page-media">'))
+  })
+
+  it('écrit le titre et la description saisis, sinon ceux calculés', () => {
+    assert.ok(withGallery.includes('<title>Titre saisi</title>'))
+    assert.match(withGallery, /name="description"\s+content="Description saisie\."/)
+    assert.match(withGallery, /name="twitter:title" content="Titre saisi"/)
+  })
+
+  it('produit un HTML valide avec la galerie', async () => {
+    assert.deepEqual(await validate(withGallery, 'produit/fiche.html'), [])
+  })
 
   it('écrit le contenu, le fil d’Ariane, l’indexation et les données structurées', () => {
     assert.ok(html.includes('<title>Anthurium · Boilerplate HTML</title>'))

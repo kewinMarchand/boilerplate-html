@@ -50,6 +50,87 @@ test.describe('Fiche produit', () => {
     await expect(page.getByTestId('product-attributes')).toHaveCount(0)
   })
 
+  test('affiche une galerie : vignettes en boutons, image changée au clic et aux flèches', async ({
+    page,
+  }) => {
+    await page.goto(PRODUCT)
+    const gallery = page.getByTestId('product-gallery')
+    const main = gallery.locator('picture img')
+    const thumbs = gallery.getByTestId('product-gallery-thumb')
+
+    await expect(thumbs).toHaveCount(3)
+    await expect(thumbs.first()).toHaveJSProperty('tagName', 'BUTTON')
+    await expect(thumbs.nth(1)).toHaveAccessibleName("Voir l'image 2 sur 3")
+    await expect(thumbs.first()).toHaveAttribute('aria-current', 'true')
+    await expect(main).toHaveAttribute('fetchpriority', 'high')
+    await expect(thumbs.first().locator('img')).toHaveAttribute('loading', 'lazy')
+    const first = await main.getAttribute('src')
+
+    await thumbs.nth(1).click()
+    await expect(thumbs.nth(1)).toHaveAttribute('aria-current', 'true')
+    await expect(thumbs.first()).toHaveAttribute('aria-current', 'false')
+    await expect(main).not.toHaveAttribute('src', first)
+
+    await page.keyboard.press('ArrowRight')
+    await expect(thumbs.nth(2)).toBeFocused()
+    await expect(thumbs.nth(2)).toHaveAttribute('aria-current', 'true')
+    await page.keyboard.press('ArrowRight')
+    await expect(thumbs.first()).toBeFocused()
+    await expect(thumbs.first()).toHaveAttribute('aria-current', 'true')
+    await expect(main).toHaveAttribute('src', first)
+    await page.keyboard.press('ArrowLeft')
+    await expect(thumbs.nth(2)).toHaveAttribute('aria-current', 'true')
+  })
+
+  test('n’affiche pas de galerie sans images supplémentaires', async ({ page }) => {
+    await page.goto('/produit/anthurium-andreanum-rouge')
+
+    await expect(page.getByTestId('product-title')).toHaveText(/Anthurium/)
+    await expect(page.getByTestId('product-gallery')).toHaveCount(0)
+    await expect(page.getByTestId('product-gallery-thumb')).toHaveCount(0)
+    await expect(page.getByTestId('product-page').locator('picture img')).toHaveAttribute(
+      'fetchpriority',
+      'high',
+    )
+  })
+
+  test('porte le titre et la description saisis dans l’admin', async ({ page }) => {
+    await page.route('**/api/products/monstera-deliciosa', async (route) => {
+      const response = await route.fetch()
+      const product = await response.json()
+      await route.fulfill({
+        response,
+        json: {
+          ...product,
+          metaTitle: 'Monstera deliciosa en pot, livraison soignée',
+          metaDescription:
+            'Monstera deliciosa de 60 cm en pot : une grande plante d’intérieur facile, livrée avec ses conseils.',
+        },
+      })
+    })
+    await page.goto(PRODUCT)
+
+    await expect(page).toHaveTitle('Monstera deliciosa en pot, livraison soignée')
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+      'content',
+      /^Monstera deliciosa de 60 cm en pot/,
+    )
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      'content',
+      'Monstera deliciosa en pot, livraison soignée',
+    )
+  })
+
+  test('garde le titre et la description calculés sans saisie', async ({ page }) => {
+    await page.goto(PRODUCT)
+
+    await expect(page).toHaveTitle(/^Monstera deliciosa · /)
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+      'content',
+      /^Monstera deliciosa : exposition mi-ombre/,
+    )
+  })
+
   test('expose ses données structurées de produit', async ({ page }) => {
     await page.goto(PRODUCT)
 
@@ -85,5 +166,19 @@ test.describe('Fiche produit', () => {
 
     await expect(page.getByTestId('product-not-found')).toBeVisible()
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex')
+  })
+})
+
+test.describe('Fiche produit sans JavaScript', () => {
+  test.use({ javaScriptEnabled: false })
+
+  test('les vignettes de la galerie sont des liens vers l’image en grand', async ({ page }) => {
+    await page.goto(PRODUCT)
+    const thumbs = page.getByTestId('product-gallery').getByTestId('product-gallery-thumb')
+
+    await expect(thumbs).toHaveCount(3)
+    await expect(thumbs.first()).toHaveJSProperty('tagName', 'A')
+    await expect(thumbs.nth(2)).toHaveAttribute('href', /-800\.webp$/)
+    await expect(thumbs.nth(2)).toHaveAccessibleName("Voir l'image 3 sur 3")
   })
 })

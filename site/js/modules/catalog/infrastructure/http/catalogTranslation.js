@@ -58,8 +58,10 @@ const matching = (value, pattern, name) => {
 const ATTRIBUTE_CODE = /^[a-z][a-z0-9-]{0,39}$/
 const ATTRIBUTE_VALUE = /^[a-z0-9][a-z0-9-]{0,39}$/
 
-/** Une API qui ne sert pas encore les attributs (section 23 de la spec commune) en vaut une sans attribut. */
+/** Une API qui ne sert pas encore les attributs, la galerie ou les métadonnées (sections 23, 24 et 26 de la spec commune) en vaut une où ils sont vides. */
 const optionalArray = (dto, name) => (dto?.[name] === undefined ? [] : field(dto, name, 'array'))
+
+const optionalString = (dto, name) => (dto?.[name] === undefined ? '' : field(dto, name, 'string'))
 
 /** Facettes des attributs filtrables : codes et valeurs sûrs pour l'URL, les `id` et les sélecteurs. */
 const toAttributeFacets = (facets) =>
@@ -128,6 +130,9 @@ export const toProductDetail = (dto) => {
       .map((paragraph) => paragraph.trim())
       .filter((paragraph) => paragraph !== ''),
     attributes: toProductAttributes(dto),
+    gallery: optionalArray(dto, 'gallery').map((_, index, images) => imageField(images, index)),
+    metaTitle: optionalString(dto, 'metaTitle'),
+    metaDescription: optionalString(dto, 'metaDescription'),
   }
 }
 

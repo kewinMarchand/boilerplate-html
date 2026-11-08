@@ -36,6 +36,18 @@ const toTheme = (dto) => {
   }
 }
 
+const ICON_SIZES = ['png32', 'png180', 'png192', 'png512']
+
+// Champs de la section 22 (icône) et 26 (image de partage) de la spec commune : absents d'une API qui ne
+// les sert pas encore (Hono), ils valent `null`
+const toIcon = (dto) => {
+  if (dto?.icon == null) return null
+  const icon = field(dto, 'icon', 'object')
+  return Object.fromEntries(ICON_SIZES.map((size) => [size, field(icon, size, 'string')]))
+}
+
+const toShareImage = (dto) => (dto?.shareImage === undefined ? null : imageField(dto, 'shareImage'))
+
 /** Identité du site (`GET /api/site-identity`), lue au pré-rendu de l'image. */
 export const toSiteIdentity = (dto) => {
   const defaultColorScheme = field(dto, 'defaultColorScheme', 'string')
@@ -48,5 +60,18 @@ export const toSiteIdentity = (dto) => {
     logo: imageField(dto, 'logo'),
     defaultColorScheme,
     theme: toTheme(dto),
+    shareImage: toShareImage(dto),
+    icon: toIcon(dto),
   }
+}
+
+/** Titres et descriptions des pages fixes (`GET /api/page-metas`), par clé ; chaîne vide : valeur du front. */
+export const toPageMetas = (dto) => {
+  if (!Array.isArray(dto)) throw new ApiContractError('page-metas')
+  return Object.fromEntries(
+    dto.map((meta) => [
+      field(meta, 'page', 'string'),
+      { title: field(meta, 'title', 'string'), description: field(meta, 'description', 'string') },
+    ]),
+  )
 }

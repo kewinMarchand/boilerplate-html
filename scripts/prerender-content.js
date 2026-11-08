@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { audioCaption, blogHref } from '../site/js/modules/blog/domain/article.js'
 import { largestWebp, withPicture } from './prerenderPicture.js'
 
 /**
@@ -92,11 +93,40 @@ const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZo
 const jsonLdScript = (data) =>
   `<script type="application/ld+json">${JSON.stringify(data).replaceAll('<', '\\u003c')}</script>`
 
-const setMeta = (html, attribute, name, value) =>
+export const setMeta = (html, attribute, name, value) =>
   html.replace(
     new RegExp(`(<meta\\s+${attribute}="${name}"\\s+content=")[^"]*(")`),
     (_, open, close) => `${open}${escapeHtml(value)}${close}`,
   )
+
+/** Rubrique et format sous le titre de la fiche, chacun retiré s'il manque, le bloc sans aucun des deux. */
+const withTaxonomy = (taxonomy, article) => {
+  if (!article.section && !article.format) return ''
+  return ['section', 'format'].reduce(
+    (html, name) =>
+      html.replace(
+        new RegExp(
+          `\\s*<span class="bui-badge" data-article-${name}[\\s\\S]*?</span\\s*>\\s*</span>`,
+        ),
+        (badge) =>
+          article[name]
+            ? badge.replace(
+                new RegExp(`(data-article-${name}-name>)`),
+                (_, open) => `${open}${escapeHtml(article[name].name)}`,
+              )
+            : '',
+      ),
+    taxonomy,
+  )
+}
+
+const withAudio = (figure, article) =>
+  figure
+    .replace(
+      /(data-article-audio-caption>)/,
+      (_, open) => `${open}${escapeHtml(audioCaption(article.audio, article.speaker))}`,
+    )
+    .replace(/<audio(\s)/, (_, space) => `<audio src="${escapeHtml(article.audio.src)}"${space}`)
 
 /**
  * Fiche d'un article à partir du gabarit : en-tête (titre, description, canonique, partage, données
@@ -104,13 +134,11 @@ const setMeta = (html, attribute, name, value) =>
  */
 export const prerenderArticle = (html, article, siteUrl) => {
   const url = `${siteUrl.replace(/\/$/, '')}/blog/${article.slug}`
-  const description = article.excerpt || article.title
+  const description = article.metaDescription || article.excerpt || article.title
+  const title = article.metaTitle || `${article.title} · Boilerplate HTML`
   const image = article.image && largestWebp(article.image)
   let page = html
-    .replace(
-      /<title>[^<]*<\/title>/,
-      `<title>${escapeHtml(article.title)} · Boilerplate HTML</title>`,
-    )
+    .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`)
     .replace(
       '<meta name="robots" content="noindex" />',
       '<meta name="robots" content="index, follow" />',
@@ -123,8 +151,8 @@ export const prerenderArticle = (html, article, siteUrl) => {
   page = setMeta(page, 'name', 'description', description)
   page = setMeta(page, 'property', 'og:description', description)
   page = setMeta(page, 'name', 'twitter:description', description)
-  page = setMeta(page, 'property', 'og:title', `${article.title} · Boilerplate HTML`)
-  page = setMeta(page, 'name', 'twitter:title', `${article.title} · Boilerplate HTML`)
+  page = setMeta(page, 'property', 'og:title', title)
+  page = setMeta(page, 'name', 'twitter:title', title)
   page = setMeta(page, 'property', 'og:url', url)
   if (image) {
     page = setMeta(page, 'property', 'og:image', image)
@@ -166,10 +194,16 @@ export const prerenderArticle = (html, article, siteUrl) => {
   ].join('\n    ')
   page = page.replace('</head>', `    ${structuredData}\n  </head>`)
 
-  const title = escapeHtml(article.title)
+  const heading = escapeHtml(article.title)
   page = page
-    .replace(/(data-article-crumb>)[^<]*/, (_, open) => `${open}${title}`)
-    .replace(/(data-testid="article-title">)[^<]*/, (_, open) => `${open}${title}`)
+    .replace(/(data-article-crumb>)[^<]*/, (_, open) => `${open}${heading}`)
+    .replace(/(data-testid="article-title">)[^<]*/, (_, open) => `${open}${heading}`)
+    .replace(/\s*<p class="article-taxonomy"[\s\S]*?<\/p>/, (taxonomy) =>
+      withTaxonomy(taxonomy, article),
+    )
+    .replace(/\s*<figure class="article-audio"[\s\S]*?<\/figure>/, (figure) =>
+      article.audio ? withAudio(figure, article) : '',
+    )
     .replace(
       /<time data-article-date datetime="[^"]*">[^<]*/,
       `<time data-article-date datetime="${article.publishedAt}">${DATE_FORMAT.format(new Date(`${article.publishedAt}T00:00:00Z`))}`,
@@ -190,6 +224,9 @@ export const prerenderArticle = (html, article, siteUrl) => {
 
 const blogCard = (template, article) =>
   withPicture(template, article.image)
+    .replace(/(\s*<p class="blog-card-section"[^>]*>)(<\/p>)/, (_, open, close) =>
+      article.section ? `${open}${escapeHtml(article.section.name)}${close}` : '',
+    )
     .replace(/href="\/"/, `href="/blog/${escapeHtml(article.slug)}"`)
     .replace(/(data-blog-title>)[^<]*/, (_, open) => `${open}${escapeHtml(article.title)}`)
     .replace(/(data-blog-excerpt>)/, (_, open) => `${open}${escapeHtml(article.excerpt)}`)
@@ -198,12 +235,28 @@ const blogCard = (template, article) =>
       `<time data-blog-date datetime="${escapeHtml(article.publishedAt)}">${DATE_FORMAT.format(new Date(`${article.publishedAt}T00:00:00Z`))}`,
     )
 
-/** HTML de /blog, une carte par article, liée à sa fiche. Liste vide : page inchangée. */
-export const prerenderBlogList = (html, articles) => {
+const sectionLink = (section) =>
+  `<li><a class="bui-link" href="${escapeHtml(blogHref(section.slug))}">${escapeHtml(section.name)}</a></li>`
+
+/** Filtre par rubrique de /blog, « Toutes » active ; retiré sans rubrique. */
+const withSections = (html, sections) =>
+  html.replace(/\s*<nav\s+class="blog-sections"[\s\S]*?<\/nav>/, (nav) =>
+    sections.length
+      ? nav
+          .replace(/\s*hidden\s*>/, '>')
+          .replace(
+            /(<\/li>)(\s*<\/ul>)/,
+            (_, item, end) => `${item}${sections.map(sectionLink).join('')}${end}`,
+          )
+      : '',
+  )
+
+/** HTML de /blog, filtre par rubrique et une carte par article, liée à sa fiche. Liste vide : page inchangée. */
+export const prerenderBlogList = (html, articles, sections = []) => {
   if (!articles.length) return html
   const template = templateOf(html, 'blog-card-template')
   const cards = articles.map((article) => blogCard(template, article)).join('')
-  const page = html.replace(
+  const page = withSections(html, sections).replace(
     /(<div class="blog-list" data-blog-list data-testid="blog-list">)(<\/div>)/,
     (_, open, close) => `${open}${cards}${close}`,
   )
@@ -240,6 +293,7 @@ export const withCategoryHrefs = (dto) => ({
     .map((paragraph) => paragraph.trim())
     .filter((paragraph) => paragraph !== ''),
   attributes: dto.attributes ?? [],
+  gallery: dto.gallery ?? [],
 })
 
 const attributeValue = ({ valueLabel, unit }) => (unit ? `${valueLabel}\u00a0${unit}` : valueLabel)
@@ -249,6 +303,25 @@ const attributesList = (attributes) =>
     .map(
       (attribute) =>
         `<dt>${escapeHtml(attribute.label)}</dt><dd>${escapeHtml(attributeValue(attribute))}</dd>`,
+    )
+    .join('')
+
+/** Vignettes de la galerie, en liens vers l'image en grand sans JavaScript ; `productGallery.js` en fait des boutons. */
+const galleryLinks = (template, images) =>
+  images
+    .map((image, index) =>
+      template
+        .replace(
+          /<button type="button"/,
+          () =>
+            `<a href="${escapeHtml(largestWebp(image))}"${index === 0 ? ' aria-current="true"' : ''}`,
+        )
+        .replace('</button>', '</a>')
+        .replace(/src="[^"]*"/, () => `src="${escapeHtml(image.src)}"`)
+        .replace(
+          /(data-product-gallery-thumb-label>)[^<]*/,
+          (_, open) => `${open}Voir l'image ${index + 1} sur ${images.length}`,
+        ),
     )
     .join('')
 
@@ -265,14 +338,12 @@ const productDescription = (product) =>
 export const prerenderProduct = (html, product, siteUrl) => {
   const origin = siteUrl.replace(/\/$/, '')
   const url = `${origin}/produit/${product.slug}`
-  const description = productDescription(product)
+  const description = product.metaDescription || productDescription(product)
+  const title = product.metaTitle || `${product.name} · Boilerplate HTML`
   const image = product.image && largestWebp(product.image)
   const category = product.categoryPath.at(-1)
   let page = html
-    .replace(
-      /<title>[^<]*<\/title>/,
-      `<title>${escapeHtml(product.name)} · Boilerplate HTML</title>`,
-    )
+    .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`)
     .replace(
       '<meta name="robots" content="noindex" />',
       '<meta name="robots" content="index, follow" />',
@@ -281,8 +352,8 @@ export const prerenderProduct = (html, product, siteUrl) => {
   page = setMeta(page, 'name', 'description', description)
   page = setMeta(page, 'property', 'og:description', description)
   page = setMeta(page, 'name', 'twitter:description', description)
-  page = setMeta(page, 'property', 'og:title', `${product.name} · Boilerplate HTML`)
-  page = setMeta(page, 'name', 'twitter:title', `${product.name} · Boilerplate HTML`)
+  page = setMeta(page, 'property', 'og:title', title)
+  page = setMeta(page, 'name', 'twitter:title', title)
   page = setMeta(page, 'property', 'og:url', url)
   if (image) {
     page = setMeta(page, 'property', 'og:image', image)
@@ -338,6 +409,13 @@ export const prerenderProduct = (html, product, siteUrl) => {
     .replace(/(data-testid="product-title">)[^<]*/, (_, open) => `${open}${name}`)
     .replace(/<picture class="product-page-media">[\s\S]*?<\/picture>/, (picture) =>
       withPicture(picture, product.image),
+    )
+    .replace(
+      /(<div class="product-gallery" data-product-gallery)(>[\s\S]*?)(\s*<ul[^>]*data-product-gallery-thumbs[^>]*>)(<\/ul>)/,
+      (match, open, picture, list, close) =>
+        product.gallery.length > 0 && product.image
+          ? `${open} data-testid="product-gallery"${picture}${list}${galleryLinks(templateOf(html, 'product-gallery-thumb-template'), [product.image, ...product.gallery])}${close}`
+          : `${open}${picture}`,
     )
     .replace(
       /(data-product-price data-testid="product-price">)/,
@@ -472,19 +550,26 @@ const prerenderProducts = async (siteDir, apiUrl) => {
 
 /** Une page par article connu de l'API ; sans API, les fiches sont rendues dans le navigateur. */
 const prerenderArticles = async (siteDir, apiUrl) => {
-  const { toArticleDetail, toArticles } =
+  const { toArticleDetail, toArticles, toArticleSections } =
     await import('/js/modules/blog/infrastructure/http/articleTranslation.js')
   const { url: siteUrl } = JSON.parse(readFileSync(join(siteDir, '..', 'site.config.json'), 'utf8'))
   let articles
+  let sections
   try {
     articles = toArticles(await fetchJson(apiUrl, '/api/articles'))
+    // Une API qui ne sert pas les rubriques (Hono) en vaut une sans rubrique
+    sections = await fetchJson(apiUrl, '/api/article-sections').then(toArticleSections, () => [])
   } catch (error) {
     console.warn(`[contenu] fiches rendues dans le navigateur, API injoignable (${error.message})`)
     return
   }
   writeFileSync(
     join(siteDir, 'blog', 'index.html'),
-    prerenderBlogList(readFileSync(join(siteDir, 'blog', 'index.html'), 'utf8'), articles),
+    prerenderBlogList(
+      readFileSync(join(siteDir, 'blog', 'index.html'), 'utf8'),
+      articles,
+      sections,
+    ),
   )
   console.info('[contenu] /blog pré-rendue')
   const template = readFileSync(join(siteDir, 'blog', 'fiche.html'), 'utf8')

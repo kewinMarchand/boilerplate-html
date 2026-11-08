@@ -4,7 +4,10 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
-import { toSiteIdentity } from '/js/modules/identity/infrastructure/http/siteIdentityTranslation.js'
+import {
+  toPageMetas,
+  toSiteIdentity,
+} from '/js/modules/identity/infrastructure/http/siteIdentityTranslation.js'
 
 import {
   identityManifest,
@@ -42,7 +45,17 @@ const DTO = {
   logo: null,
   defaultColorScheme: 'auto',
   theme: null,
+  shareImage: null,
+  icon: null,
 }
+const ICON = {
+  png32: 'http://localhost:8090/media/i-32.png',
+  png180: 'http://localhost:8090/media/i-180.png',
+  png192: 'http://localhost:8090/media/i-192.png',
+  png512: 'http://localhost:8090/media/i-512.png',
+}
+const SHARE_IMAGE = apiImage('share', [1200], { alt: 'Serre tropicale', ratio: 630 / 1200 })
+const BLOG = readFileSync(join(SITE_DIR, 'blog/index.html'), 'utf8')
 const THEME = { light: tokens('#c2410c'), dark: tokens('#fdba74') }
 const LOGO = apiImage('logo', [200, 400], { alt: 'Oraki', ratio: 120 / 400 })
 
@@ -55,6 +68,30 @@ describe('traduction de l’identité du site', () => {
     const identity = toSiteIdentity({ ...DTO, logo: LOGO, theme: THEME })
     assert.equal(identity.logo.src, LOGO.src)
     assert.deepEqual(identity.theme, THEME)
+  })
+
+  it('lit l’image de partage et l’icône, absentes d’une API qui ne les sert pas', () => {
+    const identity = toSiteIdentity({ ...DTO, shareImage: SHARE_IMAGE, icon: ICON })
+    assert.deepEqual(identity.shareImage, SHARE_IMAGE)
+    assert.deepEqual(identity.icon, ICON)
+    const { shareImage: _, icon: __, ...hono } = DTO
+    assert.deepEqual(toSiteIdentity(hono), DTO)
+    assert.throws(() => toSiteIdentity({ ...DTO, icon: { png32: 'a' } }), /png180/)
+  })
+
+  it('lit les métadonnées des pages fixes par clé', () => {
+    assert.deepEqual(
+      toPageMetas([
+        { page: 'home', title: '', description: '' },
+        { page: 'blog', title: 'Le blog', description: 'Conseils.' },
+      ]),
+      {
+        home: { title: '', description: '' },
+        blog: { title: 'Le blog', description: 'Conseils.' },
+      },
+    )
+    assert.throws(() => toPageMetas({}), /page-metas/)
+    assert.throws(() => toPageMetas([{ page: 'blog', title: null, description: '' }]), /title/)
   })
 
   it('refuse un écart de contrat', () => {
@@ -100,6 +137,21 @@ describe('pré-rendu de l’identité', () => {
     )
     assert.ok(page.includes(`<p class="hero-lead">${DTO.tagline}</p>`))
     assert.ok(page.includes('<h1 id="hero-title">Oraki &amp; &lt;Cie&gt;</h1>'))
+  })
+
+  it('prend l’icône 512 de l’API en logo du JSON-LD Organization, sinon garde le logo du site', () => {
+    const organization = (page) =>
+      JSON.parse(page.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1])[
+        '@graph'
+      ].find((node) => node['@type'] === 'Organization')
+    assert.equal(
+      organization(prerenderIdentity(HOME, { ...identity, icon: ICON }, CONFIG_NAME)).logo,
+      ICON.png512,
+    )
+    assert.equal(
+      organization(prerenderIdentity(HOME, identity, CONFIG_NAME)).logo,
+      organization(HOME).logo,
+    )
   })
 
   it('retire l’accroche du hero quand elle est vide', () => {
@@ -150,6 +202,71 @@ describe('pré-rendu de l’identité', () => {
     )
     assert.equal(css.match(/--bui-color-/g).length, 36)
     assert.equal(styleHash(css), `'sha256-${createHash('sha256').update(css).digest('base64')}'`)
+  })
+
+  it('écrit le titre et la description saisis pour la page fixe, et garde ceux de la page sinon', () => {
+    const meta = { title: 'Le blog des plantes rares', description: 'Conseils & actualités.' }
+    const page = prerenderIdentity(BLOG, identity, CONFIG_NAME, meta)
+    assert.ok(page.includes('<title>Le blog des plantes rares</title>'))
+    assert.ok(page.includes('<meta property="og:title" content="Le blog des plantes rares" />'))
+    assert.ok(page.includes('<meta name="twitter:title" content="Le blog des plantes rares" />'))
+    for (const name of [
+      'name="description"',
+      'property="og:description"',
+      'name="twitter:description"',
+    ]) {
+      assert.match(page, new RegExp(`${name}\\s+content="Conseils &amp; actualités\\."`))
+    }
+    const untouched = prerenderIdentity(BLOG, identity, CONFIG_NAME, { title: '', description: '' })
+    assert.equal(untouched, prerenderIdentity(BLOG, identity, CONFIG_NAME))
+    assert.match(untouched, /<title>Blog, tous les articles · Oraki &amp; &lt;Cie&gt;<\/title>/)
+  })
+
+  it('sert l’image de partage du site à la place de og-image.jpg, seulement sans image propre', () => {
+    const page = prerenderIdentity(CONTACT, { ...identity, shareImage: SHARE_IMAGE }, CONFIG_NAME)
+    assert.ok(!page.includes('og-image.jpg'))
+    assert.ok(
+      page.includes(
+        '<meta property="og:image" content="http://localhost:8090/media/share-1200.webp" />',
+      ),
+    )
+    assert.ok(
+      page.includes(
+        '<meta name="twitter:image" content="http://localhost:8090/media/share-1200.webp" />',
+      ),
+    )
+    assert.ok(page.includes('<meta property="og:image:alt" content="Serre tropicale" />'))
+    assert.ok(prerenderIdentity(CONTACT, identity, CONFIG_NAME).includes('/images/og-image.jpg'))
+    const own = CONTACT.replace('/images/og-image.jpg', '/media/produit.webp')
+    assert.ok(
+      !prerenderIdentity(own, { ...identity, shareImage: SHARE_IMAGE }, CONFIG_NAME).includes(
+        'share-1200',
+      ),
+    )
+  })
+
+  it('pointe les favicons sur les icônes de l’API, et garde ceux du site sans icône', () => {
+    const page = prerenderIdentity(CONTACT, { ...identity, icon: ICON }, CONFIG_NAME)
+    assert.ok(
+      page.includes(`<link rel="icon" href="${ICON.png32}" type="image/png" sizes="32x32" />`),
+    )
+    assert.ok(page.includes(`<link rel="apple-touch-icon" href="${ICON.png180}" />`))
+    assert.ok(!page.includes('favicon.'))
+    const without = prerenderIdentity(CONTACT, identity, CONFIG_NAME)
+    assert.ok(without.includes('<link rel="icon" href="/favicon.svg" type="image/svg+xml" />'))
+    assert.ok(without.includes('<link rel="apple-touch-icon" href="/apple-touch-icon.png" />'))
+    const manifest = JSON.parse(identityManifest(MANIFEST, { ...identity, icon: ICON }))
+    assert.deepEqual(
+      manifest.icons.map(({ src, sizes }) => [src, sizes]),
+      [
+        [ICON.png192, '192x192'],
+        [ICON.png512, '512x512'],
+      ],
+    )
+    assert.deepEqual(
+      JSON.parse(identityManifest(MANIFEST, identity)).icons,
+      JSON.parse(MANIFEST).icons,
+    )
   })
 
   it('écrit le nom et la couleur principale dans le manifeste', () => {

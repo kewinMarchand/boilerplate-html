@@ -39,6 +39,81 @@ test.describe('Fiche article', () => {
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index, follow')
   })
 
+  test('affiche sa rubrique et un lecteur audio avec durée et intervenant, sans autolecture', async ({
+    page,
+  }) => {
+    await page.goto(ARTICLE)
+    const audio = page.getByTestId('article-audio')
+
+    await expect(page.getByTestId('article-section')).toHaveText('Rubrique : Conseils')
+    await expect(page.getByTestId('article-format')).toHaveCount(0)
+    await expect(audio).toHaveAttribute('controls', '')
+    await expect(audio).toHaveAttribute('preload', 'none')
+    await expect(audio).not.toHaveAttribute('autoplay')
+    await expect(page.locator('[data-article-audio-caption]')).toHaveText(
+      "Écouter l'article (4 s) · Présenté par Hina Teriierooiterai",
+    )
+    expect(await audio.evaluate((element) => element.paused)).toBe(true)
+    // Le fichier vient de l'origine de l'API : la CSP l'autorise en media-src
+    const duration = await audio.evaluate(
+      (element) =>
+        new Promise((resolve, reject) => {
+          element.addEventListener('loadedmetadata', () => resolve(element.duration))
+          element.addEventListener('error', () => reject(new Error('audio refusé')))
+          element.preload = 'metadata'
+          element.load()
+        }),
+    )
+    expect(Math.round(duration)).toBe(4)
+  })
+
+  test('affiche son format, et aucun lecteur sans audio', async ({ page }) => {
+    await page.goto('/blog/pourquoi-rendre-le-contenu-cote-serveur')
+
+    await expect(page.getByTestId('article-section')).toHaveText('Rubrique : Conseils')
+    await expect(page.getByTestId('article-format')).toHaveText('Format : Guide')
+    await expect(page.getByTestId('article-audio')).toHaveCount(0)
+  })
+
+  test('n’affiche ni rubrique ni format quand l’article n’en a pas', async ({ page }) => {
+    await page.route('**/api/articles/le-mode-accessibilite-renforcee', async (route) => {
+      const response = await route.fetch()
+      await route.fulfill({ response, json: { ...(await response.json()), section: null } })
+    })
+    await page.goto('/blog/le-mode-accessibilite-renforcee')
+
+    await expect(page.getByTestId('article-section')).toHaveCount(0)
+    await expect(page.getByTestId('article-format')).toHaveCount(0)
+    await expect(page.locator('[data-article-taxonomy]')).toHaveCount(0)
+  })
+
+  test('porte le titre et la description saisis dans l’admin, sinon ceux calculés', async ({
+    page,
+  }) => {
+    await page.goto(ARTICLE)
+    await expect(page).toHaveTitle(/^Un carrousel accessible sans dépendance · /)
+
+    await page.route(`**/api${ARTICLE.replace('/blog', '/articles')}`, async (route) => {
+      const response = await route.fetch()
+      await route.fulfill({
+        response,
+        json: {
+          ...(await response.json()),
+          metaTitle: 'Carrousel accessible : le guide sans dépendance',
+          metaDescription:
+            'Construire un carrousel accessible sans bibliothèque : défilement natif, boutons explicites et aucune lecture automatique.',
+        },
+      })
+    })
+    await page.reload()
+
+    await expect(page).toHaveTitle('Carrousel accessible : le guide sans dépendance')
+    await expect(page.locator('meta[property="og:description"]')).toHaveAttribute(
+      'content',
+      /^Construire un carrousel accessible sans bibliothèque/,
+    )
+  })
+
   test('propose le lien « Tous les articles » vers la liste', async ({ page }) => {
     await page.goto(ARTICLE)
 

@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs'
 
-import { identityStyle, prerenderIdentity, styleHash } from '../../scripts/prerender-identity.js'
+import {
+  identityStyle,
+  PAGE_META_KEYS,
+  prerenderIdentity,
+  styleHash,
+} from '../../scripts/prerender-identity.js'
 
 const SITE = JSON.parse(readFileSync(new URL('../../site.config.json', import.meta.url), 'utf8'))
 
@@ -30,9 +35,13 @@ export const withScenario = (page, scenario) =>
     route.continue({ headers: { ...route.request().headers(), 'x-scenario': scenario } }),
   )
 
+const pageFile = (url) =>
+  `${new URL(url).pathname.replace(/^\/|\/$/g, '')}/index.html`.replace(/^\//, '')
+
 // Le serveur de développement ne pré-rend pas l'identité : chaque document est réécrit ici comme dans
-// l'image, et l'empreinte du bloc de couleurs ajoutée à la CSP comme le fait nginx.
-export const withIdentity = (page, identity) =>
+// l'image, avec les métadonnées des pages fixes (`pageMetas`, par clé), et l'empreinte du bloc de
+// couleurs ajoutée à la CSP comme le fait nginx.
+export const withIdentity = (page, identity, pageMetas = {}) =>
   page.route('**/*', async (route) => {
     if (route.request().resourceType() !== 'document') return route.fallback()
     const response = await route.fetch()
@@ -43,7 +52,8 @@ export const withIdentity = (page, identity) =>
         `style-src 'self' ${styleHash(identityStyle(identity.theme))}`,
       )
     }
-    const body = prerenderIdentity(await response.text(), identity, SITE.name)
+    const pageMeta = pageMetas[PAGE_META_KEYS[pageFile(route.request().url())]] ?? null
+    const body = prerenderIdentity(await response.text(), identity, SITE.name, pageMeta)
     return route.fulfill({ status: response.status(), headers, body })
   })
 

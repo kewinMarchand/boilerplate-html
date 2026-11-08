@@ -1,8 +1,20 @@
 import { ApiError, apiGet } from '/js/shared/api.js'
 
-import { toArticleDetail, toArticles } from './articleTranslation.js'
+import { toArticleDetail, toArticles, toArticleSections } from './articleTranslation.js'
 
-export const findLatestArticles = async () => toArticles(await apiGet('/api/articles'))
+/** `section` : slug de la rubrique, `null` ou absent pour tous les articles. */
+export const findLatestArticles = async (section) =>
+  toArticles(await apiGet('/api/articles', { section }))
+
+/** Une API qui ne sert pas les rubriques (404, Hono) en vaut une sans rubrique. */
+export const findArticleSections = async () => {
+  try {
+    return toArticleSections(await apiGet('/api/article-sections'))
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return []
+    throw error
+  }
+}
 
 /** `null` si l'API ne connaît pas l'article (404). */
 export const findArticle = async (slug) => {

@@ -4,6 +4,7 @@ import { describe, it } from 'node:test'
 import {
   toArticleDetail,
   toArticles,
+  toArticleSections,
 } from '../../site/js/modules/blog/infrastructure/http/articleTranslation.js'
 import { DEFAULT_QUERY } from '../../site/js/modules/catalog/domain/catalogQuery.js'
 import {
@@ -221,8 +222,67 @@ describe('traduction des réponses de l’API', () => {
       image: null,
       html: '<p>Texte.</p>\n',
     }
-    assert.deepEqual(toArticleDetail(dto), { ...dto, id: '2' })
+    assert.deepEqual(toArticleDetail(dto), {
+      ...dto,
+      id: '2',
+      section: null,
+      format: null,
+      audio: null,
+      speaker: '',
+      metaTitle: '',
+      metaDescription: '',
+    })
     assert.throws(() => toArticleDetail({ ...dto, html: null }), ApiContractError)
+  })
+
+  it('traduit rubrique, format, audio, intervenant et métadonnées d’un article, absents compris', () => {
+    const dto = {
+      id: 2,
+      slug: 'un-carrousel',
+      title: 'Un carrousel',
+      excerpt: '',
+      publishedAt: '2026-09-22',
+      image: null,
+      html: '',
+      section: { slug: 'conseils', name: 'Conseils' },
+      format: { slug: 'guide', name: 'Guide' },
+      audio: { src: 'http://localhost:8090/media/a.mp3', type: 'audio/mpeg', durationSeconds: 4 },
+      speaker: 'Présenté par Hina',
+      metaTitle: 'Titre saisi',
+      metaDescription: 'Description saisie',
+    }
+    assert.deepEqual(toArticleDetail(dto), { ...dto, id: '2' })
+    const empty = toArticles([{ ...dto, section: null, format: null, audio: null, speaker: '' }])[0]
+    assert.deepEqual(
+      [empty.section, empty.format, empty.audio, empty.speaker],
+      [null, null, null, ''],
+    )
+    assert.throws(() => toArticles([{ ...dto, audio: { src: 'a.mp3' } }]), ApiContractError)
+    assert.throws(() => toArticles([{ ...dto, section: 'conseils' }]), ApiContractError)
+    assert.deepEqual(toArticleSections([{ slug: 'conseils', name: 'Conseils' }]), [
+      { slug: 'conseils', name: 'Conseils' },
+    ])
+    assert.throws(() => toArticleSections({}), ApiContractError)
+  })
+
+  it('traduit la galerie et les métadonnées de la fiche produit, une API qui ne les sert pas en valeurs vides', () => {
+    const detail = {
+      ...PRODUCT,
+      categoryPath: [{ slug: 'monstera', name: 'Monstera' }],
+      description: '',
+    }
+    const served = toProductDetail({
+      ...detail,
+      gallery: [PRODUCT_IMAGE, apiImage('b', [400])],
+      metaTitle: 'Titre saisi',
+      metaDescription: 'Description saisie',
+    })
+    assert.deepEqual(served.gallery, [PRODUCT_IMAGE, apiImage('b', [400])])
+    assert.equal(served.metaTitle, 'Titre saisi')
+    assert.equal(served.metaDescription, 'Description saisie')
+    const absent = toProductDetail(detail)
+    assert.deepEqual([absent.gallery, absent.metaTitle, absent.metaDescription], [[], '', ''])
+    assert.throws(() => toProductDetail({ ...detail, gallery: [{ alt: '' }] }), ApiContractError)
   })
 
   it('refuse une réponse qui ne suit pas le contrat', () => {

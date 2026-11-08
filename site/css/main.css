@@ -1290,6 +1290,38 @@
     & > h2 {
       font-size: var(--font-size-h3);
     }
+
+    /* Rubrique en sur-titre, collée au titre */
+    & > .blog-card-section {
+      flex-grow: 0;
+      margin-block-end: calc(-1 * var(--space-xs));
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: max(0.08em, var(--letter-spacing));
+      color: var(--color-text-muted);
+    }
+  }
+
+  /* Filtre par rubrique de /blog : liens, la rubrique active en gras sans soulignement */
+  .blog-sections-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-l);
+    margin-block: var(--space-s) var(--space-m);
+    padding: 0;
+    list-style: none;
+
+    & a {
+      display: inline-flex;
+      align-items: center;
+      min-block-size: var(--tap-target);
+    }
+
+    & [aria-current='page'] {
+      font-weight: 700;
+      text-decoration-line: none;
+    }
   }
 
   /* Lien étiré sur toute la carte : un seul lien, nommé par le titre */
@@ -1519,6 +1551,22 @@
     font-size: var(--bui-font-size-lead);
   }
 
+  .article-taxonomy {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .article-audio {
+    display: grid;
+    gap: var(--space-xs);
+    margin-inline: 0;
+
+    & audio {
+      inline-size: 100%;
+    }
+  }
+
   [data-article-content] > * + *,
   [data-article-body] > * + * {
     margin-block-start: var(--space-m);
@@ -1558,6 +1606,38 @@
     inline-size: 100%;
     block-size: auto;
     border-radius: var(--radius);
+  }
+
+  /* Galerie : vignettes carrées sous l'image principale, la vignette affichée encadrée */
+  .product-gallery-thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+    margin-block-start: var(--space-s);
+    padding: 0;
+    list-style: none;
+  }
+
+  .product-gallery-thumb {
+    display: block;
+    inline-size: 72px;
+    block-size: 72px;
+    padding: 0;
+    background: none;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+
+    /* Épaisseur en plus de la couleur : l'état ne repose pas sur la couleur seule (WCAG 1.4.1) */
+    &[aria-current='true'] {
+      border: 4px solid var(--color-primary);
+    }
+
+    & img {
+      inline-size: 100%;
+      block-size: 100%;
+      object-fit: cover;
+    }
   }
 
   .product-page-price {

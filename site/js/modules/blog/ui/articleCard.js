@@ -6,6 +6,9 @@ import { articleHref, formatPublishedAt } from '../domain/article.js'
 export const renderArticleCard = (template, article) => {
   const card = template.content.firstElementChild.cloneNode(true)
   fillPicture(card.querySelector('picture'), article.image)
+  const section = card.querySelector('[data-blog-section]')
+  if (article.section) section.textContent = article.section.name
+  else section.remove()
   const link = card.querySelector('[data-blog-title]')
   link.textContent = article.title
   link.href = articleHref(article.slug)

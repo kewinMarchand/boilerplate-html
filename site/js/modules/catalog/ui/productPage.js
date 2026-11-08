@@ -6,6 +6,7 @@ import { ProductLoadError } from '../application/ProductLoadError.js'
 import { loadProduct } from '../application/products.js'
 
 import { EXPOSURE_LABELS } from './labels.js'
+import { renderProductGallery } from './productGallery.js'
 import { showSimilarProducts } from './similarProducts.js'
 
 const page = document.querySelector('[data-product-page]')
@@ -112,6 +113,7 @@ const renderProduct = (product, prerendered) => {
   if (!prerendered) crumb.parentElement.before(...product.categoryPath.map(breadcrumbItem))
   const picture = content.querySelector('picture')
   if (picture) fillPicture(picture, product.image)
+  renderProductGallery(content.querySelector('[data-product-gallery]'), product)
   content.querySelector('[data-product-price]').textContent = formatPrice(product.price)
   const descriptionBlock = content.querySelector('[data-product-description]')
   descriptionBlock.replaceChildren(...product.description.map(paragraph))
@@ -130,8 +132,8 @@ const renderProduct = (product, prerendered) => {
   }
   content.hidden = false
   state.replaceChildren()
-  document.title = `${product.name} · ${document.title.split(' · ').at(-1)}`
-  const description = productDescription(product)
+  document.title = product.metaTitle || `${product.name} · ${document.title.split(' · ').at(-1)}`
+  const description = product.metaDescription || productDescription(product)
   setMeta('meta[name="description"]', description)
   setMeta('meta[name="robots"]', 'index, follow')
   const canonical = document.head.querySelector('link[rel="canonical"]')

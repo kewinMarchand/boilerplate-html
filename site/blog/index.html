@@ -100,6 +100,17 @@
           </ol>
         </nav>
         <h1>Blog</h1>
+        <nav
+          class="blog-sections"
+          aria-label="Rubriques"
+          data-blog-sections
+          data-testid="blog-sections"
+          hidden
+        >
+          <ul class="blog-sections-list" data-blog-sections-list>
+            <li><a class="bui-link" href="/blog" aria-current="page">Toutes</a></li>
+          </ul>
+        </nav>
         <div data-blog-state>
           <div class="skeleton-list" role="status" data-testid="blog-loading">
             <span class="visually-hidden">Chargement des articles…</span>
@@ -145,6 +156,7 @@
                 data-blog-image
               />
             </picture>
+            <p class="blog-card-section" data-blog-section data-testid="article-section"></p>
             <h2><a class="blog-card-link" href="/" data-blog-title>Article</a></h2>
             <p data-blog-excerpt></p>
             <footer class="blog-card-meta">

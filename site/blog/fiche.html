@@ -96,6 +96,16 @@
             </div>
           </noscript>
           <div data-article-content hidden>
+            <p class="article-taxonomy" data-article-taxonomy>
+              <span class="bui-badge" data-article-section data-testid="article-section"
+                ><span class="bui-visually-hidden">Rubrique : </span
+                ><span data-article-section-name></span
+              ></span>
+              <span class="bui-badge" data-article-format data-testid="article-format"
+                ><span class="bui-visually-hidden">Format : </span
+                ><span data-article-format-name></span
+              ></span>
+            </p>
             <p class="article-date">
               Publié le <time data-article-date datetime="2026-01-01">1 janvier 2026</time>
             </p>
@@ -121,6 +131,15 @@
               />
             </picture>
             <p class="article-excerpt" data-article-excerpt></p>
+            <figure class="article-audio" data-article-audio>
+              <figcaption data-article-audio-caption></figcaption>
+              <audio
+                controls
+                preload="none"
+                data-article-audio-player
+                data-testid="article-audio"
+              ></audio>
+            </figure>
             <div data-article-body data-testid="article-body"></div>
             <p class="article-back">
               <a class="bui-link" href="/blog" data-testid="article-back">Tous les articles</a>

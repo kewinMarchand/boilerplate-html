@@ -136,12 +136,13 @@ describe('Matomo', () => {
 })
 
 describe('API', () => {
-  it('pointe sur API Platform par défaut et ouvre son origine dans connect-src et img-src', () => {
+  it('pointe sur API Platform par défaut et ouvre son origine dans connect-src, img-src et media-src', () => {
     const variables = runtimeVariables({})
     assert.equal(variables.api_url, DEFAULT_API_URL)
     assert.equal(apiOrigin('http://localhost:8091/'), 'http://localhost:8091')
     assert.deepEqual(csp(variables)['connect-src'], ["'self'", 'http://localhost:8090'])
     assert.deepEqual(csp(variables)['img-src'], ["'self'", 'http://localhost:8090'])
+    assert.deepEqual(csp(variables)['media-src'], ["'self'", 'http://localhost:8090'])
   })
 
   it('injecte l’adresse de l’API dans chaque page', () => {

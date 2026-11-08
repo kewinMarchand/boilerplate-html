@@ -99,27 +99,30 @@
             </div>
           </noscript>
           <div class="product-page-layout" data-product-content hidden>
-            <picture class="product-page-media">
-              <source
-                type="image/avif"
-                sizes="(width >= 1440px) 680px, (width >= 768px) 50vw, calc(100vw - 32px)"
-                data-product-avif
-              />
-              <source
-                type="image/webp"
-                sizes="(width >= 1440px) 680px, (width >= 768px) 50vw, calc(100vw - 32px)"
-                data-product-webp
-              />
-              <img
-                src="/images/hero-640.webp"
-                alt=""
-                width="800"
-                height="800"
-                fetchpriority="high"
-                decoding="async"
-                data-product-image
-              />
-            </picture>
+            <div class="product-gallery" data-product-gallery>
+              <picture class="product-page-media">
+                <source
+                  type="image/avif"
+                  sizes="(width >= 1440px) 680px, (width >= 768px) 50vw, calc(100vw - 32px)"
+                  data-product-avif
+                />
+                <source
+                  type="image/webp"
+                  sizes="(width >= 1440px) 680px, (width >= 768px) 50vw, calc(100vw - 32px)"
+                  data-product-webp
+                />
+                <img
+                  src="/images/hero-640.webp"
+                  alt=""
+                  width="800"
+                  height="800"
+                  fetchpriority="high"
+                  decoding="async"
+                  data-product-image
+                />
+              </picture>
+              <ul class="product-gallery-thumbs" data-product-gallery-thumbs></ul>
+            </div>
             <div>
               <p class="product-page-price" data-product-price data-testid="product-price"></p>
               <div
@@ -263,6 +266,22 @@
               </figcaption>
             </figure>
           </div>
+        </template>
+        <template id="product-gallery-thumb-template">
+          <li>
+            <button type="button" class="product-gallery-thumb" data-testid="product-gallery-thumb">
+              <img
+                src="/images/hero-640.webp"
+                alt=""
+                width="800"
+                height="800"
+                loading="lazy"
+                decoding="async"
+                data-product-gallery-thumb-image
+              />
+              <span class="bui-visually-hidden" data-product-gallery-thumb-label>Voir l'image</span>
+            </button>
+          </li>
         </template>
         <template id="add-to-cart-template">
           <button

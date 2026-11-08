@@ -1,6 +1,6 @@
 import { fillPicture } from '/js/shared/picture.js'
 
-import { articleHref, formatPublishedAt, slugFromPath } from '../domain/article.js'
+import { articleHref, audioCaption, formatPublishedAt, slugFromPath } from '../domain/article.js'
 import { ArticleLoadError } from '../infrastructure/ArticleLoadError.js'
 import { findArticle } from '../infrastructure/http/articleRepository.js'
 
@@ -60,9 +60,39 @@ const addJsonLd = (article, url, home) => {
   }
 }
 
+/** Rubrique et format sous le titre, chacun retiré s'il manque, le bloc entier sans aucun des deux. */
+const renderTaxonomy = (article) => {
+  const taxonomy = content.querySelector('[data-article-taxonomy]')
+  if (!taxonomy) return
+  for (const name of ['section', 'format']) {
+    const badge = taxonomy.querySelector(`[data-article-${name}]`)
+    if (!badge) continue
+    if (article[name])
+      badge.querySelector(`[data-article-${name}-name]`).textContent = article[name].name
+    else badge.remove()
+  }
+  if (!article.section && !article.format) taxonomy.remove()
+}
+
+const renderAudio = (article) => {
+  const block = content.querySelector('[data-article-audio]')
+  if (!block) return
+  if (!article.audio) {
+    block.remove()
+    return
+  }
+  block.querySelector('[data-article-audio-caption]').textContent = audioCaption(
+    article.audio,
+    article.speaker,
+  )
+  const player = block.querySelector('[data-article-audio-player]')
+  if (player.getAttribute('src') !== article.audio.src) player.src = article.audio.src
+}
+
 const renderArticle = (article) => {
   title.textContent = article.title
   crumb.textContent = article.title
+  renderTaxonomy(article)
   const date = content.querySelector('[data-article-date]')
   date.dateTime = article.publishedAt
   date.textContent = formatPublishedAt(article.publishedAt)
@@ -71,18 +101,20 @@ const renderArticle = (article) => {
   const excerpt = content.querySelector('[data-article-excerpt]')
   excerpt.textContent = article.excerpt
   excerpt.hidden = !article.excerpt
+  renderAudio(article)
   content.querySelector('[data-article-body]').replaceChildren(fromHtml(article.html))
   content.hidden = false
   state.replaceChildren()
-  document.title = `${article.title} · ${document.title.split(' · ').at(-1)}`
-  setMeta('meta[name="description"]', article.excerpt || article.title)
+  document.title = article.metaTitle || `${article.title} · ${document.title.split(' · ').at(-1)}`
+  const description = article.metaDescription || article.excerpt || article.title
+  setMeta('meta[name="description"]', description)
   setMeta('meta[name="robots"]', 'index, follow')
   const canonical = document.head.querySelector('link[rel="canonical"]')
   const url = new URL(articleHref(article.slug), canonical.href).href
   canonical.href = url
   setMeta('meta[property="og:url"]', url)
   setMeta('meta[property="og:title"]', document.title)
-  setMeta('meta[property="og:description"]', article.excerpt || article.title)
+  setMeta('meta[property="og:description"]', description)
   addJsonLd(article, url, new URL('/', url).href)
 }
 
