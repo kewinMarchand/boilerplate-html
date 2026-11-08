@@ -5,6 +5,7 @@ import { ArticlesLoadError } from '../infrastructure/ArticlesLoadError.js'
 import { findLatestArticles } from '../infrastructure/http/articleRepository.js'
 
 const LATEST = 3
+const FEATURED_SIZES = '(width >= 1024px) 66vw, 100vw'
 
 const state = document.querySelector('[data-blog-state]')
 const grid = document.querySelector('[data-blog-grid]')
@@ -13,8 +14,11 @@ const loading = state.firstElementChild.cloneNode(true)
 
 const fromTemplate = (id) => document.getElementById(id).content.cloneNode(true)
 
-const renderCard = (article) => {
+const renderCard = (article, index) => {
   const card = cardTemplate.content.firstElementChild.cloneNode(true)
+  if (index === 0) {
+    for (const source of card.querySelectorAll('source')) source.sizes = FEATURED_SIZES
+  }
   fillPicture(card.querySelector('picture'), article.image)
   const link = card.querySelector('[data-blog-title]')
   link.textContent = article.title

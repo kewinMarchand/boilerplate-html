@@ -1059,9 +1059,11 @@
 
 /* Carrousel */
 @layer components {
-  .carousel {
-    --slides-per-view: 1;
+  main:has(.carousel) {
+    overflow-x: clip;
+  }
 
+  .carousel {
     @media (width >= 640px) {
       --slides-per-view: 2;
     }
@@ -1099,8 +1101,9 @@
     scroll-snap-type: x mandatory;
     border-radius: var(--radius);
 
+    /* Les diapositives débordent du conteneur jusqu'aux bords de la fenêtre, coupées par main */
     :root[data-js] & {
-      overflow: hidden;
+      overflow: visible;
       cursor: grab;
       scroll-snap-type: none;
     }
@@ -1118,9 +1121,15 @@
 
   .carousel-slide {
     container: slide / inline-size;
-    flex: 0 0 calc((100% - (var(--slides-per-view) - 1) * var(--space-m)) / var(--slides-per-view));
+    flex: 0 0 85%;
     min-inline-size: 0;
     scroll-snap-align: start;
+
+    @media (width >= 640px) {
+      flex-basis: calc(
+        (100% - (var(--slides-per-view) - 1) * var(--space-m)) / var(--slides-per-view)
+      );
+    }
 
     & figure {
       display: grid;
@@ -1192,15 +1201,45 @@
 @layer components {
   .blog-grid {
     display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: var(--space-m);
     margin-block-start: var(--space-m);
 
-    @media (width >= 640px) {
-      grid-template-columns: repeat(2, 1fr);
+    & > * {
+      grid-column: span 12;
+
+      @media (width >= 640px) {
+        grid-column: span 6;
+      }
+
+      @media (width >= 1024px) {
+        grid-column: span 4;
+      }
     }
 
-    @media (width >= 1024px) {
-      grid-template-columns: repeat(3, 1fr);
+    /* Article à la une : sur la hauteur des deux autres, l'image prend l'espace en plus */
+    & > :first-child {
+      @media (width >= 640px) {
+        grid-row: span 2;
+
+        & > p {
+          flex-grow: 0;
+        }
+
+        & .blog-card-media {
+          display: flex;
+          flex-direction: column;
+          flex-grow: 1;
+        }
+
+        & img {
+          flex-grow: 1;
+        }
+      }
+
+      @media (width >= 1024px) {
+        grid-column: span 8;
+      }
     }
   }
 

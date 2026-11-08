@@ -5,6 +5,12 @@ import { withScenario } from './routes.js'
 
 const currentDot = (page) => page.locator('[data-testid="carousel-dot"][aria-current="true"]')
 
+const cardBoxes = async (page) => {
+  const cards = page.getByTestId('home-blog-card')
+  await expect(cards).toHaveCount(3)
+  return Promise.all([0, 1, 2].map((index) => cards.nth(index).boundingBox()))
+}
+
 // Cinq produits à la une fictifs, écrits dans l'accueil comme le fait l'image de production
 const SLIDES = [1, 2, 3, 4, 5].map((position) => ({
   id: position,
@@ -137,6 +143,101 @@ test.describe('Accueil', () => {
     await expect(cards).toHaveCount(3)
     await expect(cards.first().locator('time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}$/)
     await expect(page.getByTestId('home-blog-empty')).toBeHidden()
+  })
+
+  test('la grille de blog met l’article à la une sur 8 colonnes et empile les deux autres en desktop', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'mise en page desktop')
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto('/')
+
+    const [featured, second, third] = await cardBoxes(page)
+    expect(featured.width / second.width).toBeGreaterThan(1.8)
+    expect(second.width).toBeCloseTo(third.width, 0)
+    expect(second.x).toBeCloseTo(third.x, 0)
+    expect(second.x).toBeGreaterThan(featured.x + featured.width)
+    expect(third.y).toBeGreaterThanOrEqual(second.y + second.height)
+  })
+
+  test('la grille de blog partage la largeur en deux colonnes égales en tablette', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'largeur pilotée explicitement')
+    await page.setViewportSize({ width: 768, height: 900 })
+    await page.goto('/')
+
+    const [featured, second, third] = await cardBoxes(page)
+    expect(featured.width).toBeCloseTo(second.width, 0)
+    expect(second.x).toBeGreaterThan(featured.x + featured.width)
+    expect(second.y).toBeCloseTo(featured.y, 0)
+    expect(third.x).toBeCloseTo(second.x, 0)
+    expect(third.y).toBeGreaterThanOrEqual(second.y + second.height)
+  })
+
+  test('la grille de blog empile les trois articles sur toute la largeur en mobile', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, 'mise en page mobile')
+    await page.goto('/')
+
+    const [featured, second, third] = await cardBoxes(page)
+    expect(second.width).toBeCloseTo(featured.width, 0)
+    expect(third.width).toBeCloseTo(featured.width, 0)
+    expect(second.x).toBeCloseTo(featured.x, 0)
+    expect(second.y).toBeGreaterThanOrEqual(featured.y + featured.height)
+    expect(third.y).toBeGreaterThanOrEqual(second.y + second.height)
+  })
+
+  test('les diapositives débordent du conteneur sans faire défiler la page', async ({ page }) => {
+    await page.goto('/')
+    const section = page.getByTestId('home-carousel')
+    await expect(page.getByTestId('carousel-slide')).toHaveCount(5)
+    await section.scrollIntoViewIfNeeded()
+
+    const sectionBox = await section.boundingBox()
+    const slideRights = await page
+      .getByTestId('carousel-slide')
+      .evaluateAll((slides) => slides.map((slide) => slide.getBoundingClientRect().right))
+    expect(Math.max(...slideRights)).toBeGreaterThan(sectionBox.x + sectionBox.width)
+
+    // Une diapositive est visible au bord droit de la fenêtre, au-delà de la piste
+    const track = await page.getByTestId('carousel-track').boundingBox()
+    const hit = await page.evaluate(
+      (y) =>
+        document
+          .elementFromPoint(window.innerWidth - 2, y)
+          ?.closest('[data-testid="carousel-slide"]') != null,
+      track.y + track.height / 2,
+    )
+    expect(hit).toBe(true)
+
+    const [scrollWidth, innerWidth] = await page.evaluate(() => [
+      document.documentElement.scrollWidth,
+      window.innerWidth,
+    ])
+    expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+  })
+
+  test('l’image de l’article à la une annonce sa largeur propre, les autres celle du gabarit', async ({
+    page,
+  }) => {
+    await page.goto('/')
+
+    const cards = page.getByTestId('home-blog-card')
+    await expect(cards).toHaveCount(3)
+    for (const source of await cards.first().locator('source').all()) {
+      await expect(source).toHaveAttribute('sizes', '(width >= 1024px) 66vw, 100vw')
+    }
+    for (const source of await cards.nth(1).locator('source').all()) {
+      await expect(source).toHaveAttribute(
+        'sizes',
+        '(width >= 1024px) 460px, (width >= 640px) 50vw, 100vw',
+      )
+    }
   })
 
   test('la grille de blog affiche les illustrations servies par l’API', async ({ page }) => {
