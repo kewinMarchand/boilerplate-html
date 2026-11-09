@@ -13,7 +13,6 @@ import {
   readDictionary,
   translatePage,
   translationTable,
-  UNTRANSLATED_PAGES,
   withAlternates,
 } from '../../scripts/prerender-locales.js'
 import { sitePages } from '../../scripts/ssi.js'
@@ -61,7 +60,7 @@ describe('fichiers de traduction', () => {
     const files = [
       ...sitePages(SITE_DIR)
         .map((file) => relative(SITE_DIR, file))
-        .filter((file) => ![...UNTRANSLATED_PAGES, 'charte-graphique/index.html'].includes(file)),
+        .filter((file) => file !== 'charte-graphique/index.html'),
       'partials/header.html',
       'partials/footer.html',
     ]
@@ -69,6 +68,13 @@ describe('fichiers de traduction', () => {
       const { missing } = translatePage(read(file), english(categories))
       assert.deepEqual([...missing], [], file)
     }
+  })
+
+  it('traduisent les pages d’erreur, liens et inclusions préfixés', () => {
+    const { html } = translatePage(read('404.html'), english())
+    assert.match(html, /<title>Page not found · /)
+    assert.match(html, /<a href="\/en" data-testid="error-home-link">Back to the home page<\/a>/)
+    assert.match(html, /<!--# include virtual="\/en\/partials\/header.html" -->/)
   })
 
   it('prennent les libellés français pour une langue sans fichier', () => {

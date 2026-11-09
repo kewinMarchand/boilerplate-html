@@ -1,6 +1,6 @@
 # 0004 — Une génération par langue, traduite depuis les sources françaises
 
-- **Statut** : Acceptée
+- **Statut** : Acceptée ; conséquence « pages d'erreur en français » remplacée par l'ADR 0005
 - **Introduite par** : le commit qui ajoute `scripts/prerender-locales.js`
 - **Décideurs** : Kewin Marchand
 - **Complète** : ADR 0001 (inclusions SSI), 0002 et 0003 (pré-rendu à la construction). La section 29 bis de la spec commune demande aux fronts statiques « une génération par langue activée, sous son préfixe ».

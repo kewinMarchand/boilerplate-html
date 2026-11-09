@@ -94,6 +94,13 @@ const resolveFile = async (pathname) => {
   return undefined
 }
 
+// Comme nginx : page d'erreur de la langue de l'adresse si elle a été générée, sinon celle de la racine
+const errorFile = async (pathname, name) => {
+  const prefix = /^(\/[a-z]{2})(\/|$)/.exec(pathname)?.[1]
+  const localized = prefix && join(ROOT, prefix, name)
+  return localized && (await isFile(localized)) ? localized : join(ROOT, name)
+}
+
 const COMPRESSIBLE = new Set(['.html', '.css', '.js', '.json', '.webmanifest', '.svg', '.xml'])
 
 /** `content` : HTML déjà produit pour `file` (fiche pré-rendue), à la place du fichier lu sur le disque. */
@@ -160,18 +167,22 @@ const prerenderedContact = async (slug, template) => {
 }
 
 createServer(async (request, response) => {
+  const { pathname, searchParams } = new URL(request.url, 'http://localhost')
   if (request.method !== 'GET' && request.method !== 'HEAD') {
-    await send(request, response, 405, join(ROOT, '405.html'), { Allow: 'GET, HEAD' })
+    await send(request, response, 405, await errorFile(pathname, '405.html'), {
+      Allow: 'GET, HEAD',
+    })
     return
   }
-  const { pathname, searchParams } = new URL(request.url, 'http://localhost')
   const file = await resolveFile(pathname)
   const isPage = !file || extname(file) === '.html'
 
   if (MAINTENANCE && isPage) {
-    await send(request, response, 503, join(ROOT, '503.html'), { 'Retry-After': '3600' })
+    await send(request, response, 503, await errorFile(pathname, '503.html'), {
+      'Retry-After': '3600',
+    })
   } else if (pathname === ERROR_TEST_ROUTE) {
-    await send(request, response, 500, join(ROOT, '50x.html'))
+    await send(request, response, 500, await errorFile(pathname, '50x.html'))
   } else if (file?.endsWith('/blog/fiche.html')) {
     // Comme nginx, qui sert la fiche pré-rendue à la construction quand l'API connaît l'article
     const html = await prerenderedArticle(pathname, file)
@@ -184,7 +195,7 @@ createServer(async (request, response) => {
   } else if (file) {
     await send(request, response, 200, file)
   } else {
-    await send(request, response, 404, join(ROOT, '404.html'))
+    await send(request, response, 404, await errorFile(pathname, '404.html'))
   }
 }).listen(PORT, () => {
   console.log(`Serveur statique prêt sur http://localhost:${PORT}`)

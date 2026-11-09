@@ -19,6 +19,13 @@ map $arg_produit $contact_product {
     default "";
 }
 
+# Pages d'erreur dans la langue de l'adresse (/<langue>/…) ; langue non générée, ou adresse sans préfixe :
+# celles de la racine, dans la langue par défaut du site
+map $uri $error_prefix {
+    "~^(?<error_lang>/[a-z]{2})(/|$)" $error_lang;
+    default "";
+}
+
 map "${MAINTENANCE}" $maintenance {
     default 0;
     1 1;
@@ -49,10 +56,10 @@ server {
 
     include /etc/nginx/snippets/security-headers.conf;
 
-    error_page 404 /404.html;
-    error_page 500 502 504 /50x.html;
-    error_page 405 /405.html;
-    error_page 503 /503.html;
+    error_page 404 $error_prefix/404.html;
+    error_page 500 502 504 $error_prefix/50x.html;
+    error_page 405 $error_prefix/405.html;
+    error_page 503 $error_prefix/503.html;
 
     location / {
         if ($maintenance) {
@@ -118,5 +125,17 @@ server {
         internal;
         include /etc/nginx/snippets/security-headers.conf;
         add_header Retry-After "3600" always;
+    }
+
+    location ~ "^/[a-z]{2}/(?<error_name>404|405|50x)\.html$" {
+        internal;
+        try_files $uri /$error_name.html;
+    }
+
+    location ~ "^/[a-z]{2}/503\.html$" {
+        internal;
+        include /etc/nginx/snippets/security-headers.conf;
+        add_header Retry-After "3600" always;
+        try_files $uri /503.html;
     }
 }

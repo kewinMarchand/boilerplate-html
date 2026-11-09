@@ -45,6 +45,20 @@ if [ "${1:-}" = checks ]; then
       if [ "$errors" = 0 ]; then echo "ok   aucune directive SSI en erreur ($1)"; fi
     }
 
+    # Page d'erreur servie dans une langue : expect_error_page <route> <code> <langue> <titre> [options de curl]
+    expect_error_page() {
+      route=$1 code=$2 lang=$3 title=$4
+      shift 4
+      status=$(curl --silent --output /tmp/boilerplate-html-erreur.html --write-out '%{http_code}' "$@" "http://localhost:$PORT$route")
+      if [ "$status" = "$code" ] && grep --quiet "<html lang=\"$lang\"" /tmp/boilerplate-html-erreur.html \
+        && grep --quiet "<title>$title · " /tmp/boilerplate-html-erreur.html; then
+        echo "ok   $code $route en $lang"
+      else
+        echo "FAIL $route : attendu $code « $title » en $lang, reçu $status"
+        FAILED=1
+      fi
+    }
+
     expect_header() {
       if curl --silent --head "http://localhost:$PORT$1" | grep --quiet --ignore-case "^$2"; then
         echo "ok   en-tête $2 sur $1"
@@ -296,6 +310,13 @@ EOF
     expect_status /de/catalogue 404
     expect_status /en/partials/header.html 404
     expect_status /en/route-inexistante 404
+    # Pages d'erreur dans la langue du préfixe, sinon dans la langue par défaut
+    expect_error_page /en/route-inexistante 404 en 'Page not found'
+    expect_error_page /en/js/inexistant.js 404 en 'Page not found'
+    expect_error_page /de/route-inexistante 404 fr 'Page introuvable'
+    expect_error_page /route-inexistante 404 fr 'Page introuvable'
+    expect_error_page /en/contact 405 en 'Cannot send without JavaScript' --data 'name=Ada'
+    expect_error_page /contact 405 fr 'Envoi impossible sans JavaScript' --data 'name=Ada'
     expect_no_ssi_error "bilingue"
     node --input-type=module - "http://localhost:$PORT" "${API_URL:-http://localhost:8090}" <<'EOF' || FAILED=1
 const [site, api] = process.argv.slice(2)
@@ -326,6 +347,13 @@ const checks = [
 for (const [label, ok] of checks) console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`)
 process.exit(checks.every(([, ok]) => ok) ? 0 : 1)
 EOF
+    ;;
+  maintenance-bilingue)
+    expect_error_page /en 503 en 'Site under maintenance'
+    expect_error_page /en/catalogue 503 en 'Site under maintenance'
+    expect_error_page / 503 fr 'Site en maintenance'
+    expect_error_page /de/catalogue 503 fr 'Site en maintenance'
+    expect_header /en "retry-after: 3600"
     ;;
   maintenance)
     expect_status / 503
@@ -376,6 +404,8 @@ docker build --quiet --no-cache --network host --build-arg "API_URL=${API_URL:-h
   --build-arg API_SCENARIO=bilingual --tag "$IMAGE" . > /dev/null
 start 0
 check bilingue
+start 1
+check maintenance-bilingue
 
 docker rm --force "$NAME" > /dev/null
 exit "$FAILED"

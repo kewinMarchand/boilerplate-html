@@ -25,11 +25,20 @@ const I18N = new URL('../i18n/', import.meta.url)
 const SITE_URL = JSON.parse(
   readFileSync(new URL('../site.config.json', import.meta.url), 'utf8'),
 ).url
-/** Pages servies telles quelles dans toutes les langues (erreurs de nginx) ou absentes de l'image. */
-export const UNTRANSLATED_PAGES = ['404.html', '405.html', '50x.html', '503.html']
+/** Page absente de l'image. */
 const DEV_PAGES = ['charte-graphique/index.html']
-/** Gabarits des fiches : sans équivalent connu, le sélecteur mène à l'accueil de chaque langue. */
-const TEMPLATES = ['blog/fiche.html', 'produit/fiche.html']
+/**
+ * Pages écrites à la même place dans chaque langue, sans équivalent connu (le sélecteur mène à l'accueil
+ * de chaque langue) : gabarits des fiches, et pages d'erreur, que nginx choisit selon le préfixe de l'adresse.
+ */
+const TEMPLATES = [
+  'blog/fiche.html',
+  'produit/fiche.html',
+  '404.html',
+  '405.html',
+  '50x.html',
+  '503.html',
+]
 const PARTIALS = ['header.html', 'footer.html']
 const META_TEXT = new Set([
   'description',
@@ -358,7 +367,7 @@ export const translatePage = (html, { table, dictionary, categories, ...context 
 const sourceFiles = (siteDir) =>
   sitePages(siteDir)
     .map((file) => relative(siteDir, file))
-    .filter((file) => ![...UNTRANSLATED_PAGES, ...DEV_PAGES].includes(file))
+    .filter((file) => !DEV_PAGES.includes(file))
 
 const fetchCategories = async (apiUrl, locale) => {
   try {
