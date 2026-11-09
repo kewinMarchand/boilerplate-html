@@ -112,7 +112,7 @@ export const prerenderCatalogPage = (html, result) => {
       (_, open) => `${open}${formatResultsCount(result.total, context.labels, context.locale)}`,
     )
     .replace(
-      /(data-testid="catalog-noscript">[\s\S]*?<div class="bui-alert__body"><p>)[\s\S]*?(<\/p>)/,
+      /(data-testid="catalog-noscript">[\s\S]*?<div class="bui-alert__body">\s*<p>)[\s\S]*?(<\/p>)/,
       (_, open, close) => `${open}${escapeHtml(context.labels.labelPrerendered)}${close}`,
     )
     .replace('</head>', `${next}${jsonLd}</head>`)

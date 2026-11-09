@@ -55,6 +55,13 @@ describe('pré-rendu du catalogue', () => {
   const html = prerenderCatalogPage(SOURCE, RESULT)
   const page = outsideTemplates(html)
 
+  it('remplace le message du bloc noscript, pas celui du catalogue vide', () => {
+    const noscript = html.match(/data-testid="catalog-noscript">[\s\S]*?<\/noscript>/)?.[0] ?? ''
+    const empty = html.match(/data-testid="catalog-empty">[\s\S]*?<\/template>/)?.[0] ?? ''
+    assert.ok(noscript.includes('seule la première page'), noscript)
+    assert.ok(empty.includes('Aucun produit ne correspond à ces filtres.'), empty)
+  })
+
   it('écrit la première page de produits à partir du template, sans squelette', () => {
     assert.equal(page.match(/data-testid="catalog-product"/g)?.length, 2)
     assert.ok(page.includes('data-product-id="1"'))
