@@ -90,7 +90,7 @@ Le serveur de développement est `scripts/serve.js` (Node, zéro dépendance) pl
 ## Pièges connus
 
 - Le script inline du `<head>` est autorisé par son hash. Prettier le reformate : toujours lancer `yarn format` avant de recalculer. `make test-unit` affiche le hash attendu.
-- Lighthouse CI lance Chrome avec `--no-sandbox` (user namespaces restreints sous Ubuntu). Ports : développement et Playwright 3130 (Playwright réutilise un `make up` en cours), site bilingue des tests 3134, Lighthouse 3250, contrôle de l'image de production 3140.
+- Lighthouse CI lance Chrome avec `--no-sandbox` (user namespaces restreints sous Ubuntu). Ports : développement et Playwright 3130 (Playwright réutilise un `make up` en cours), site bilingue des tests 3134 (et 3135, le même en maintenance, lancé par un test de `bilingue.e2e.js`), Lighthouse 3250, contrôle de l'image de production 3140.
 - nginx refuse une expression régulière de `location` qui contient des accolades sans guillemets (`[a-z]{2}`) : l'image ne démarre pas. Les règles à préfixe de langue sont entre guillemets.
 - Un texte des sources se traduit par sa valeur exacte : modifier un texte français, c'est modifier `i18n/fr.json` (et `en.json`) ; `tests/unit/locales.test.js` liste tout texte sans clé. Un même texte français n'a qu'une traduction.
 - `pkill -f "scripts/serve.js"` lancé dans un shell dont la commande contient cette chaîne tue aussi le shell. Préférer `kill $(pgrep -f "^node scripts/serve.js")`.

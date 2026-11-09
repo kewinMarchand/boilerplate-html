@@ -1,7 +1,8 @@
+import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 
-import { BILINGUAL_PORT } from '../../playwright.config.js'
+import { API_URL, BILINGUAL_PORT, BILINGUAL_ROOT } from '../../playwright.config.js'
 
 // Site bilingue des tests : généré depuis le scénario `bilingual` de l'API (français par défaut, anglais
 // sous /en), servi par Playwright sur BILINGUAL_PORT. Fixtures de l'API : la fiche « monstera-deliciosa »
@@ -10,6 +11,9 @@ import { BILINGUAL_PORT } from '../../playwright.config.js'
 const BILINGUAL = `http://localhost:${BILINGUAL_PORT}`
 const SITE_URL = JSON.parse(readFileSync(new URL('../../site.config.json', import.meta.url))).url
 const EN = JSON.parse(readFileSync(new URL('../../i18n/en.json', import.meta.url)))
+const FR = JSON.parse(readFileSync(new URL('../../i18n/fr.json', import.meta.url)))
+// Site bilingue servi en maintenance (MAINTENANCE=1) pour un seul test, sans appel à l'API
+const MAINTENANCE_PORT = 3135
 const FR_PRODUCT = '/produit/monstera-deliciosa'
 const EN_PRODUCT = '/en/produit/swiss-cheese-plant'
 const FR_CATEGORY = '/catalogue/plantes-interieur'
@@ -233,6 +237,217 @@ test.describe('site bilingue', () => {
   test('un préfixe de langue non activée répond 404', async ({ request }) => {
     for (const path of ['/de', '/de/catalogue', '/de/produit/monstera-deliciosa']) {
       expect((await request.get(path)).status(), path).toBe(404)
+    }
+  })
+})
+
+/** Libellés par défaut de boilerplates-ui (tableau « Libellés d'interface » de son README). */
+const LIBRARY_DEFAULTS = [
+  '(obligatoire)',
+  '(chargement en cours)',
+  '(nouvelle fenêtre)',
+  'Retirer le filtre :',
+  'Information :',
+  'Succès :',
+  'Attention :',
+  'Erreur :',
+  'Fermer la notification',
+  'Fermer',
+  'Fil d’Ariane',
+  'Précédent',
+  'Suivant',
+  'Chargement en cours',
+]
+
+/** Textes de `i18n/fr.json` lus par les alertes, champs, chargements, filtres, pagination, fil d'Ariane, erreurs et panier. */
+const SECTIONS = [
+  'common',
+  'layout',
+  'nav',
+  'errors',
+  'catalog',
+  'product',
+  'cart',
+  'contact',
+  'tasks',
+]
+
+/**
+ * Libellés d'interface français de ces sections, coupés aux variables (`{nom}`), plus les défauts de la
+ * bibliothèque, sauf ceux qu'un libellé anglais contient aussi (« Page », « Contact ») ; fragments de
+ * moins de 4 caractères ignorés.
+ */
+const FRENCH_LABELS = (() => {
+  const english = Object.values(EN).join('\n')
+  const french = Object.entries(FR)
+    .filter(([key]) => SECTIONS.includes(key.split('.')[0]))
+    .flatMap(([, value]) => value.split(/\{\w+\}/))
+  return [...new Set([...french, ...LIBRARY_DEFAULTS].map((label) => label.trim()))].filter(
+    (label) => label.length >= 4 && !english.includes(label),
+  )
+})()
+
+/** Texte lu de la page : contenu (masqué compris, hors scripts et styles) et attributs annoncés. */
+const readableText = (page) =>
+  page.evaluate(() => {
+    const root = document.documentElement.cloneNode(true)
+    root.querySelectorAll('script, style').forEach((element) => element.remove())
+    const attributes = ['aria-label', 'aria-roledescription', 'title', 'alt', 'placeholder']
+    const announced = [...root.querySelectorAll('*')].flatMap((element) =>
+      attributes.map((name) => element.getAttribute(name) ?? ''),
+    )
+    return [root.textContent ?? '', ...announced].join('\n')
+  })
+
+/** Libellé trouvé en mots entiers : « Grande » (taille) ne doit pas trouver « Grandes feuilles ». */
+const containsWords = (text, label) => {
+  const isLetter = (char) => char !== undefined && /\p{L}/u.test(char)
+  for (let index = text.indexOf(label); index !== -1; index = text.indexOf(label, index + 1)) {
+    if (!isLetter(text[index - 1]) && !isLetter(text[index + label.length])) return true
+  }
+  return false
+}
+
+const expectNoFrenchLabel = (text) =>
+  expect(FRENCH_LABELS.filter((label) => containsWords(text, label))).toEqual([])
+
+/** Retient les réponses de l'API jusqu'à `release()` ; `headers` remplace les en-têtes de la requête. */
+const holdApi = async (page, { method, headers = {} } = {}) => {
+  let release
+  const held = new Promise((resolve) => (release = resolve))
+  await page.route(`${API_URL}/api/**`, async (route) => {
+    if (!method || route.request().method() === method) await held
+    await route.continue({ headers: { ...route.request().headers(), ...headers } })
+  })
+  return release
+}
+
+test.describe('pages anglaises sans libellé français', () => {
+  test.use({ baseURL: BILINGUAL })
+
+  test('aucun libellé français sur les pages anglaises', async ({ page }) => {
+    for (const path of [
+      '/en',
+      '/en/catalogue',
+      '/en/catalogue/indoor-plants',
+      '/en/catalogue?exposition=mi-ombre&page=2',
+      EN_PRODUCT,
+      '/en/blog',
+      '/en/blog/enhanced-accessibility-mode',
+      '/en/contact',
+      '/en/taches',
+      '/en/mentions-legales',
+      '/en/plan-du-site',
+      '/en/panier',
+    ]) {
+      await page.goto(path)
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+      await expect(page.getByTestId('layout-languages')).toBeVisible()
+      expectNoFrenchLabel(await readableText(page))
+    }
+  })
+
+  test('filtres actifs, pagination et catalogue vide sans libellé français', async ({ page }) => {
+    await page.goto('/en/catalogue?exposition=mi-ombre&page=2')
+    await expect(page.getByTestId('catalog-active-filter')).toHaveText(
+      `${EN['catalog.removeFilter']} ${EN['catalog.exposurePartialShade']}`,
+    )
+    await expect(page.getByTestId('catalog-pagination')).toHaveAttribute(
+      'aria-label',
+      EN['catalog.pagination'],
+    )
+    expectNoFrenchLabel(await readableText(page))
+
+    await page.goto('/en/catalogue?prix_max=1')
+    await expect(page.getByTestId('catalog-empty')).toContainText(EN['common.information'])
+    expectNoFrenchLabel(await readableText(page))
+  })
+
+  test('champs obligatoires, chargement et alerte de confirmation du contact', async ({ page }) => {
+    const release = await holdApi(page, { method: 'POST' })
+    await page.goto('/en/contact')
+    await expect(page.getByTestId('contact-name')).toHaveAccessibleName(
+      `${EN['contact.name']} ${EN['common.required']}`,
+    )
+    await page.getByTestId('contact-name').fill('Ada')
+    await page.getByTestId('contact-email').fill('ada@example.com')
+    await page.getByTestId('contact-message').fill('Hello, is this plant available?')
+    await page.getByTestId('contact-submit').click()
+
+    await expect(page.getByTestId('contact-submit')).toHaveAttribute('aria-disabled', 'true')
+    expectNoFrenchLabel(await readableText(page))
+    release()
+    await expect(page.getByTestId('contact-success')).toContainText(EN['common.success'])
+    expectNoFrenchLabel(await readableText(page))
+  })
+
+  test('chargement et erreur des tâches en anglais', async ({ page }) => {
+    const release = await holdApi(page, { headers: { 'x-scenario': 'error' } })
+    await page.goto('/en/taches')
+
+    await expect(page.getByTestId('tasks-loading')).toContainText(EN['tasks.loading'])
+    expectNoFrenchLabel(await readableText(page))
+    release()
+    await expect(page.getByTestId('tasks-error')).toContainText(EN['common.error'])
+    expectNoFrenchLabel(await readableText(page))
+  })
+
+  test('la page introuvable suit la langue de l’adresse', async ({ page }) => {
+    const response = await page.goto('/en/route-inexistante')
+
+    expect(response.status()).toBe(404)
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(EN['errors.notFound'])
+    await expect(page.getByTestId('error-home-link')).toHaveAttribute('href', '/en')
+    expectNoFrenchLabel(await readableText(page))
+
+    await page.goto('/de/route-inexistante')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(FR['errors.notFound'])
+  })
+
+  test('le panier anglais, vide puis rempli, est en anglais', async ({ page }) => {
+    await page.goto('/en/panier')
+    await expect(page.getByTestId('cart-empty')).toContainText(EN['cart.empty'])
+    expectNoFrenchLabel(await readableText(page))
+
+    await page.goto(EN_PRODUCT)
+    await page.getByTestId('add-to-cart').click()
+    await expect(page.getByTestId('add-to-cart-status')).toContainText('Swiss cheese plant')
+    expectNoFrenchLabel(await readableText(page))
+
+    await page.goto('/en/panier')
+    await expect(page.getByTestId('cart-line')).toBeVisible()
+    expectNoFrenchLabel(await readableText(page))
+  })
+
+  test('la page de maintenance suit la langue de l’adresse', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'page statique, un seul serveur de maintenance pour les deux projets')
+    const server = spawn('node', ['scripts/serve.js', String(MAINTENANCE_PORT)], {
+      env: { ...process.env, SITE_ROOT: `${BILINGUAL_ROOT}/site`, MAINTENANCE: '1' },
+      stdio: 'ignore',
+    })
+    try {
+      const url = `http://localhost:${MAINTENANCE_PORT}`
+      await expect
+        .poll(() =>
+          fetch(url).then(
+            (response) => response.status,
+            () => 0,
+          ),
+        )
+        .toBe(503)
+
+      const response = await page.goto(`${url}/en/catalogue`)
+      expect(response.status()).toBe(503)
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(EN['errors.maintenance'])
+      expectNoFrenchLabel(await readableText(page))
+
+      await page.goto(`${url}/catalogue`)
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(FR['errors.maintenance'])
+    } finally {
+      server.kill()
     }
   })
 })

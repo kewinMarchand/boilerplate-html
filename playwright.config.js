@@ -18,8 +18,8 @@ const OBSERVABILITY_ENV = {
 // figurer dans les origines autorisées (CORS) de l'API Platform et de Hono, d'où 3134, propre à ce dépôt
 // (3151 est celui de boilerplate-next).
 export const BILINGUAL_PORT = 3134
-const BILINGUAL_ROOT = '.cache/bilingue'
-const API_URL = process.env.API_URL || 'http://localhost:8090'
+export const BILINGUAL_ROOT = '.cache/bilingue'
+export const API_URL = process.env.API_URL || 'http://localhost:8090'
 
 export default defineConfig({
   testMatch: /.*\.(e2e|a11y)\.js/,
