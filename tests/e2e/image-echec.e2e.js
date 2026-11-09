@@ -74,6 +74,41 @@ test.describe('Image de l’API en échec', () => {
     expect(await picture.boundingBox()).toEqual(await picture.locator('img').boundingBox())
   })
 
+  for (const path of [
+    '/',
+    '/catalogue',
+    '/produit/monstera-deliciosa',
+    '/blog',
+    '/blog/le-mode-accessibilite-renforcee',
+  ]) {
+    test(`${path} : toute image d’un bui-picture est en bloc`, async ({ page }) => {
+      await page.goto(path)
+      const images = page.locator('picture.bui-picture > img')
+      await expect(images.first()).toBeAttached()
+
+      const displays = await images.evaluateAll((elements) =>
+        elements.map((element) => getComputedStyle(element).display),
+      )
+      expect(displays.filter((display) => display !== 'block')).toEqual([])
+    })
+  }
+
+  test('une diapositive en 404 garde la taille de son image chargée', async ({ page }) => {
+    await page.goto('/')
+    const picture = page.getByTestId('carousel-slide').first().locator('picture')
+    const image = picture.locator('img')
+    await expect.poll(() => image.evaluate((element) => element.naturalWidth)).toBeGreaterThan(0)
+    const loaded = await image.boundingBox()
+    expect(await picture.boundingBox()).toEqual(loaded)
+
+    await failApiImages(page)
+    await page.reload()
+
+    await expect(picture).toHaveAttribute('data-image-error', '')
+    expect(await picture.boundingBox()).toEqual(loaded)
+    expect(await image.boundingBox()).toEqual(loaded)
+  })
+
   for (const mode of MODES) {
     test(`fond de remplacement sans violation axe, mode ${mode.name}`, async ({ page }) => {
       await mode.setup?.(page)
