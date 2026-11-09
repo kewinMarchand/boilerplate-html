@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
+import { labelsOf } from '../../scripts/prerender-locales.js'
 import {
   clearFilters,
   countActiveFilters,
@@ -13,6 +16,13 @@ import {
 import { activeFilters } from '../../site/js/modules/catalog/ui/activeFilters.js'
 import { formatResultsCount } from '../../site/js/modules/catalog/ui/labels.js'
 import { paginationWindow } from '../../site/js/modules/catalog/ui/pagination.js'
+import { SITE_DIR } from './renderedPages.js'
+
+// Libellés des scripts écrits dans la page du catalogue
+const LABELS = labelsOf(
+  readFileSync(join(SITE_DIR, 'catalogue/index.html'), 'utf8'),
+  'data-catalog',
+)
 
 describe('requête du catalogue', () => {
   it('fait l’aller-retour URL vers requête vers URL', () => {
@@ -64,7 +74,7 @@ describe('requête du catalogue', () => {
     const query = { ...DEFAULT_QUERY, exposures: ['mi-ombre'], priceMax: 30, inStock: true }
     assert.equal(countActiveFilters(query), 3)
     assert.deepEqual(
-      activeFilters(query).map((filter) => filter.label),
+      activeFilters(query, LABELS).map((filter) => filter.label),
       ['Mi-ombre', 'Prix maximum : 30 €', 'En stock'],
     )
     const attributes = { ...DEFAULT_QUERY, attributes: { feuillage: ['caduc', 'inconnue'] } }
@@ -75,7 +85,7 @@ describe('requête du catalogue', () => {
         values: [{ value: 'caduc', label: 'Caduc', count: 2 }],
       },
     ]
-    const filters = activeFilters(attributes, facets)
+    const filters = activeFilters(attributes, LABELS, facets)
     assert.deepEqual(
       filters.map((filter) => filter.label),
       ['Caduc', 'inconnue'],
@@ -102,7 +112,11 @@ describe('pagination et formats', () => {
   })
 
   it('formate les compteurs', () => {
-    assert.equal(formatResultsCount(1), '1 produit')
-    assert.equal(formatResultsCount(12), '12 produits')
+    assert.equal(formatResultsCount(0, LABELS, 'fr'), '0 produit')
+    assert.equal(formatResultsCount(1, LABELS, 'fr'), '1 produit')
+    assert.equal(formatResultsCount(12, LABELS, 'fr'), '12 produits')
+    const english = { labelResultsOne: '{count} product', labelResultsOther: '{count} products' }
+    assert.equal(formatResultsCount(0, english, 'en'), '0 products')
+    assert.equal(formatResultsCount(1, english, 'en'), '1 product')
   })
 })

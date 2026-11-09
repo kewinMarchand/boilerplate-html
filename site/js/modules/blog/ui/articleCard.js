@@ -1,3 +1,4 @@
+import { localizePath, pageLocale } from '/js/shared/locale.js'
 import { fillPicture } from '/js/shared/picture.js'
 
 import { articleHref, formatPublishedAt } from '../domain/article.js'
@@ -11,10 +12,10 @@ export const renderArticleCard = (template, article) => {
   else section.remove()
   const link = card.querySelector('[data-blog-title]')
   link.textContent = article.title
-  link.href = articleHref(article.slug)
+  link.href = localizePath(articleHref(article.slug))
   card.querySelector('[data-blog-excerpt]').textContent = article.excerpt
   const date = card.querySelector('[data-blog-date]')
   date.dateTime = article.publishedAt
-  date.textContent = formatPublishedAt(article.publishedAt)
+  date.textContent = formatPublishedAt(article.publishedAt, pageLocale())
   return card
 }

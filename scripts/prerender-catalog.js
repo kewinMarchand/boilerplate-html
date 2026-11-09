@@ -2,6 +2,8 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { prefixPath } from '/js/shared/locale.js'
+
 import { DEFAULT_QUERY, EXPOSURES, SIZES } from '/js/modules/catalog/domain/catalogQuery.js'
 import { formatPrice } from '/js/modules/catalog/domain/price.js'
 import {
@@ -10,8 +12,10 @@ import {
   toSearchResult,
 } from '/js/modules/catalog/infrastructure/http/catalogTranslation.js'
 import { attributeFacetsHtml } from '/js/modules/catalog/ui/attributeFacets.js'
-import { EXPOSURE_LABELS, formatResultsCount } from '/js/modules/catalog/ui/labels.js'
+import { exposureLabel, formatResultsCount } from '/js/modules/catalog/ui/labels.js'
 
+import { fetchJson } from './apiFetch.js'
+import { labelsOf, pageLocales } from './prerender-locales.js'
 import { largestWebp, withPicture } from './prerenderPicture.js'
 import { sitePages } from './ssi.js'
 
@@ -22,11 +26,12 @@ import { sitePages } from './ssi.js'
  * l'API au chargement et garde filtres, tri et pagination. Sans API joignable, la page reste telle
  * quelle et se remplit dans le navigateur.
  *
+ * Chaque page est lue dans l'API dans sa langue (`<html lang>`), avec ses libellés (`data-label-*`).
+ *
  * Usage : node --import ./tests/unit/siteResolver.js scripts/prerender-catalog.js <site> <API_URL>
  */
 
 const EAGER_IMAGES = 4
-const API_TIMEOUT_MS = 10_000
 
 const escapeHtml = (value) =>
   String(value)
@@ -35,7 +40,7 @@ const escapeHtml = (value) =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
 
-const productItem = (template, product, index) => {
+const productItem = (template, product, index, { labels, locale, locales }) => {
   const priority =
     index === 0 ? ' fetchpriority="high"' : index >= EAGER_IMAGES ? ' loading="lazy"' : ''
   return withPicture(template, product.image)
@@ -45,10 +50,14 @@ const productItem = (template, product, index) => {
     .replace(/(data-product-name[^>]*>)[^<]*/, `$1${escapeHtml(product.name)}`)
     .replace(
       /href="\/catalogue"(\s+data-product-link)/,
-      (_, rest) => `href="/produit/${escapeHtml(product.slug)}"${rest}`,
+      (_, rest) =>
+        `href="${prefixPath(`/produit/${escapeHtml(product.slug)}`, locale, locales)}"${rest}`,
     )
-    .replace(/(data-product-price[^>]*>)/, `$1${escapeHtml(formatPrice(product.price))}`)
-    .replace(/(data-product-exposure[^>]*>)/, `$1${EXPOSURE_LABELS[product.exposure]}`)
+    .replace(/(data-product-price[^>]*>)/, `$1${escapeHtml(formatPrice(product.price, locale))}`)
+    .replace(
+      /(data-product-exposure[^>]*>)/,
+      `$1${escapeHtml(exposureLabel(labels, product.exposure))}`,
+    )
     .replace(/(data-product-size[^>]*>)/, `$1${product.size}`)
     .replace(
       'data-product-out-of-stock',
@@ -85,7 +94,10 @@ export const prerenderCatalogPage = (html, result) => {
     /<template id="catalog-product-template">\s*([\s\S]*?)\s*<\/template>/,
   )[1]
   const canonical = new URL(html.match(/<link\s+rel="canonical"\s+href="([^"]+)"/)[1])
-  const items = result.items.map((product, index) => productItem(template, product, index)).join('')
+  const context = { ...pageLocales(html), labels: labelsOf(html, 'data-catalog') }
+  const items = result.items
+    .map((product, index) => productItem(template, product, index, context))
+    .join('')
   const next = result.pageCount > 1 ? `<link rel="next" href="${canonical.pathname}?page=2" />` : ''
   const jsonLd = `<script type="application/ld+json">${itemListJsonLd(result, canonical.origin)}</script>`
 
@@ -96,12 +108,12 @@ export const prerenderCatalogPage = (html, result) => {
       '$1',
     )
     .replace(
-      /(data-catalog-count[^>]*>)\s*Chargement des produits…\s*/,
-      `$1${formatResultsCount(result.total)}`,
+      /(data-catalog-count[^>]*>)\s*[^<]*?\s*(?=<)/,
+      (_, open) => `${open}${formatResultsCount(result.total, context.labels, context.locale)}`,
     )
     .replace(
       /(data-testid="catalog-noscript">[\s\S]*?<div class="bui-alert__body"><p>)[\s\S]*?(<\/p>)/,
-      "$1Sans JavaScript, seule la première page s'affiche, sans filtre ni tri.$2",
+      (_, open, close) => `${open}${escapeHtml(context.labels.labelPrerendered)}${close}`,
     )
     .replace('</head>', `${next}${jsonLd}</head>`)
     .replace(
@@ -129,23 +141,13 @@ export const prerenderCatalogPage = (html, result) => {
   return page
 }
 
-const fetchApi = async (apiUrl, path, params) => {
-  const url = new URL(path, apiUrl)
-  for (const [name, value] of Object.entries(params)) {
-    for (const item of [value].flat()) url.searchParams.append(name, String(item))
-  }
-  const response = await fetch(url, {
-    headers: { accept: 'application/json' },
-    signal: AbortSignal.timeout(API_TIMEOUT_MS),
-  })
-  if (!response.ok) throw new Error(`réponse ${response.status}`)
-  return response.json()
-}
-
-const fetchFirstPage = async (apiUrl, categorySlug) => {
+const fetchFirstPage = async (apiUrl, categorySlug, locale) => {
   const [products, facets] = await Promise.all([
-    fetchApi(apiUrl, '/api/products', toProductsQuery(categorySlug, DEFAULT_QUERY)),
-    fetchApi(apiUrl, '/api/product-facets', toFacetsQuery(categorySlug, DEFAULT_QUERY)),
+    fetchJson(apiUrl, '/api/products', { ...toProductsQuery(categorySlug, DEFAULT_QUERY), locale }),
+    fetchJson(apiUrl, '/api/product-facets', {
+      ...toFacetsQuery(categorySlug, DEFAULT_QUERY),
+      locale,
+    }),
   ])
   return toSearchResult(products, facets, DEFAULT_QUERY.page)
 }
@@ -153,12 +155,13 @@ const fetchFirstPage = async (apiUrl, categorySlug) => {
 const main = async ([siteDir, apiUrl]) => {
   for (const file of sitePages(siteDir)) {
     const html = readFileSync(file, 'utf8')
-    const category = html.match(/data-catalog data-category="([^"]*)"/)
+    const category = html.match(/data-catalog\s+data-category="([^"]*)"/)
     if (!category) continue
     const page = `/${relative(siteDir, file)}`
     let result
     try {
-      result = await fetchFirstPage(apiUrl, category[1] || null)
+      const { locale, locales } = pageLocales(html)
+      result = await fetchFirstPage(apiUrl, category[1] || null, locales.length > 1 ? locale : null)
     } catch (error) {
       console.warn(
         `[catalogue] ${page} rendue dans le navigateur, API injoignable (${error.message})`,
@@ -166,9 +169,7 @@ const main = async ([siteDir, apiUrl]) => {
       continue
     }
     writeFileSync(file, prerenderCatalogPage(html, result))
-    console.info(
-      `[catalogue] ${page} : ${formatResultsCount(result.total)}, ${result.items.length} écrits`,
-    )
+    console.info(`[catalogue] ${page} : ${result.total} produits, ${result.items.length} écrits`)
   }
 }
 

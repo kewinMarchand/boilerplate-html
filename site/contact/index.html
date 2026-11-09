@@ -122,7 +122,14 @@
           </div>
         </noscript>
         <div class="contact-layout">
-          <form class="contact-form" method="post" data-contact-form data-testid="contact-form">
+          <form
+            class="contact-form"
+            method="post"
+            data-contact-form
+            data-label-inquiry-subject="Votre demande concerne :"
+            data-label-inquiry-success="Votre demande de renseignement a bien été envoyée."
+            data-testid="contact-form"
+          >
             <fieldset>
               <legend>Vos coordonnées</legend>
               <div class="bui-field">
@@ -138,6 +145,7 @@
                   required
                   minlength="2"
                   aria-describedby="contact-name-error"
+                  data-label-invalid="Indiquez votre nom (2 caractères minimum)."
                   data-testid="contact-name"
                 />
                 <p
@@ -158,6 +166,7 @@
                   autocomplete="email"
                   required
                   aria-describedby="contact-email-error"
+                  data-label-invalid="Indiquez une adresse e-mail valide, par exemple nom@domaine.fr."
                   data-testid="contact-email"
                 />
                 <p
@@ -181,6 +190,7 @@
                   required
                   minlength="10"
                   aria-describedby="contact-message-error"
+                  data-label-invalid="Votre message doit contenir au moins 10 caractères."
                   data-testid="contact-message"
                 ></textarea>
                 <p

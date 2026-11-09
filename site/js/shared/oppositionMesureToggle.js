@@ -7,9 +7,7 @@ const storage = getStorage()
 const render = () => {
   const refusee = isMesureRefusee(storage)
   input.checked = refusee
-  status.textContent = refusee
-    ? 'Vos visites ne sont plus mesurées depuis ce navigateur.'
-    : 'Vos visites sont mesurées, de façon anonyme.'
+  status.textContent = refusee ? status.dataset.labelRefused : status.dataset.labelMeasured
 }
 
 input.addEventListener('change', () => {

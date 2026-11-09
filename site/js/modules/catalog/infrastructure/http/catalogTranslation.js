@@ -107,6 +107,13 @@ export const toSearchResult = (productsDto, facets, page) => {
   }
 }
 
+/** Slug de la fiche dans chaque langue où elle existe (section 29), `[]` sur un site d'une seule langue. */
+const toAlternates = (dto) =>
+  optionalArray(dto, 'alternates').map((alternate) => ({
+    locale: field(alternate, 'locale', 'string'),
+    slug: field(alternate, 'slug', 'string'),
+  }))
+
 /**
  * Fiche : le produit, les paragraphes de sa description (séparés par une ligne vide dans le contrat) et
  * le chemin de sa catégorie, chaque étape avec l'adresse de sa page du catalogue.
@@ -133,6 +140,7 @@ export const toProductDetail = (dto) => {
     gallery: optionalArray(dto, 'gallery').map((_, index, images) => imageField(images, index)),
     metaTitle: optionalString(dto, 'metaTitle'),
     metaDescription: optionalString(dto, 'metaDescription'),
+    alternates: toAlternates(dto),
   }
 }
 

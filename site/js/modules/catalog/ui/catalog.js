@@ -1,4 +1,6 @@
+import { formatLabel } from '/js/shared/labels.js'
 import { latestOnly, STALE } from '/js/shared/latestOnly.js'
+import { localizePath, pageLocale } from '/js/shared/locale.js'
 import { fillPicture } from '/js/shared/picture.js'
 
 import {
@@ -17,7 +19,7 @@ import { loadCatalogPage } from '../application/loadCatalogPage.js'
 
 import { activeFilters } from './activeFilters.js'
 import { attributeFacetsHtml, attributeInputId } from './attributeFacets.js'
-import { EXPOSURE_LABELS, formatResultsCount } from './labels.js'
+import { exposureLabel, formatResultsCount } from './labels.js'
 import { paginationWindow } from './pagination.js'
 
 const root = document.querySelector('[data-catalog]')
@@ -41,6 +43,10 @@ const attributeFacetsSlot = $('[data-catalog-attribute-facets]')
 
 const BASE_PATH = form.getAttribute('action')
 const categorySlug = root.dataset.category || null
+// Libellés des scripts dans la langue de la page
+const labels = root.dataset
+const locale = pageLocale()
+const resultsCount = (total) => formatResultsCount(total, labels, locale)
 const productTemplate = document.getElementById('catalog-product-template')
 // Sans vente en ligne, la page n'a ni prix, ni filtre, ni tri par prix (section 27 de la spec commune)
 const prices = !document.documentElement.hasAttribute('data-sales-disabled')
@@ -140,7 +146,7 @@ const renderAttributeFacets = () => {
 }
 
 const renderChips = () => {
-  const filters = activeFilters(query, attributeFacets)
+  const filters = activeFilters(query, labels, attributeFacets)
   activeWrapper.hidden = filters.length === 0
   activeCount.textContent = filters.length ? `(${countActiveFilters(query)})` : ''
   chips.replaceChildren(
@@ -187,7 +193,7 @@ const pageItem = (page, content, { rel, current = false } = {}) => {
 }
 
 const pageLabel = (page) => [
-  element('span', { className: 'bui-visually-hidden', textContent: 'Page ' }),
+  element('span', { className: 'bui-visually-hidden', textContent: `${labels.labelPage} ` }),
   String(page),
 ]
 
@@ -199,7 +205,11 @@ const renderPagination = (result) => {
   const { page, pageCount } = result
   pagination.querySelector('ul').replaceChildren(
     ...(page > 1
-      ? [pageItem(page - 1, [icon('chevron-left'), arrowLabel('Précédent')], { rel: 'prev' })]
+      ? [
+          pageItem(page - 1, [icon('chevron-left'), arrowLabel(labels.labelPrevious)], {
+            rel: 'prev',
+          }),
+        ]
       : []),
     ...paginationWindow(page, pageCount).map((item) => {
       if (item === '…') {
@@ -210,7 +220,7 @@ const renderPagination = (result) => {
       return pageItem(item, pageLabel(item), { current: item === page })
     }),
     ...(page < pageCount
-      ? [pageItem(page + 1, [arrowLabel('Suivant'), icon('chevron-right')], { rel: 'next' })]
+      ? [pageItem(page + 1, [arrowLabel(labels.labelNext), icon('chevron-right')], { rel: 'next' })]
       : []),
   )
 }
@@ -227,9 +237,9 @@ const renderProduct = (product, index) => {
   if (index >= EAGER_IMAGES) img.loading = 'lazy'
   fillPicture($item('picture'), product.image)
   $item('[data-product-name]').textContent = product.name
-  $item('[data-product-link]').href = productHref(product.slug)
-  if (prices) $item('[data-product-price]').textContent = formatPrice(product.price)
-  $item('[data-product-exposure]').textContent = EXPOSURE_LABELS[product.exposure]
+  $item('[data-product-link]').href = localizePath(productHref(product.slug))
+  if (prices) $item('[data-product-price]').textContent = formatPrice(product.price, locale)
+  $item('[data-product-exposure]').textContent = exposureLabel(labels, product.exposure)
   $item('[data-product-size]').textContent = product.size
   $item('[data-product-out-of-stock]').hidden = product.inStock
   return item
@@ -242,8 +252,10 @@ const renderResult = (result) => {
   state
     .querySelector('[data-catalog-empty-clear]')
     ?.addEventListener('click', () => navigate(clearFilters(query), { focusTitle: true }))
-  count.textContent = formatResultsCount(result.total)
-  doneButton.textContent = `Voir les ${formatResultsCount(result.total)}`
+  count.textContent = resultsCount(result.total)
+  doneButton.textContent = formatLabel(labels.labelResultsShow, {
+    results: resultsCount(result.total),
+  })
   updateCounts(result)
   attributeFacets = result.attributeFacets
   renderAttributeFacets()
@@ -252,13 +264,12 @@ const renderResult = (result) => {
   updateHead(result)
 }
 
-const renderError = (message) => {
+const renderError = () => {
   list.removeAttribute('aria-busy')
   list.replaceChildren()
   pagination.hidden = true
   count.textContent = ''
   state.replaceChildren(fromTemplate('catalog-error-template'))
-  state.querySelector('[data-catalog-error-message]').textContent = message
   state.querySelector('[data-catalog-retry]').addEventListener('click', () => load())
 }
 
@@ -268,14 +279,14 @@ const load = async ({ showLoading = true } = {}) => {
   if (showLoading) {
     list.setAttribute('aria-busy', 'true')
     state.replaceChildren(fromTemplate('catalog-loading-template'))
-    count.textContent = 'Chargement des produits…'
+    count.textContent = labels.labelLoading
   }
   const page = await loadLatestPage()
   if (page === STALE) return
   if (page.status === 'error') {
     // Actualisation d'une page pré-rendue en échec : les produits écrits restent affichés
     if (!showLoading && list.childElementCount > 0) return
-    renderError(page.message)
+    renderError()
     return
   }
   if (page.query.page !== query.page) {

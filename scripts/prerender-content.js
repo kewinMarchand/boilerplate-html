@@ -3,6 +3,10 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { audioCaption, blogHref } from '../site/js/modules/blog/domain/article.js'
+import { formatLabel } from '../site/js/shared/labels.js'
+import { languageTag, prefixPath } from '../site/js/shared/locale.js'
+import { fetchJson } from './apiFetch.js'
+import { labelsOf, localeRoot, pageLocales, withAlternates } from './prerender-locales.js'
 import { largestWebp, withPicture } from './prerenderPicture.js'
 
 /**
@@ -11,12 +15,12 @@ import { largestWebp, withPicture } from './prerenderPicture.js'
  * (/blog) et fiches des articles (une page par article, à partir du gabarit blog/fiche.html, ajoutée
  * au sitemap), écrits à partir des `<template>` des pages, les mêmes que ceux du navigateur, qui
  * relit l'API au chargement. Sans API joignable, la page reste telle quelle et se remplit dans le
- * navigateur.
+ * navigateur. Sur un site à plusieurs langues, chaque langue est pré-rendue sous sa racine, lue dans
+ * l'API dans sa langue, avec les libellés de ses pages (`data-label-*`) et les équivalents de chaque fiche.
  *
  * Usage : node --import ./tests/unit/siteResolver.js scripts/prerender-content.js <site> <API_URL>
  */
 
-const API_TIMEOUT_MS = 10_000
 const PRODUCTS_PER_PAGE = 48
 const LEGAL_PAGES = ['mentions-legales', 'donnees-personnelles', 'accessibilite']
 
@@ -42,27 +46,45 @@ const withoutNoscript = (html, testId) =>
     '',
   )
 
-const PRICE_FORMAT = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
+const formatPrice = (cents, locale) =>
+  new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(cents / 100)
 
-const formatPrice = (cents) => PRICE_FORMAT.format(cents / 100)
+/** Adresse d'une page dans la langue de la page `html`. */
+const pageHref = (path, html) => {
+  const { locale, locales } = pageLocales(html)
+  return prefixPath(path, locale, locales)
+}
 
-const slideItem = (template, product, index, count) => {
+const formatDate = (isoDate, locale) =>
+  new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(
+    new Date(`${isoDate}T00:00:00Z`),
+  )
+
+const slideItem = (template, product, index, count, { label, locale, href }) => {
   return withPicture(template, product.image)
     .replace(
       'data-testid="carousel-slide"',
-      `aria-label="${index + 1} sur ${count}" data-testid="carousel-slide"`,
+      `aria-label="${escapeHtml(formatLabel(label, { number: index + 1, count }))}" data-testid="carousel-slide"`,
     )
-    .replace(/href="\/catalogue"/, `href="/produit/${escapeHtml(product.slug)}"`)
+    .replace(/href="\/catalogue"/, () => `href="${href(`/produit/${escapeHtml(product.slug)}`)}"`)
     .replace(/(data-slide-title\s*>)[^<]*/, (_, open) => `${open}${escapeHtml(product.name)}`)
-    .replace(/(data-slide-text>)/, (_, open) => `${open}${escapeHtml(formatPrice(product.price))}`)
+    .replace(
+      /(data-slide-text>)/,
+      (_, open) => `${open}${escapeHtml(formatPrice(product.price, locale))}`,
+    )
 }
 
 /** HTML de l'accueil, une diapositive par produit à la une, liée à sa fiche. Liste vide : page inchangée. */
 export const prerenderCarousel = (html, products) => {
   if (!products.length) return html
   const template = templateOf(html, 'carousel-slide-template')
+  const context = {
+    label: labelsOf(html, 'data-carousel').labelSlide,
+    locale: pageLocales(html).locale,
+    href: (path) => pageHref(path, html),
+  }
   const items = products
-    .map((product, index) => slideItem(template, product, index, products.length))
+    .map((product, index) => slideItem(template, product, index, products.length, context))
     .join('')
   const page = html.replace(
     /(<div class="carousel-container" data-carousel-slides>)(<\/div>)/,
@@ -87,8 +109,6 @@ export const prerenderLegalPage = (html, legalPage) => {
     .replace(/(<div data-legal-content>)(<\/div>)/, (_, open, close) => `${open}${content}${close}`)
   return withoutNoscript(withoutLoading(page, 'data-legal-state'), 'legal-noscript')
 }
-
-const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'UTC' })
 
 const jsonLdScript = (data) =>
   `<script type="application/ld+json">${JSON.stringify(data).replaceAll('<', '\\u003c')}</script>`
@@ -120,11 +140,11 @@ const withTaxonomy = (taxonomy, article) => {
   )
 }
 
-const withAudio = (figure, article) =>
+const withAudio = (figure, article, label) =>
   figure
     .replace(
       /(data-article-audio-caption>)/,
-      (_, open) => `${open}${escapeHtml(audioCaption(article.audio, article.speaker))}`,
+      (_, open) => `${open}${escapeHtml(audioCaption(article.audio, article.speaker, label))}`,
     )
     .replace(/<audio(\s)/, (_, space) => `<audio src="${escapeHtml(article.audio.src)}"${space}`)
 
@@ -133,7 +153,10 @@ const withAudio = (figure, article) =>
  * structurées, indexation) et contenu. Le HTML de l'API est injecté tel quel.
  */
 export const prerenderArticle = (html, article, siteUrl) => {
-  const url = `${siteUrl.replace(/\/$/, '')}/blog/${article.slug}`
+  const { locale, locales } = pageLocales(html)
+  const labels = labelsOf(html, 'data-article-page')
+  const origin = siteUrl.replace(/\/$/, '')
+  const url = `${origin}${pageHref(`/blog/${article.slug}`, html)}`
   const description = article.metaDescription || article.excerpt || article.title
   const title = article.metaTitle || `${article.title} · Boilerplate HTML`
   const image = article.image && largestWebp(article.image)
@@ -170,7 +193,7 @@ export const prerenderArticle = (html, article, siteUrl) => {
       datePublished: article.publishedAt,
       url,
       ...(image && { image }),
-      inLanguage: 'fr-FR',
+      inLanguage: languageTag(locale),
     }),
     jsonLdScript({
       '@context': 'https://schema.org',
@@ -179,14 +202,14 @@ export const prerenderArticle = (html, article, siteUrl) => {
         {
           '@type': 'ListItem',
           position: 1,
-          name: 'Accueil',
-          item: `${siteUrl.replace(/\/$/, '')}/`,
+          name: labels.labelHome,
+          item: `${origin}${pageHref('/', html)}`,
         },
         {
           '@type': 'ListItem',
           position: 2,
-          name: 'Blog',
-          item: `${siteUrl.replace(/\/$/, '')}/blog`,
+          name: labels.labelBlog,
+          item: `${origin}${pageHref('/blog', html)}`,
         },
         { '@type': 'ListItem', position: 3, name: article.title, item: url },
       ],
@@ -202,11 +225,11 @@ export const prerenderArticle = (html, article, siteUrl) => {
       withTaxonomy(taxonomy, article),
     )
     .replace(/\s*<figure class="article-audio"[\s\S]*?<\/figure>/, (figure) =>
-      article.audio ? withAudio(figure, article) : '',
+      article.audio ? withAudio(figure, article, labels.labelAudio) : '',
     )
     .replace(
       /<time data-article-date datetime="[^"]*">[^<]*/,
-      `<time data-article-date datetime="${article.publishedAt}">${DATE_FORMAT.format(new Date(`${article.publishedAt}T00:00:00Z`))}`,
+      `<time data-article-date datetime="${article.publishedAt}">${formatDate(article.publishedAt, locale)}`,
     )
     .replace(/<picture class="article-media bui-picture">[\s\S]*?<\/picture>/, (picture) =>
       withPicture(picture, article.image),
@@ -219,24 +242,39 @@ export const prerenderArticle = (html, article, siteUrl) => {
       (_, open, close) => `${open}${article.html}${close}`,
     )
     .replace('<div data-article-content hidden>', '<div data-article-content>')
-  return withoutNoscript(withoutLoading(page, 'data-article-state'), 'article-noscript')
+  page = withoutNoscript(withoutLoading(page, 'data-article-state'), 'article-noscript')
+  return withDetailAlternates(page, article.alternates, '/blog', { locale, locales })
 }
 
-const blogCard = (template, article) =>
+/** Équivalents d'une fiche dans les autres langues (`alternates` de l'API), sur un site à plusieurs langues. */
+const withDetailAlternates = (html, alternates = [], route, { locale, locales }) => {
+  if (locales.length < 2) return html
+  const paths = Object.fromEntries(
+    alternates
+      .filter((alternate) => locales.includes(alternate.locale))
+      .map((alternate) => [
+        alternate.locale,
+        prefixPath(`${route}/${alternate.slug}`, alternate.locale, locales),
+      ]),
+  )
+  return withAlternates(html, { locale, locales, paths })
+}
+
+const blogCard = (template, article, html) =>
   withPicture(template, article.image)
     .replace(/(\s*<p class="blog-card-section"[^>]*>)(<\/p>)/, (_, open, close) =>
       article.section ? `${open}${escapeHtml(article.section.name)}${close}` : '',
     )
-    .replace(/href="\/"/, `href="/blog/${escapeHtml(article.slug)}"`)
+    .replace(/href="\/"/, () => `href="${pageHref(`/blog/${escapeHtml(article.slug)}`, html)}"`)
     .replace(/(data-blog-title>)[^<]*/, (_, open) => `${open}${escapeHtml(article.title)}`)
     .replace(/(data-blog-excerpt>)/, (_, open) => `${open}${escapeHtml(article.excerpt)}`)
     .replace(
       /<time data-blog-date>/,
-      `<time data-blog-date datetime="${escapeHtml(article.publishedAt)}">${DATE_FORMAT.format(new Date(`${article.publishedAt}T00:00:00Z`))}`,
+      `<time data-blog-date datetime="${escapeHtml(article.publishedAt)}">${formatDate(article.publishedAt, pageLocales(html).locale)}`,
     )
 
-const sectionLink = (section) =>
-  `<li><a class="bui-link" href="${escapeHtml(blogHref(section.slug))}">${escapeHtml(section.name)}</a></li>`
+const sectionLink = (section, html) =>
+  `<li><a class="bui-link" href="${escapeHtml(pageHref(blogHref(section.slug), html))}">${escapeHtml(section.name)}</a></li>`
 
 /** Filtre par rubrique de /blog, « Toutes » active ; retiré sans rubrique. */
 const withSections = (html, sections) =>
@@ -246,7 +284,8 @@ const withSections = (html, sections) =>
           .replace(/\s*hidden\s*>/, '>')
           .replace(
             /(<\/li>)(\s*<\/ul>)/,
-            (_, item, end) => `${item}${sections.map(sectionLink).join('')}${end}`,
+            (_, item, end) =>
+              `${item}${sections.map((section) => sectionLink(section, html)).join('')}${end}`,
           )
       : '',
   )
@@ -255,7 +294,7 @@ const withSections = (html, sections) =>
 export const prerenderBlogList = (html, articles, sections = []) => {
   if (!articles.length) return html
   const template = templateOf(html, 'blog-card-template')
-  const cards = articles.map((article) => blogCard(template, article)).join('')
+  const cards = articles.map((article) => blogCard(template, article, html)).join('')
   const page = withSections(html, sections).replace(
     /(<div class="blog-list" data-blog-list data-testid="blog-list">)(<\/div>)/,
     (_, open, close) => `${open}${cards}${close}`,
@@ -307,7 +346,7 @@ const attributesList = (attributes) =>
     .join('')
 
 /** Vignettes de la galerie, en liens vers l'image en grand sans JavaScript ; `productGallery.js` en fait des boutons. */
-const galleryLinks = (template, images) =>
+const galleryLinks = (template, images, label) =>
   images
     .map((image, index) =>
       template
@@ -320,25 +359,40 @@ const galleryLinks = (template, images) =>
         .replace(/src="[^"]*"/, () => `src="${escapeHtml(image.src)}"`)
         .replace(
           /(data-product-gallery-thumb-label>)[^<]*/,
-          (_, open) => `${open}Voir l'image ${index + 1} sur ${images.length}`,
+          (_, open) =>
+            `${open}${escapeHtml(formatLabel(label, { number: index + 1, count: images.length }))}`,
         ),
     )
     .join('')
 
-const EXPOSURE_LABELS = { soleil: 'Soleil', 'mi-ombre': 'Mi-ombre', ombre: 'Ombre' }
+const EXPOSURE_LABELS = {
+  soleil: 'labelExposureSun',
+  'mi-ombre': 'labelExposurePartialShade',
+  ombre: 'labelExposureShade',
+}
 
 /** Description de la fiche produit, la même que dans le navigateur (`ui/productPage.js`). */
-const productDescription = (product) =>
-  `${product.name} : exposition ${EXPOSURE_LABELS[product.exposure].toLowerCase()}, taille ${product.size}, ${formatPrice(product.price)}. ${product.inStock ? 'En stock' : 'En rupture de stock'}, rayon ${product.categoryPath.at(-1)?.name ?? 'catalogue'}.`
+const productDescription = (product, labels, locale) =>
+  formatLabel(labels.labelDescription, {
+    name: product.name,
+    exposure: labels[EXPOSURE_LABELS[product.exposure]].toLocaleLowerCase(locale),
+    size: product.size,
+    price: `, ${formatPrice(product.price, locale)}`,
+    stock: product.inStock ? labels.labelInStock : labels.labelOutOfStockSentence,
+    category: product.categoryPath.at(-1)?.name ?? labels.labelCatalog,
+  })
 
 /**
  * Fiche d'un produit à partir du gabarit produit/fiche.html : en-tête (titre, description, canonique,
  * partage, données structurées `Product` et `BreadcrumbList`, indexation), fil d'Ariane et contenu.
  */
 export const prerenderProduct = (html, product, siteUrl) => {
+  const { locale, locales } = pageLocales(html)
+  const labels = labelsOf(html, 'data-product-page')
+  const href = (path) => pageHref(path, html)
   const origin = siteUrl.replace(/\/$/, '')
-  const url = `${origin}/produit/${product.slug}`
-  const description = product.metaDescription || productDescription(product)
+  const url = `${origin}${href(`/produit/${product.slug}`)}`
+  const description = product.metaDescription || productDescription(product, labels, locale)
   const title = product.metaTitle || `${product.name} · Boilerplate HTML`
   const image = product.image && largestWebp(product.image)
   const category = product.categoryPath.at(-1)
@@ -384,9 +438,12 @@ export const prerenderProduct = (html, product, siteUrl) => {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { name: 'Accueil', item: `${origin}/` },
-        { name: 'Catalogue', item: `${origin}/catalogue` },
-        ...product.categoryPath.map((step) => ({ name: step.name, item: `${origin}${step.href}` })),
+        { name: labels.labelHome, item: `${origin}${href('/')}` },
+        { name: labels.labelCatalogTitle, item: `${origin}${href('/catalogue')}` },
+        ...product.categoryPath.map((step) => ({
+          name: step.name,
+          item: `${origin}${href(step.href)}`,
+        })),
         { name: product.name, item: url },
       ].map((entry, index) => ({ '@type': 'ListItem', position: index + 1, ...entry })),
     }),
@@ -397,7 +454,7 @@ export const prerenderProduct = (html, product, siteUrl) => {
   const crumbs = product.categoryPath
     .map(
       (step) =>
-        `<li class="bui-breadcrumb__item"><a class="bui-link" href="${escapeHtml(step.href)}">${escapeHtml(step.name)}</a></li>\n            `,
+        `<li class="bui-breadcrumb__item"><a class="bui-link" href="${escapeHtml(href(step.href))}">${escapeHtml(step.name)}</a></li>\n            `,
     )
     .join('')
   page = page
@@ -414,12 +471,12 @@ export const prerenderProduct = (html, product, siteUrl) => {
       /(<div class="product-gallery" data-product-gallery)(>[\s\S]*?)(\s*<ul[^>]*data-product-gallery-thumbs[^>]*>)(<\/ul>)/,
       (match, open, picture, list, close) =>
         product.gallery.length > 0 && product.image
-          ? `${open} data-testid="product-gallery"${picture}${list}${galleryLinks(templateOf(html, 'product-gallery-thumb-template'), [product.image, ...product.gallery])}${close}`
+          ? `${open} data-testid="product-gallery"${picture}${list}${galleryLinks(templateOf(html, 'product-gallery-thumb-template'), [product.image, ...product.gallery], labels.labelThumb)}${close}`
           : `${open}${picture}`,
     )
     .replace(
       /(data-product-price\s+data-testid="product-price"\s*>)/,
-      (_, open) => `${open}${escapeHtml(formatPrice(product.price))}`,
+      (_, open) => `${open}${escapeHtml(formatPrice(product.price, locale))}`,
     )
     .replace(/(data-testid="product-description")\s*hidden\s*>/, (match, open) =>
       product.description.length > 0
@@ -428,18 +485,18 @@ export const prerenderProduct = (html, product, siteUrl) => {
     )
     .replace(
       /(<dd data-product-exposure>)/,
-      (_, open) => `${open}${EXPOSURE_LABELS[product.exposure]}`,
+      (_, open) => `${open}${escapeHtml(labels[EXPOSURE_LABELS[product.exposure]])}`,
     )
     .replace(/(<dd data-product-size>)/, (_, open) => `${open}${product.size}`)
-    .replace(/(<dd data-product-stock>)En stock/, (_, open) =>
+    .replace(/(<dd data-product-stock>)[^<]*/, (_, open) =>
       product.inStock
-        ? `${open}En stock`
-        : `${open}<span class="bui-badge bui-badge--error">Rupture de stock</span>`,
+        ? `${open}${escapeHtml(labels.labelInStock)}`
+        : `${open}<span class="bui-badge bui-badge--error">${escapeHtml(labels.labelOutOfStock)}</span>`,
     )
     .replace(
       /<a class="bui-link" href="\/catalogue" data-product-category\s*>[^<]*/,
       category
-        ? `<a class="bui-link" href="${escapeHtml(category.href)}" data-product-category>Voir les autres produits : ${escapeHtml(category.name)}`
+        ? `<a class="bui-link" href="${escapeHtml(href(category.href))}" data-product-category>${escapeHtml(formatLabel(labels.labelCategoryLink, { name: category.name }))}`
         : (match) => match,
     )
     .replace(
@@ -450,15 +507,20 @@ export const prerenderProduct = (html, product, siteUrl) => {
           : '',
     )
     .replace(
-      /(href=")\/contact("\s+data-product-inquiry)/,
-      (_, open, rest) => `${open}${contactHref(product.slug)}${rest}`,
+      /(href=")[^"]*("\s+data-product-inquiry)/,
+      (_, open, rest) => `${open}${href(contactHref(product.slug))}${rest}`,
     )
-    .replace(/(data-product-inquiry-name\s*>)/, (_, open) => `${open} sur ${name}`)
+    .replace(
+      /(data-product-inquiry-name\s*>)/,
+      (_, open) =>
+        `${open}${escapeHtml(formatLabel(labels.labelInquiryName, { name: product.name }))}`,
+    )
     .replace(
       '<div class="product-page-layout" data-product-content hidden>',
       '<div class="product-page-layout" data-product-content>',
     )
-  return withoutNoscript(withoutLoading(page, 'data-product-state'), 'product-noscript')
+  page = withoutNoscript(withoutLoading(page, 'data-product-state'), 'product-noscript')
+  return withDetailAlternates(page, product.alternates, '/produit', { locale, locales })
 }
 
 /** Adresse de la demande de renseignement sur un produit (section 27 de la spec commune). */
@@ -469,12 +531,13 @@ const contactHref = (slug) => `/contact?produit=${encodeURIComponent(slug)}`
  * `contact/demande/<slug>.html`) : la ligne du produit au-dessus du formulaire, le champ caché
  * `product` envoyé avec le message, et la confirmation propre à la demande. La canonique reste /contact.
  */
-export const prerenderContactProduct = (html, product) =>
-  html
+export const prerenderContactProduct = (html, product) => {
+  const labels = labelsOf(html, 'data-contact-form')
+  return html
     .replace(
       /(\s*)(<div class="contact-layout">)/,
       (_, space, layout) =>
-        `${space}<p class="contact-product" data-testid="contact-product">Votre demande concerne : <a class="bui-link" href="/produit/${escapeHtml(product.slug)}">${escapeHtml(product.name)}</a></p>${space}${layout}`,
+        `${space}<p class="contact-product" data-testid="contact-product">${escapeHtml(labels.labelInquirySubject)} <a class="bui-link" href="${pageHref(`/produit/${escapeHtml(product.slug)}`, html)}">${escapeHtml(product.name)}</a></p>${space}${layout}`,
     )
     .replace(
       /(<form[^>]*data-contact-form[^>]*>)/,
@@ -482,17 +545,9 @@ export const prerenderContactProduct = (html, product) =>
         `${form}<input type="hidden" name="product" value="${escapeHtml(product.slug)}" />`,
     )
     .replace(
-      '<p>Merci, votre message a bien été envoyé.</p>',
-      '<p>Votre demande de renseignement a bien été envoyée.</p>',
+      /(<template id="contact-success-template">[\s\S]*?<div class="bui-alert__body"><p>)[^<]*/,
+      (_, open) => `${open}${escapeHtml(labels.labelInquirySuccess)}`,
     )
-
-export const fetchJson = async (apiUrl, path) => {
-  const response = await fetch(new URL(path, apiUrl), {
-    headers: { accept: 'application/json' },
-    signal: AbortSignal.timeout(API_TIMEOUT_MS),
-  })
-  if (!response.ok) throw new Error(`réponse ${response.status}`)
-  return response.json()
 }
 
 const prerender = async (file, route, load, render) => {
@@ -507,46 +562,66 @@ const prerender = async (file, route, load, render) => {
   console.info(`[contenu] ${route} pré-rendue`)
 }
 
+const SITE_URL = JSON.parse(
+  readFileSync(new URL('../site.config.json', import.meta.url), 'utf8'),
+).url
+
 const main = async ([siteDir, apiUrl]) => {
+  const { locales } = pageLocales(readFileSync(join(siteDir, 'index.html'), 'utf8'))
+  for (const locale of locales) {
+    await prerenderLocale(localeRoot(siteDir, locale, locales), apiUrl, {
+      // Site d'une seule langue : adresses de l'API inchangées, sans `locale`
+      locale: locales.length > 1 ? locale : null,
+      sitemap: locale === locales[0] && join(siteDir, 'sitemap.xml'),
+    })
+  }
+}
+
+/**
+ * Pages d'une langue, sous sa racine. Le sitemap ne liste que les adresses de la langue par défaut :
+ * `prerender-locales.js sitemap` y ajoute ensuite leurs équivalents.
+ */
+const prerenderLocale = async (siteDir, apiUrl, options) => {
   // Imports dynamiques : les traductions importent le socle par son chemin servi, que seul le
   // crochet siteResolver.js résout, et tests/e2e/accueil.e2e.js importe ce fichier sans lui.
   const { toProducts } =
     await import('/js/modules/catalog/infrastructure/http/catalogTranslation.js')
   const { toLegalPage } =
     await import('/js/modules/content/infrastructure/http/legalPageTranslation.js')
+  const { locale } = options
   await prerender(
     join(siteDir, 'index.html'),
     '/',
-    async () => toProducts(await fetchJson(apiUrl, '/api/featured-products')),
+    async () => toProducts(await fetchJson(apiUrl, '/api/featured-products', { locale })),
     prerenderCarousel,
   )
   for (const slug of LEGAL_PAGES) {
     await prerender(
       join(siteDir, slug, 'index.html'),
       `/${slug}`,
-      async () => toLegalPage(await fetchJson(apiUrl, `/api/legal_pages/${slug}`)),
+      async () => toLegalPage(await fetchJson(apiUrl, `/api/legal_pages/${slug}`, { locale })),
       prerenderLegalPage,
     )
   }
-  await prerenderArticles(siteDir, apiUrl)
-  await prerenderProducts(siteDir, apiUrl)
+  await prerenderArticles(siteDir, apiUrl, options)
+  await prerenderProducts(siteDir, apiUrl, options)
 }
 
 /**
  * Une page par produit connu de l'API, et sa page de demande de renseignement ; sans API, les fiches
  * sont rendues dans le navigateur, et /contact?produit=… sert le formulaire de contact simple.
  */
-const prerenderProducts = async (siteDir, apiUrl) => {
+const prerenderProducts = async (siteDir, apiUrl, { locale, sitemap }) => {
   const { toProductDetail } =
     await import('/js/modules/catalog/infrastructure/http/catalogTranslation.js')
-  const { url: siteUrl } = JSON.parse(readFileSync(join(siteDir, '..', 'site.config.json'), 'utf8'))
   const slugs = []
   try {
     for (let page = 1; ; page += 1) {
-      const list = await fetchJson(
-        apiUrl,
-        `/api/products?page=${page}&itemsPerPage=${PRODUCTS_PER_PAGE}`,
-      )
+      const list = await fetchJson(apiUrl, '/api/products', {
+        page,
+        itemsPerPage: PRODUCTS_PER_PAGE,
+        locale,
+      })
       slugs.push(...list.map((item) => item.slug))
       if (list.length < PRODUCTS_PER_PAGE) break
     }
@@ -563,12 +638,12 @@ const prerenderProducts = async (siteDir, apiUrl) => {
   for (const slug of slugs) {
     try {
       const product = toProductDetail(
-        await fetchJson(apiUrl, `/api/products/${encodeURIComponent(slug)}`),
+        await fetchJson(apiUrl, `/api/products/${encodeURIComponent(slug)}`, { locale }),
       )
       mkdirSync(join(siteDir, 'produit', slug), { recursive: true })
       writeFileSync(
         join(siteDir, 'produit', slug, 'index.html'),
-        prerenderProduct(template, product, siteUrl),
+        prerenderProduct(template, product, SITE_URL),
       )
       writeFileSync(
         join(siteDir, 'contact', 'demande', `${slug}.html`),
@@ -579,25 +654,30 @@ const prerenderProducts = async (siteDir, apiUrl) => {
       console.warn(`[contenu] /produit/${slug} rendue dans le navigateur (${error.message})`)
     }
   }
-  console.info(`[contenu] ${written.length} fiches produit pré-rendues`)
-  const sitemap = join(siteDir, 'sitemap.xml')
-  writeFileSync(
-    sitemap,
-    withPagesInSitemap(readFileSync(sitemap, 'utf8'), 'produit', written, siteUrl),
+  console.info(
+    `[contenu] ${written.length} fiches produit pré-rendues${locale ? ` (${locale})` : ''}`,
   )
+  if (sitemap) {
+    writeFileSync(
+      sitemap,
+      withPagesInSitemap(readFileSync(sitemap, 'utf8'), 'produit', written, SITE_URL),
+    )
+  }
 }
 
 /** Une page par article connu de l'API ; sans API, les fiches sont rendues dans le navigateur. */
-const prerenderArticles = async (siteDir, apiUrl) => {
+const prerenderArticles = async (siteDir, apiUrl, { locale, sitemap }) => {
   const { toArticleDetail, toArticles, toArticleSections } =
     await import('/js/modules/blog/infrastructure/http/articleTranslation.js')
-  const { url: siteUrl } = JSON.parse(readFileSync(join(siteDir, '..', 'site.config.json'), 'utf8'))
   let articles
   let sections
   try {
-    articles = toArticles(await fetchJson(apiUrl, '/api/articles'))
+    articles = toArticles(await fetchJson(apiUrl, '/api/articles', { locale }))
     // Une API qui ne sert pas les rubriques (Hono) en vaut une sans rubrique
-    sections = await fetchJson(apiUrl, '/api/article-sections').then(toArticleSections, () => [])
+    sections = await fetchJson(apiUrl, '/api/article-sections', { locale }).then(
+      toArticleSections,
+      () => [],
+    )
   } catch (error) {
     console.warn(`[contenu] fiches rendues dans le navigateur, API injoignable (${error.message})`)
     return
@@ -610,27 +690,28 @@ const prerenderArticles = async (siteDir, apiUrl) => {
       sections,
     ),
   )
-  console.info('[contenu] /blog pré-rendue')
+  console.info(`[contenu] /blog pré-rendue${locale ? ` (${locale})` : ''}`)
   const template = readFileSync(join(siteDir, 'blog', 'fiche.html'), 'utf8')
   const written = []
   for (const { slug } of articles) {
     try {
       const article = toArticleDetail(
-        await fetchJson(apiUrl, `/api/articles/${encodeURIComponent(slug)}`),
+        await fetchJson(apiUrl, `/api/articles/${encodeURIComponent(slug)}`, { locale }),
       )
       mkdirSync(join(siteDir, 'blog', slug), { recursive: true })
       writeFileSync(
         join(siteDir, 'blog', slug, 'index.html'),
-        prerenderArticle(template, article, siteUrl),
+        prerenderArticle(template, article, SITE_URL),
       )
       written.push(slug)
-      console.info(`[contenu] /blog/${slug} pré-rendue`)
+      console.info(`[contenu] /blog/${slug} pré-rendue${locale ? ` (${locale})` : ''}`)
     } catch (error) {
       console.warn(`[contenu] /blog/${slug} rendue dans le navigateur (${error.message})`)
     }
   }
-  const sitemap = join(siteDir, 'sitemap.xml')
-  writeFileSync(sitemap, withArticlesInSitemap(readFileSync(sitemap, 'utf8'), written, siteUrl))
+  if (sitemap) {
+    writeFileSync(sitemap, withArticlesInSitemap(readFileSync(sitemap, 'utf8'), written, SITE_URL))
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) await main(process.argv.slice(2))

@@ -1,12 +1,15 @@
+import { formatLabel } from '/js/shared/labels.js'
 import { fillPicture } from '/js/shared/picture.js'
 
 const STEPS = { ArrowLeft: -1, ArrowRight: 1 }
 
-const thumbItem = (template, image, index, count) => {
+const thumbItem = (template, label, image, index, count) => {
   const item = template.content.firstElementChild.cloneNode(true)
   item.querySelector('[data-product-gallery-thumb-image]').src = image.src
-  item.querySelector('[data-product-gallery-thumb-label]').textContent =
-    `Voir l'image ${index + 1} sur ${count}`
+  item.querySelector('[data-product-gallery-thumb-label]').textContent = formatLabel(label, {
+    number: index + 1,
+    count,
+  })
   return item
 }
 
@@ -27,7 +30,15 @@ export const renderProductGallery = (gallery, product) => {
   const images = [product.image, ...product.gallery].filter(Boolean)
   const template = document.getElementById('product-gallery-thumb-template')
   list.replaceChildren(
-    ...images.map((image, index) => thumbItem(template, image, index, images.length)),
+    ...images.map((image, index) =>
+      thumbItem(
+        template,
+        gallery.closest('[data-product-page]').dataset.labelThumb,
+        image,
+        index,
+        images.length,
+      ),
+    ),
   )
   const thumbs = [...list.querySelectorAll('button')]
   const mark = (index) =>

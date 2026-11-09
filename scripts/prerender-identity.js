@@ -3,7 +3,9 @@ import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { fetchJson, setMeta } from './prerender-content.js'
+import { fetchJson } from './apiFetch.js'
+import { setMeta } from './prerender-content.js'
+import { localeRoot, pageLocales } from './prerender-locales.js'
 import { largestWebp } from './prerenderPicture.js'
 import { sitePages } from './ssi.js'
 
@@ -12,7 +14,8 @@ import { sitePages } from './ssi.js'
  * l'image après les autres pré-rendus : nom, accroche, logo, thème par défaut et bloc de couleurs. Le bloc
  * est autorisé par son empreinte, que nginx lit dans le fichier donné en troisième argument
  * (`$identity_style_hash`, ajouté à `style-src`). API injoignable ou réponse invalide : les pages gardent
- * les valeurs de site.config.json, sans bloc.
+ * les valeurs de site.config.json, sans bloc. Sur un site à plusieurs langues, chaque langue reçoit
+ * l'identité et les métadonnées lues dans sa langue.
  *
  * Usage : node --import ./tests/unit/siteResolver.js scripts/prerender-identity.js <site> <API_URL> <fichier nginx>
  */
@@ -39,9 +42,10 @@ export const SALES_PAGES = ['panier/index.html']
 // présent seulement quand la vente est active. Aucun ne contient un élément de même nom.
 const SALES_ELEMENT = /\s*<(\w+)\b[^>]*\sdata-sales(?=[\s>])[^>]*>[\s\S]*?<\/\1>/g
 const INQUIRY_TEMPLATE = /<template id="product-inquiry-template">\s*([\s\S]*?)\s*<\/template>/
-// Prix écrit dans la description construite de la fiche (« …, taille M, 34,90 €. En stock… »)
+// Prix écrit dans la description construite de la fiche (« …, taille M, 34,90 €. En stock… »,
+// « …, size M, €34.90. In stock… »)
 const DESCRIBED_PRICE =
-  /(<meta\s+(?:name|property)="(?:og:|twitter:)?description"\s+content="[^"]*), \d[\d\u00a0\u202f]*,\d{2}\u00a0€(?=\.)/g
+  /(<meta\s+(?:name|property)="(?:og:|twitter:)?description"\s+content="[^"]*), (?:\d[\d\u00a0\u202f]*,\d{2}\u00a0€|€[\d,]*\.\d{2})(?=\.)/g
 // Contact avec un produit (`contact/demande/<slug>.html`, section 27) : métadonnées de la page contact
 const pageMetaFile = (file) => (file.startsWith('contact/demande/') ? 'contact/index.html' : file)
 const LOGO_MARK =
@@ -115,10 +119,7 @@ const withoutSales = (html) =>
     .replace(SALES_ELEMENT, '')
     .replace(INQUIRY_TEMPLATE, (_, link) => link)
     .replace(DESCRIBED_PRICE, '$1')
-    .replace(
-      /<html lang="fr" data-color-scheme="(\w+)">/,
-      '<html lang="fr" data-color-scheme="$1" data-sales-disabled>',
-    )
+    .replace(/(<html lang="[a-z]{2}"[^>]*)>/, '$1 data-sales-disabled>')
 
 /** Titre et description saisis pour la page fixe ; vides : ceux de la page. */
 const withPageMeta = (html, meta) => {
@@ -176,8 +177,8 @@ export const prerenderIdentity = (html, identity, configName, pageMeta = null) =
   const name = escapeHtml(identity.name)
   let page = html
     .replace(
-      '<html lang="fr" data-color-scheme="auto">',
-      `<html lang="fr" data-color-scheme="${identity.defaultColorScheme}">`,
+      /(<html lang="[a-z]{2}") data-color-scheme="auto"/,
+      (_, open) => `${open} data-color-scheme="${identity.defaultColorScheme}"`,
     )
     .replace(/(\s*)<p class="hero-lead">[\s\S]*?<\/p>/, (_, space) =>
       identity.tagline ? `${space}<p class="hero-lead">${escapeHtml(identity.tagline)}</p>` : '',
@@ -228,36 +229,54 @@ const main = async ([siteDir, apiUrl, nginxFile]) => {
   // siteResolver.js résout, et tests/e2e/identite.e2e.js importe ce fichier sans lui.
   const { toPageMetas, toSiteIdentity } =
     await import('/js/modules/identity/infrastructure/http/siteIdentityTranslation.js')
-  let identity
-  try {
-    identity = toSiteIdentity(await fetchJson(apiUrl, '/api/site-identity'))
-  } catch (error) {
-    console.warn(`[identité] valeurs de site.config.json, API injoignable (${error.message})`)
-    writeFileSync(nginxFile, 'set $identity_style_hash "";\n')
-    return
+  const { locales } = pageLocales(readFileSync(join(siteDir, 'index.html'), 'utf8'))
+  const { name } = JSON.parse(readFileSync(new URL('../site.config.json', import.meta.url), 'utf8'))
+  let hash
+  for (const locale of locales) {
+    // Site d'une seule langue : adresses de l'API inchangées, sans `locale`
+    const localeParam = locales.length > 1 ? { locale } : {}
+    let identity
+    try {
+      identity = toSiteIdentity(await fetchJson(apiUrl, '/api/site-identity', localeParam))
+    } catch (error) {
+      console.warn(`[identité] valeurs de site.config.json, API injoignable (${error.message})`)
+      writeFileSync(nginxFile, 'set $identity_style_hash "";\n')
+      return
+    }
+    // Une API qui ne sert pas les métadonnées des pages fixes (Hono) en vaut une où elles sont vides
+    const pageMetas = await fetchJson(apiUrl, '/api/page-metas', localeParam).then(
+      toPageMetas,
+      () => ({}),
+    )
+    hash = identity.theme ? styleHash(identityStyle(identity.theme)) : ''
+    const root = localeRoot(siteDir, locale, locales)
+    if (!identity.salesEnabled) {
+      for (const page of SALES_PAGES) rmSync(join(root, page))
+    }
+    const files = [
+      ...sitePages(root).filter(
+        (file) => locale !== locales[0] || !isOtherLocale(siteDir, file, locales),
+      ),
+      join(root, 'partials', 'header.html'),
+      join(root, 'partials', 'footer.html'),
+    ]
+    for (const file of files) {
+      const pageMeta = pageMetas[PAGE_META_KEYS[pageMetaFile(relative(root, file))]] ?? null
+      writeFileSync(file, prerenderIdentity(readFileSync(file, 'utf8'), identity, name, pageMeta))
+    }
+    if (locale === locales[0]) {
+      const manifest = join(siteDir, 'manifest.webmanifest')
+      writeFileSync(manifest, identityManifest(readFileSync(manifest, 'utf8'), identity))
+    }
+    console.info(
+      `[identité] « ${identity.name} » écrite dans les pages (${locale})${hash ? ', avec ses couleurs' : ''}${identity.salesEnabled ? '' : ', sans vente en ligne'}`,
+    )
   }
-  // Une API qui ne sert pas les métadonnées des pages fixes (Hono) en vaut une où elles sont vides
-  const pageMetas = await fetchJson(apiUrl, '/api/page-metas').then(toPageMetas, () => ({}))
-  const hash = identity.theme ? styleHash(identityStyle(identity.theme)) : ''
   writeFileSync(nginxFile, `set $identity_style_hash "${hash}";\n`)
-  const { name } = JSON.parse(readFileSync(join(siteDir, '..', 'site.config.json'), 'utf8'))
-  if (!identity.salesEnabled) {
-    for (const page of SALES_PAGES) rmSync(join(siteDir, page))
-  }
-  const files = [
-    ...sitePages(siteDir),
-    join(siteDir, 'partials', 'header.html'),
-    join(siteDir, 'partials', 'footer.html'),
-  ]
-  for (const file of files) {
-    const pageMeta = pageMetas[PAGE_META_KEYS[pageMetaFile(relative(siteDir, file))]] ?? null
-    writeFileSync(file, prerenderIdentity(readFileSync(file, 'utf8'), identity, name, pageMeta))
-  }
-  const manifest = join(siteDir, 'manifest.webmanifest')
-  writeFileSync(manifest, identityManifest(readFileSync(manifest, 'utf8'), identity))
-  console.info(
-    `[identité] « ${identity.name} » écrite dans les pages${hash ? ', avec ses couleurs' : ''}${identity.salesEnabled ? '' : ', sans vente en ligne'}`,
-  )
 }
+
+/** Page sous la racine d'une autre langue, traitée avec l'identité de cette langue. */
+const isOtherLocale = (siteDir, file, locales) =>
+  locales.slice(1).includes(relative(siteDir, file).split('/')[0])
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) await main(process.argv.slice(2))

@@ -255,6 +255,8 @@
       aria-current="page"
       data-cart-link
       data-testid="cart-link"
+      data-label-items-one=" article"
+      data-label-items-other=" articles"
     >
       <svg
         class="bui-icon bui-icon--md"
@@ -268,7 +270,15 @@
       <span class="cart-link-label">Panier</span>
     </a>
     <!--# else -->
-    <a class="cart-link" href="/panier" data-sales data-cart-link data-testid="cart-link">
+    <a
+      class="cart-link"
+      href="/panier"
+      data-sales
+      data-cart-link
+      data-testid="cart-link"
+      data-label-items-one=" article"
+      data-label-items-other=" articles"
+    >
       <svg
         class="bui-icon bui-icon--md"
         aria-hidden="true"
@@ -301,7 +311,16 @@
       </svg>
       <span class="header-button-label">Menu</span>
     </button>
-    <div class="bui-menu color-scheme-toggle" data-bui-menu data-color-scheme-toggle>
+    <div
+      class="bui-menu color-scheme-toggle"
+      data-bui-menu
+      data-color-scheme-toggle
+      data-label-theme="Thème : {scheme}"
+      data-label-theme-suspended="Thème : {scheme}, suspendu par l'accessibilité renforcée"
+      data-label-scheme-auto="système"
+      data-label-scheme-light="clair"
+      data-label-scheme-dark="sombre"
+    >
       <button
         type="button"
         class="bui-button bui-button--outline bui-button--icon bui-menu__trigger header-icon-button"
@@ -405,5 +424,8 @@
     aria-label="Menu"
     data-mobile-menu
     data-testid="layout-mobile-menu"
+    data-label-menu-close="Fermer le menu"
+    data-label-menu-back="Retour : {name}"
+    data-label-menu-all="Voir toute la catégorie"
   ></dialog>
 </header>

@@ -18,6 +18,6 @@ export const Price = {
 
 export const eurosToCents = (euros) => Price.fromCents(Math.round(euros * 100))
 
-const PRICE_FORMAT = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
-
-export const formatPrice = (price) => PRICE_FORMAT.format(price / 100)
+/** Prix affiché dans la langue de la page (« 34,90 € », « €34.90 »). */
+export const formatPrice = (price, locale) =>
+  new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(price / 100)

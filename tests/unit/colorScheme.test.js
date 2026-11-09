@@ -1,11 +1,21 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
+import { labelsOf } from '../../scripts/prerender-locales.js'
 import {
   applyColorScheme,
   colorSchemeLabel,
   currentColorScheme,
 } from '../../site/js/shared/colorScheme.js'
+import { SITE_DIR } from './renderedPages.js'
+
+// Libellés de la bascule, écrits dans le header partagé
+const LABELS = labelsOf(
+  readFileSync(join(SITE_DIR, 'partials/header.html'), 'utf8'),
+  'data-color-scheme-toggle',
+)
 
 const fakeStorage = () => {
   const values = new Map()
@@ -53,15 +63,15 @@ describe('applyColorScheme', () => {
 
 describe('colorSchemeLabel', () => {
   it('nomme le thème courant', () => {
-    assert.equal(colorSchemeLabel('auto', false), 'Thème : système')
-    assert.equal(colorSchemeLabel('dark', false), 'Thème : sombre')
+    assert.equal(colorSchemeLabel('auto', false, LABELS), 'Thème : système')
+    assert.equal(colorSchemeLabel('dark', false, LABELS), 'Thème : sombre')
   })
 
   it('signale un choix suspendu par le mode renforcé, sauf le clair', () => {
     assert.equal(
-      colorSchemeLabel('dark', true),
+      colorSchemeLabel('dark', true, LABELS),
       "Thème : sombre, suspendu par l'accessibilité renforcée",
     )
-    assert.equal(colorSchemeLabel('light', true), 'Thème : clair')
+    assert.equal(colorSchemeLabel('light', true, LABELS), 'Thème : clair')
   })
 })

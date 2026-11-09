@@ -1,5 +1,6 @@
+import { localizePath } from '/js/shared/locale.js'
+
 import { blogHref, sectionFromSearch } from '../domain/article.js'
-import { ArticlesLoadError } from '../infrastructure/ArticlesLoadError.js'
 import {
   findArticleSections,
   findLatestArticles,
@@ -18,7 +19,7 @@ const fromTemplate = (id) => document.getElementById(id).content.cloneNode(true)
 const sectionItem = (name, slug) => {
   const link = document.createElement('a')
   link.className = 'bui-link'
-  link.href = blogHref(slug)
+  link.href = localizePath(blogHref(slug))
   link.textContent = name
   if (slug === activeSection) link.setAttribute('aria-current', 'page')
   const item = document.createElement('li')
@@ -34,7 +35,7 @@ const renderSections = (sections) => {
   sectionsNav
     .querySelector('[data-blog-sections-list]')
     .replaceChildren(
-      sectionItem('Toutes', null),
+      sectionItem(sectionsNav.dataset.labelAll, null),
       ...sections.map((section) => sectionItem(section.name, section.slug)),
     )
   sectionsNav.hidden = false
@@ -57,7 +58,6 @@ const loadArticles = async () => {
   } catch {
     if (prerendered) return
     state.replaceChildren(fromTemplate('blog-error-template'))
-    state.querySelector('[data-blog-error-message]').textContent = new ArticlesLoadError().message
     state.querySelector('[data-blog-retry]').addEventListener('click', loadArticles)
     return
   }

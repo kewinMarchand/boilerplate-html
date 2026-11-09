@@ -18,9 +18,10 @@ describe('article', () => {
 
   it('légende le lecteur audio avec la durée, puis l’intervenant s’il est saisi', () => {
     const audio = { src: 'a.mp3', type: 'audio/mpeg', durationSeconds: 4 }
-    assert.equal(audioCaption(audio, ''), "Écouter l'article (4 s)")
+    const label = "Écouter l'article ({duration})"
+    assert.equal(audioCaption(audio, '', label), "Écouter l'article (4 s)")
     assert.equal(
-      audioCaption(audio, 'Présenté par Hina'),
+      audioCaption(audio, 'Présenté par Hina', label),
       "Écouter l'article (4 s) · Présenté par Hina",
     )
   })

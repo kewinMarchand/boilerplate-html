@@ -1,7 +1,7 @@
+import { languageTag, localizePath, pageLocale } from '/js/shared/locale.js'
 import { fillPicture } from '/js/shared/picture.js'
 
 import { articleHref, audioCaption, formatPublishedAt, slugFromPath } from '../domain/article.js'
-import { ArticleLoadError } from '../infrastructure/ArticleLoadError.js'
 import { findArticle } from '../infrastructure/http/articleRepository.js'
 
 const page = document.querySelector('[data-article-page]')
@@ -11,6 +11,9 @@ const state = page.querySelector('[data-article-state]')
 const content = page.querySelector('[data-article-content]')
 // Absent d'une fiche pré-rendue dans l'image de production, qui sert déjà son texte
 const loading = state.firstElementChild?.cloneNode(true)
+// Libellés des scripts dans la langue de la page
+const labels = page.dataset
+const locale = pageLocale()
 
 /** HTML produit par l'API, qui échappe le HTML saisi dans l'admin : injecté tel quel. */
 const fromHtml = (html) => {
@@ -41,14 +44,24 @@ const addJsonLd = (article, url, home) => {
       datePublished: article.publishedAt,
       url,
       ...(image && { image }),
-      inLanguage: 'fr-FR',
+      inLanguage: languageTag(locale),
     },
     {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Accueil', item: home },
-        { '@type': 'ListItem', position: 2, name: 'Blog', item: new URL('/blog', home).href },
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: labels.labelHome,
+          item: new URL(localizePath('/'), home).href,
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: labels.labelBlog,
+          item: new URL(localizePath('/blog'), home).href,
+        },
         { '@type': 'ListItem', position: 3, name: article.title, item: url },
       ],
     },
@@ -84,6 +97,7 @@ const renderAudio = (article) => {
   block.querySelector('[data-article-audio-caption]').textContent = audioCaption(
     article.audio,
     article.speaker,
+    labels.labelAudio,
   )
   const player = block.querySelector('[data-article-audio-player]')
   if (player.getAttribute('src') !== article.audio.src) player.src = article.audio.src
@@ -95,7 +109,7 @@ const renderArticle = (article) => {
   renderTaxonomy(article)
   const date = content.querySelector('[data-article-date]')
   date.dateTime = article.publishedAt
-  date.textContent = formatPublishedAt(article.publishedAt)
+  date.textContent = formatPublishedAt(article.publishedAt, locale)
   const picture = content.querySelector('picture')
   if (picture) fillPicture(picture, article.image)
   const excerpt = content.querySelector('[data-article-excerpt]')
@@ -110,7 +124,7 @@ const renderArticle = (article) => {
   setMeta('meta[name="description"]', description)
   setMeta('meta[name="robots"]', 'index, follow')
   const canonical = document.head.querySelector('link[rel="canonical"]')
-  const url = new URL(articleHref(article.slug), canonical.href).href
+  const url = new URL(localizePath(articleHref(article.slug)), canonical.href).href
   canonical.href = url
   setMeta('meta[property="og:url"]', url)
   setMeta('meta[property="og:title"]', document.title)
@@ -120,14 +134,13 @@ const renderArticle = (article) => {
 
 /** Article inconnu de l'API : message, et la page reste hors de l'index (pas de vraie 404 sans serveur). */
 const renderNotFound = () => {
-  title.textContent = 'Article introuvable'
-  crumb.textContent = 'Article introuvable'
+  title.textContent = labels.labelNotFound
+  crumb.textContent = labels.labelNotFound
   state.replaceChildren(fromTemplate('article-not-found-template'))
 }
 
 const renderError = () => {
   state.replaceChildren(fromTemplate('article-error-template'))
-  state.querySelector('[data-article-error-message]').textContent = new ArticleLoadError().message
   state.querySelector('[data-article-retry]').addEventListener('click', loadArticle)
 }
 

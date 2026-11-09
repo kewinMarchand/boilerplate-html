@@ -1,7 +1,11 @@
 /**
  * Client HTTP de l'API commune, sans dépendance. Seule la couche `infrastructure/http/` des
  * modules l'importe (règle `client-api-hors-infrastructure`). L'adresse de l'API vient du
- * `<link rel="preconnect" data-api-url>` injecté par le footer partagé (variable API_URL).
+ * `<link rel="preconnect" data-api-url>` injecté par le footer partagé (variable API_URL), avec le
+ * scénario de l'API (`data-api-scenario`, variable API_SCENARIO) quand il est fixé. Sur un site à
+ * plusieurs langues (`<html data-locales>`), chaque lecture passe la langue de la page (`locale`) ; un
+ * site d'une seule langue garde ses adresses (des tests e2e les interceptent telles quelles). L'envoi
+ * d'un formulaire donne la langue en `Accept-Language`.
  */
 export class ApiError extends Error {
   constructor(status, body) {
@@ -19,11 +23,16 @@ export class ApiContractError extends Error {
   }
 }
 
-const baseUrl = () => {
+const apiLink = () => {
   const link = document.querySelector('link[data-api-url]')
   if (!link) throw new ApiError(0, null)
-  return link.href
+  return link
 }
+
+const pageLocale = () => document.documentElement.lang
+
+const localeParams = () =>
+  document.documentElement.dataset.locales ? { locale: pageLocale() } : {}
 
 const toSearchParams = (params) => {
   const search = new URLSearchParams()
@@ -36,9 +45,15 @@ const toSearchParams = (params) => {
 }
 
 const request = async (path, init) => {
-  const response = await fetch(new URL(path, baseUrl()), {
+  const link = apiLink()
+  const scenario = link.dataset.apiScenario
+  const response = await fetch(new URL(path, link.href), {
     ...init,
-    headers: { accept: 'application/json', ...init?.headers },
+    headers: {
+      accept: 'application/json',
+      ...(scenario && { 'x-scenario': scenario }),
+      ...init?.headers,
+    },
   })
   const body = await response.json().catch(() => null)
   if (!response.ok) throw new ApiError(response.status, body)
@@ -46,14 +61,14 @@ const request = async (path, init) => {
 }
 
 export const apiGet = (path, params = {}) => {
-  const search = toSearchParams(params).toString()
+  const search = toSearchParams({ ...params, ...localeParams() }).toString()
   return request(search ? `${path}?${search}` : path)
 }
 
 export const apiPost = (path, data) =>
   request(path, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', 'accept-language': pageLocale() },
     body: JSON.stringify(data),
   })
 

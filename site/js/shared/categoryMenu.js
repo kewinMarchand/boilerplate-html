@@ -1,3 +1,5 @@
+import { formatLabel } from './labels.js'
+
 const header = document.querySelector('[data-site-header]')
 const toggle = header.querySelector('[data-category-menu-toggle]')
 const panel = header.querySelector('[data-category-panel]')
@@ -94,21 +96,16 @@ const readTree = (list) =>
     children: item.querySelector(':scope > ul') ? readTree(item.querySelector(':scope > ul')) : [],
   }))
 
+// Libellés du menu mobile, dans la langue de la page (`data-label-*` de la modale)
+const labels = mobileMenu.dataset
+
 const ROOT_LEVEL = {
-  label: 'Menu',
-  children: [...header.querySelectorAll('.main-nav-list > li')].map((item) =>
-    item === menuItem
-      ? {
-          label: 'Catalogue',
-          href: '/catalogue',
-          children: readTree(panel.querySelector('.category-columns > ul')),
-        }
-      : {
-          label: linkOf(item).textContent.trim(),
-          href: linkOf(item).getAttribute('href'),
-          children: [],
-        },
-  ),
+  label: mobileMenu.getAttribute('aria-label'),
+  children: [...header.querySelectorAll('.main-nav-list > li')].map((item) => ({
+    label: linkOf(item).textContent.trim(),
+    href: linkOf(item).getAttribute('href'),
+    children: item === menuItem ? readTree(panel.querySelector('.category-columns > ul')) : [],
+  })),
 }
 
 let levels = [ROOT_LEVEL]
@@ -145,14 +142,14 @@ const renderLevel = () => {
   const close = element('button', { type: 'button', className: 'bui-modal__close' }, [
     iconNode('x'),
   ])
-  close.setAttribute('aria-label', 'Fermer le menu')
+  close.setAttribute('aria-label', labels.labelMenuClose)
   close.addEventListener('click', () => mobileMenu.close())
 
   const body = element('div', { className: 'bui-modal__body' })
   if (parent) {
     const back = element('button', { type: 'button', className: 'mobile-menu-back' }, [
       iconNode('chevron-left'),
-      `Retour : ${parent.label}`,
+      formatLabel(labels.labelMenuBack, { name: parent.label }),
     ])
     back.dataset.testid = 'layout-mobile-menu-back'
     back.addEventListener('click', () => {
@@ -166,9 +163,7 @@ const renderLevel = () => {
   const list = element('ul', { className: 'mobile-menu-list' })
   if (level.href) {
     list.append(
-      element('li', {}, [
-        element('a', { href: level.href, textContent: 'Voir toute la catégorie' }),
-      ]),
+      element('li', {}, [element('a', { href: level.href, textContent: labels.labelMenuAll })]),
     )
   }
   for (const child of level.children) {

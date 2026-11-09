@@ -61,7 +61,14 @@
     <!--# set var="page" value="article" -->
     <!--# include virtual="/partials/header.html" -->
     <main id="main">
-      <div class="container page" data-article-page>
+      <div
+        class="container page"
+        data-article-page
+        data-label-not-found="Article introuvable"
+        data-label-audio="Écouter l'article ({duration})"
+        data-label-home="Accueil"
+        data-label-blog="Blog"
+      >
         <nav class="bui-breadcrumb" aria-label="Fil d'Ariane" data-testid="layout-breadcrumb">
           <ol class="bui-breadcrumb__list">
             <li class="bui-breadcrumb__item"><a class="bui-link" href="/">Accueil</a></li>
@@ -154,7 +161,9 @@
             </svg>
             <div class="bui-alert__content">
               <span class="bui-visually-hidden">Erreur :</span>
-              <div class="bui-alert__body"><p data-article-error-message></p></div>
+              <div class="bui-alert__body">
+                <p>Impossible de charger cet article pour le moment.</p>
+              </div>
             </div>
             <div class="bui-alert__action">
               <button

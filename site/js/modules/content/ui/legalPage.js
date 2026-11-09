@@ -1,5 +1,4 @@
 import { findLegalPage } from '../infrastructure/http/legalPageRepository.js'
-import { LegalPageLoadError } from '../infrastructure/LegalPageLoadError.js'
 
 const page = document.querySelector('[data-legal-page]')
 const title = page.querySelector('[data-legal-title]')
@@ -25,7 +24,6 @@ const renderSection = (section) => {
 
 const renderError = () => {
   state.replaceChildren(document.getElementById('legal-error-template').content.cloneNode(true))
-  state.querySelector('[data-legal-error-message]').textContent = new LegalPageLoadError().message
   state.querySelector('[data-legal-retry]').addEventListener('click', loadLegalPage)
 }
 

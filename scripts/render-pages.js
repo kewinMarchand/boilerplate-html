@@ -19,6 +19,7 @@ const VARIANTS = {
     GLITCHTIP_ENVIRONMENT: 'production',
     MATOMO_URL: 'https://matomo.example.com/',
     MATOMO_SITE_ID: '1',
+    API_SCENARIO: 'bilingual',
   }),
 }
 

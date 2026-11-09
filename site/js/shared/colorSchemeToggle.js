@@ -21,7 +21,7 @@ const storage = getStorage()
 
 const render = () => {
   const scheme = currentColorScheme(root)
-  trigger.setAttribute('aria-label', colorSchemeLabel(scheme, isEnhanced(root)))
+  trigger.setAttribute('aria-label', colorSchemeLabel(scheme, isEnhanced(root), menu.dataset))
   icon.setAttribute('href', `/icons.svg#${ICONS[scheme]}`)
   for (const item of menu.querySelectorAll('[data-bui-menu-item]')) {
     item.setAttribute('aria-checked', String(item.dataset.buiMenuItem === scheme))

@@ -60,7 +60,7 @@ describe('pré-rendu du catalogue', () => {
     assert.ok(page.includes('data-product-id="1"'))
     assert.ok(page.includes('id="produit-monstera-deliciosa"'))
     assert.ok(page.includes('alt="Monstera &lt;deliciosa&gt;"'))
-    assert.ok(page.includes(formatPrice(2990)))
+    assert.ok(page.includes(formatPrice(2990, 'fr')))
     assert.ok(
       page.includes(
         'srcset="http://localhost:8090/media/p3-400.avif 400w, http://localhost:8090/media/p3-800.avif 800w"',

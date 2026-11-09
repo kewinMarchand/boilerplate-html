@@ -1,10 +1,15 @@
+import { formatLabel } from '/js/shared/labels.js'
+import { localizePath, pageLocale } from '/js/shared/locale.js'
+
 import { removeItem, setQuantity, totalPrice } from '../domain/cart.js'
 import { formatPrice } from '../domain/price.js'
 import { readCart, saveCart, subscribeToCart } from '../infrastructure/cartStorage.js'
 
 const container = document.querySelector('[data-cart]')
 const lineTemplate = document.getElementById('cart-line-template')
-const productHref = (slug) => `/produit/${slug}`
+const productHref = (slug) => localizePath(`/produit/${slug}`)
+const labels = container.dataset
+const price = (cents) => formatPrice(cents, pageLocale())
 
 const fromTemplate = (id) => document.getElementById(id).content.cloneNode(true)
 
@@ -26,18 +31,20 @@ const createLine = (line) => {
   const link = element.querySelector('[data-cart-line-link]')
   link.href = productHref(line.slug)
   link.textContent = line.name
-  element.querySelector('[data-cart-line-price]').textContent = `${formatPrice(line.price)} l’unité`
+  element.querySelector('[data-cart-line-price]').textContent = formatLabel(labels.labelUnitPrice, {
+    price: price(line.price),
+  })
   const input = element.querySelector('[data-cart-line-quantity]')
   input.id = `quantite-${line.slug}`
   const label = element.querySelector('label')
   label.htmlFor = input.id
-  label.textContent = `Quantité de ${line.name}`
+  label.textContent = formatLabel(labels.labelQuantity, { name: line.name })
   input.addEventListener('input', () => {
     if (!Number.isNaN(input.valueAsNumber))
       saveCart(setQuantity(readCart(), line.slug, input.valueAsNumber))
   })
   const remove = element.querySelector('[data-cart-line-remove]')
-  remove.setAttribute('aria-label', `Retirer ${line.name}`)
+  remove.setAttribute('aria-label', formatLabel(labels.labelRemove, { name: line.name }))
   remove.addEventListener('click', () => {
     const index = [...element.parentElement.children].indexOf(element)
     saveCart(removeItem(readCart(), line.slug))
@@ -69,11 +76,11 @@ const render = () => {
     }
     const input = element.querySelector('[data-cart-line-quantity]')
     if (input.valueAsNumber !== line.quantity) input.value = String(line.quantity)
-    element.querySelector('[data-cart-line-subtotal]').textContent = formatPrice(
+    element.querySelector('[data-cart-line-subtotal]').textContent = price(
       line.price * line.quantity,
     )
   }
-  container.querySelector('[data-cart-total]').textContent = formatPrice(totalPrice(lines))
+  container.querySelector('[data-cart-total]').textContent = price(totalPrice(lines))
 }
 
 subscribeToCart(render)

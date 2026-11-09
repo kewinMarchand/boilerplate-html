@@ -1,3 +1,6 @@
+import { formatLabel } from '/js/shared/labels.js'
+import { localizePath } from '/js/shared/locale.js'
+
 import { addItem } from '../domain/cart.js'
 import { readCart, saveCart } from '../infrastructure/cartStorage.js'
 
@@ -18,11 +21,15 @@ document.addEventListener('product:shown', ({ detail: product }) => {
     saveCart(addItem(readCart(), { slug: product.slug, name: product.name, price: product.price }))
     const link = document.createElement('a')
     link.className = 'bui-link'
-    link.href = CART_PATH
-    link.textContent = 'Voir le panier'
+    link.href = localizePath(CART_PATH)
+    link.textContent = slot.dataset.labelCartLink
     status.replaceChildren()
     window.setTimeout(
-      () => status.replaceChildren(`${product.name} ajouté au panier. `, link),
+      () =>
+        status.replaceChildren(
+          `${formatLabel(slot.dataset.labelAdded, { name: product.name })} `,
+          link,
+        ),
       ANNOUNCE_DELAY_MS,
     )
   })

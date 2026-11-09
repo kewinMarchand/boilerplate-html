@@ -137,6 +137,8 @@
         aria-roledescription="carrousel"
         data-carousel
         data-testid="home-carousel"
+        data-label-dot="Aller à la diapositive {number}"
+        data-label-slide="{number} sur {count}"
       >
         <div class="carousel-header">
           <h2 id="carousel-title">À la une</h2>
@@ -273,7 +275,9 @@
             </svg>
             <div class="bui-alert__content">
               <span class="bui-visually-hidden">Erreur :</span>
-              <div class="bui-alert__body"><p data-carousel-error-message></p></div>
+              <div class="bui-alert__body">
+                <p>Impossible de charger le carrousel pour le moment.</p>
+              </div>
             </div>
             <div class="bui-alert__action">
               <button
@@ -357,7 +361,9 @@
             </svg>
             <div class="bui-alert__content">
               <span class="bui-visually-hidden">Erreur :</span>
-              <div class="bui-alert__body"><p data-blog-error-message></p></div>
+              <div class="bui-alert__body">
+                <p>Impossible de charger les articles pour le moment.</p>
+              </div>
             </div>
             <div class="bui-alert__action">
               <button

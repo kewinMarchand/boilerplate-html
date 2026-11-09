@@ -24,7 +24,8 @@ describe('prix', () => {
     assert.equal(eurosToCents(80), 8000)
   })
 
-  it('formate en euros à la française', () => {
-    assert.equal(formatPrice(Price.fromCents(3490)).replace(/\s/g, ' '), '34,90 €')
+  it('formate en euros dans la langue de la page', () => {
+    assert.equal(formatPrice(Price.fromCents(3490), 'fr').replace(/\s/g, ' '), '34,90 €')
+    assert.equal(formatPrice(Price.fromCents(3490), 'en'), '€34.90')
   })
 })

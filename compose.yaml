@@ -5,6 +5,7 @@ services:
       network: host
       args:
         API_URL: ${API_URL:-http://localhost:8090}
+        API_SCENARIO: ${API_SCENARIO:-}
         SITE_URL: ${PUBLIC_SITE_URL:-}
     ports:
       - '${PORT:-8080}:80'
@@ -15,6 +16,7 @@ services:
       MATOMO_URL: ${MATOMO_URL:-}
       MATOMO_SITE_ID: ${MATOMO_SITE_ID:-}
       API_URL: ${API_URL:-http://localhost:8090}
+      API_SCENARIO: ${API_SCENARIO:-}
 
   node:
     profiles: [dev]

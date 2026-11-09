@@ -81,7 +81,28 @@
     <!--# set var="page" value="catalogue" -->
     <!--# include virtual="/partials/header.html" -->
     <main id="main">
-      <div class="container page catalog" data-catalog data-category="">
+      <div
+        class="container page catalog"
+        data-catalog
+        data-category=""
+        data-label-results-one="{count} produit"
+        data-label-results-other="{count} produits"
+        data-label-results-show="Voir les {results}"
+        data-label-loading="Chargement des produits…"
+        data-label-prerendered="Sans JavaScript, seule la première page s'affiche, sans filtre ni tri."
+        data-label-page="Page"
+        data-label-previous="Précédent"
+        data-label-next="Suivant"
+        data-label-price-min="Prix minimum : {price} €"
+        data-label-price-max="Prix maximum : {price} €"
+        data-label-in-stock="En stock"
+        data-label-exposure-sun="Soleil"
+        data-label-exposure-partial-shade="Mi-ombre"
+        data-label-exposure-shade="Ombre"
+        data-label-size-s="Petite (S)"
+        data-label-size-m="Moyenne (M)"
+        data-label-size-l="Grande (L)"
+      >
         <nav class="bui-breadcrumb" aria-label="Fil d'Ariane" data-testid="layout-breadcrumb">
           <ol class="bui-breadcrumb__list">
             <li class="bui-breadcrumb__item"><a class="bui-link" href="/">Accueil</a></li>
@@ -542,7 +563,9 @@
             </svg>
             <div class="bui-alert__content">
               <span class="bui-visually-hidden">Erreur :</span>
-              <div class="bui-alert__body"><p data-catalog-error-message></p></div>
+              <div class="bui-alert__body">
+                <p>Impossible de charger les produits pour le moment.</p>
+              </div>
             </div>
             <div class="bui-alert__action">
               <button

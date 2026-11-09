@@ -1,17 +1,22 @@
-import { EXPOSURE_LABELS, SIZE_LABELS } from './labels.js'
+import { formatLabel } from '/js/shared/labels.js'
+
+import { exposureLabel, sizeLabel } from './labels.js'
 
 const attributeValueLabel = (attributeFacets, code, value) =>
   attributeFacets.find((facet) => facet.code === code)?.values.find((item) => item.value === value)
     ?.label ?? value
 
-/** Libellés des valeurs d'attribut lus dans les facettes de l'API ; valeur inconnue : son code. */
-export const activeFilters = (query, attributeFacets = []) => [
+/**
+ * Puces des filtres actifs, libellées par les `data-label-*` de la page (`labels`) ; valeurs d'attribut
+ * lues dans les facettes de l'API, valeur inconnue : son code.
+ */
+export const activeFilters = (query, labels, attributeFacets = []) => [
   ...query.exposures.map((value) => ({
-    label: EXPOSURE_LABELS[value],
+    label: exposureLabel(labels, value),
     remove: (q) => ({ exposures: q.exposures.filter((item) => item !== value) }),
   })),
   ...query.sizes.map((value) => ({
-    label: SIZE_LABELS[value],
+    label: sizeLabel(labels, value),
     remove: (q) => ({ sizes: q.sizes.filter((item) => item !== value) }),
   })),
   ...Object.entries(query.attributes).flatMap(([code, values]) =>
@@ -27,9 +32,19 @@ export const activeFilters = (query, attributeFacets = []) => [
   ),
   ...(query.priceMin === null
     ? []
-    : [{ label: `Prix minimum : ${query.priceMin} €`, remove: () => ({ priceMin: null }) }]),
+    : [
+        {
+          label: formatLabel(labels.labelPriceMin, { price: query.priceMin }),
+          remove: () => ({ priceMin: null }),
+        },
+      ]),
   ...(query.priceMax === null
     ? []
-    : [{ label: `Prix maximum : ${query.priceMax} €`, remove: () => ({ priceMax: null }) }]),
-  ...(query.inStock ? [{ label: 'En stock', remove: () => ({ inStock: false }) }] : []),
+    : [
+        {
+          label: formatLabel(labels.labelPriceMax, { price: query.priceMax }),
+          remove: () => ({ priceMax: null }),
+        },
+      ]),
+  ...(query.inStock ? [{ label: labels.labelInStock, remove: () => ({ inStock: false }) }] : []),
 ]

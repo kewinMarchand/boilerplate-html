@@ -1,4 +1,4 @@
-import { validateField } from '../domain/contactSchema.js'
+import { isFieldValid } from '../domain/contactSchema.js'
 import { ContactRejectedError } from '../infrastructure/http/contactTranslation.js'
 import { sendContactMessage } from '../infrastructure/http/sendContactMessage.js'
 
@@ -19,7 +19,7 @@ const showFieldError = (field, message) => {
 }
 
 const check = (field) => {
-  const message = validateField(field.name, field.value)
+  const message = isFieldValid(field.name, field.value) ? undefined : field.dataset.labelInvalid
   showFieldError(field, message)
   return !message
 }

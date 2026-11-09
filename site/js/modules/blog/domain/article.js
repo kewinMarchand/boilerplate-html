@@ -1,11 +1,14 @@
-const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'UTC' })
-
 export const articleHref = (slug) => `/blog/${slug}`
 
-/** Slug de la fiche ouverte, lu dans l'adresse : /blog/<slug>. */
-export const slugFromPath = (pathname) => /^\/blog\/([a-z0-9-]+)\/?$/.exec(pathname)?.[1] ?? null
+/** Slug de la fiche ouverte, lu dans l'adresse : /blog/<slug>, ou /<langue>/blog/<slug>. */
+export const slugFromPath = (pathname) =>
+  /^(?:\/[a-z]{2})?\/blog\/([a-z0-9-]+)\/?$/.exec(pathname)?.[1] ?? null
 
-export const formatPublishedAt = (isoDate) => DATE_FORMAT.format(new Date(`${isoDate}T00:00:00Z`))
+/** Date de publication dans la langue de la page (« 1 janvier 2026 », « January 1, 2026 »). */
+export const formatPublishedAt = (isoDate, locale) =>
+  new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(
+    new Date(`${isoDate}T00:00:00Z`),
+  )
 
 /** Filtre de /blog : slug de la rubrique lu dans `?rubrique=<slug>`, `null` sans filtre ou s'il est mal formé. */
 export const sectionFromSearch = (search) => {
@@ -24,8 +27,8 @@ export const formatDuration = (seconds) => {
   return `${Math.floor(minutes / 60)} h${rest ? ` ${rest} min` : ''}`
 }
 
-/** Légende du lecteur audio : durée, puis intervenant s'il est saisi. */
-export const audioCaption = (audio, speaker) =>
-  [`Écouter l'article (${formatDuration(audio.durationSeconds)})`, speaker]
+/** Légende du lecteur audio : `label` (« Écouter l'article ({duration}) ») avec la durée, puis intervenant s'il est saisi. */
+export const audioCaption = (audio, speaker, label) =>
+  [label.replace('{duration}', formatDuration(audio.durationSeconds)), speaker]
     .filter(Boolean)
     .join(' · ')

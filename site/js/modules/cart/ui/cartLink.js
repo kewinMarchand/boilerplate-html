@@ -1,3 +1,6 @@
+import { countLabel } from '/js/shared/labels.js'
+import { pageLocale } from '/js/shared/locale.js'
+
 import { countItems } from '../domain/cart.js'
 import { readCart, subscribeToCart } from '../infrastructure/cartStorage.js'
 
@@ -21,7 +24,14 @@ const render = () => {
   link.append(
     part('bui-visually-hidden', ', '),
     badge,
-    part('bui-visually-hidden', ` article${count > 1 ? 's' : ''}`),
+    part(
+      'bui-visually-hidden',
+      countLabel(
+        count,
+        { one: link.dataset.labelItemsOne, other: link.dataset.labelItemsOther },
+        pageLocale(),
+      ),
+    ),
   )
 }
 

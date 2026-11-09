@@ -44,6 +44,7 @@ server {
     set $matomo_url "${MATOMO_URL}";
     set $matomo_site_id "${MATOMO_SITE_ID}";
     set $api_url "${API_URL}";
+    set $api_scenario "${API_SCENARIO}";
     include /etc/nginx/snippets/identity-style.conf;
 
     include /etc/nginx/snippets/security-headers.conf;
@@ -60,32 +61,35 @@ server {
         try_files $uri $uri/index.html =404;
     }
 
+    # Pages d'une langue autre que celle par défaut sous /<langue>/ (section 29 bis de la spec commune) :
+    # les règles ci-dessous acceptent ce préfixe ($lang), et une langue non générée n'a aucun fichier (404)
+
     # Fiche article : page pré-rendue à la construction de l'image si elle existe, sinon le gabarit, rempli par JavaScript
-    location ~ ^/blog/([a-z0-9-]+)/?$ {
+    location ~ "^(?<lang>/[a-z]{2})?/blog/(?<slug>[a-z0-9-]+)/?$" {
         if ($maintenance) {
             return 503;
         }
-        try_files /blog/$1/index.html /blog/fiche.html;
+        try_files $lang/blog/$slug/index.html $lang/blog/fiche.html =404;
     }
 
     # Fiche produit : même règle que la fiche article
-    location ~ ^/produit/([a-z0-9-]+)/?$ {
+    location ~ "^(?<lang>/[a-z]{2})?/produit/(?<slug>[a-z0-9-]+)/?$" {
         if ($maintenance) {
             return 503;
         }
-        try_files /produit/$1/index.html /produit/fiche.html;
+        try_files $lang/produit/$slug/index.html $lang/produit/fiche.html =404;
     }
 
     # Contact avec un produit : page pré-rendue à la construction si l'API connaissait le produit, sinon le
     # formulaire de contact simple
-    location ~ ^/contact/?$ {
+    location ~ "^(?<lang>/[a-z]{2})?/contact/?$" {
         if ($maintenance) {
             return 503;
         }
-        try_files /contact/demande/$contact_product.html /contact/index.html;
+        try_files $lang/contact/demande/$contact_product.html $lang/contact/index.html =404;
     }
 
-    location /contact/demande/ {
+    location ~ "^(/[a-z]{2})?/contact/demande/" {
         internal;
     }
 
@@ -94,7 +98,7 @@ server {
         expires 1h;
     }
 
-    location /partials/ {
+    location ~ "^(/[a-z]{2})?/partials/" {
         internal;
     }
 

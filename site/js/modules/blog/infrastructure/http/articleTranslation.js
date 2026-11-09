@@ -35,6 +35,12 @@ export const toArticleDetail = (dto) => ({
   html: field(dto, 'html', 'string'),
   metaTitle: optionalString(dto, 'metaTitle'),
   metaDescription: optionalString(dto, 'metaDescription'),
+  alternates: (dto?.alternates === undefined ? [] : field(dto, 'alternates', 'array')).map(
+    (alternate) => ({
+      locale: field(alternate, 'locale', 'string'),
+      slug: field(alternate, 'slug', 'string'),
+    }),
+  ),
 })
 
 export const toArticles = (dto) => {

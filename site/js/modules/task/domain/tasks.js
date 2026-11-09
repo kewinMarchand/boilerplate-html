@@ -15,11 +15,3 @@ export const splitOnMatch = (text, query) => {
     { text: text.slice(end), match: false },
   ].filter((segment) => segment.text)
 }
-
-const plural = (count, singular, pluralForm) => (count > 1 ? pluralForm : singular)
-
-export const formatVisibleCount = (visible, total) =>
-  `${visible} ${plural(visible, 'tâche affichée', 'tâches affichées')} sur ${total}`
-
-export const formatDoneCount = (done, total) =>
-  `${done} ${plural(done, 'tâche terminée', 'tâches terminées')} sur ${total}`

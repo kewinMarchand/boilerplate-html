@@ -17,7 +17,7 @@ export const showSimilarProducts = async (product) => {
     .querySelector('[data-carousel-slides]')
     .replaceChildren(
       ...products.map((similar, index) =>
-        renderProductSlide(template, similar, index, products.length),
+        renderProductSlide(template, section.dataset.labelSlide, similar, index, products.length),
       ),
     )
   section.hidden = false

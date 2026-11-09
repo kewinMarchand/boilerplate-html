@@ -101,7 +101,12 @@
             </div>
           </div></noscript
         >
-        <div data-cart></div>
+        <div
+          data-cart
+          data-label-unit-price="{price} l’unité"
+          data-label-quantity="Quantité de {name}"
+          data-label-remove="Retirer {name}"
+        ></div>
         <template id="cart-empty-template">
           <p tabindex="-1" data-cart-empty data-testid="cart-empty">
             Votre panier est vide. <a class="bui-link" href="/catalogue">Parcourir le catalogue</a>

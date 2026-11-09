@@ -1,11 +1,12 @@
+import { formatLabel } from '/js/shared/labels.js'
+import { localizePath, pageLocale } from '/js/shared/locale.js'
 import { fillPicture } from '/js/shared/picture.js'
 
 import { formatPrice } from '../domain/price.js'
 import { productHref, productSlugFromPath } from '../domain/product.js'
-import { ProductLoadError } from '../application/ProductLoadError.js'
 import { loadProduct } from '../application/products.js'
 
-import { EXPOSURE_LABELS } from './labels.js'
+import { exposureLabel } from './labels.js'
 import { renderProductGallery } from './productGallery.js'
 import { showSimilarProducts } from './similarProducts.js'
 
@@ -16,6 +17,9 @@ const state = page.querySelector('[data-product-state]')
 const content = page.querySelector('[data-product-content]')
 // Sans vente en ligne : ni prix, ni offre, et la demande de renseignement à la place du panier (section 27)
 const salesEnabled = !document.documentElement.hasAttribute('data-sales-disabled')
+// Libellés des scripts dans la langue de la page
+const labels = page.dataset
+const locale = pageLocale()
 // Absent d'une fiche pré-rendue dans l'image de production, qui sert déjà son contenu
 const loading = state.firstElementChild?.cloneNode(true)
 
@@ -26,14 +30,21 @@ const setMeta = (selector, value) =>
 
 /** Description de la fiche, la même qu'au pré-rendu (prix retiré sans vente en ligne). */
 const productDescription = (product) =>
-  `${product.name} : exposition ${EXPOSURE_LABELS[product.exposure].toLowerCase()}, taille ${product.size}${salesEnabled ? `, ${formatPrice(product.price)}` : ''}. ${product.inStock ? 'En stock' : 'En rupture de stock'}, rayon ${product.categoryPath.at(-1)?.name ?? 'catalogue'}.`
+  formatLabel(labels.labelDescription, {
+    name: product.name,
+    exposure: exposureLabel(labels, product.exposure).toLocaleLowerCase(locale),
+    size: product.size,
+    price: salesEnabled ? `, ${formatPrice(product.price, locale)}` : '',
+    stock: product.inStock ? labels.labelInStock : labels.labelOutOfStockSentence,
+    category: product.categoryPath.at(-1)?.name ?? labels.labelCatalog,
+  })
 
 const breadcrumbItem = (step) => {
   const item = document.createElement('li')
   item.className = 'bui-breadcrumb__item'
   const link = document.createElement('a')
   link.className = 'bui-link'
-  link.href = step.href
+  link.href = localizePath(step.href)
   link.textContent = step.name
   item.append(link)
   return item
@@ -94,11 +105,11 @@ const addJsonLd = (product, url, home) => {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { name: 'Accueil', item: home },
-        { name: 'Catalogue', item: new URL('/catalogue', home).href },
+        { name: labels.labelHome, item: new URL(localizePath('/'), home).href },
+        { name: labels.labelCatalogTitle, item: new URL(localizePath('/catalogue'), home).href },
         ...product.categoryPath.map((step) => ({
           name: step.name,
-          item: new URL(step.href, home).href,
+          item: new URL(localizePath(step.href), home).href,
         })),
         { name: product.name, item: url },
       ].map((entry, index) => ({ '@type': 'ListItem', position: index + 1, ...entry })),
@@ -119,26 +130,37 @@ const renderProduct = (product, prerendered) => {
   if (picture) fillPicture(picture, product.image)
   renderProductGallery(content.querySelector('[data-product-gallery]'), product)
   if (salesEnabled) {
-    content.querySelector('[data-product-price]').textContent = formatPrice(product.price)
+    content.querySelector('[data-product-price]').textContent = formatPrice(product.price, locale)
   } else {
     const inquiry = content.querySelector('[data-product-inquiry]')
-    inquiry.href = `/contact?produit=${encodeURIComponent(product.slug)}`
-    inquiry.querySelector('[data-product-inquiry-name]').textContent = ` sur ${product.name}`
+    inquiry.href = localizePath(`/contact?produit=${encodeURIComponent(product.slug)}`)
+    inquiry.querySelector('[data-product-inquiry-name]').textContent = formatLabel(
+      labels.labelInquiryName,
+      { name: product.name },
+    )
   }
   const descriptionBlock = content.querySelector('[data-product-description]')
   descriptionBlock.replaceChildren(...product.description.map(paragraph))
   descriptionBlock.hidden = product.description.length === 0
-  content.querySelector('[data-product-exposure]').textContent = EXPOSURE_LABELS[product.exposure]
+  content.querySelector('[data-product-exposure]').textContent = exposureLabel(
+    labels,
+    product.exposure,
+  )
   content.querySelector('[data-product-size]').textContent = product.size
   const stock = content.querySelector('[data-product-stock]')
-  if (product.inStock) stock.textContent = 'En stock'
-  else stock.innerHTML = '<span class="bui-badge bui-badge--error">Rupture de stock</span>'
+  if (product.inStock) stock.textContent = labels.labelInStock
+  else {
+    const badge = document.createElement('span')
+    badge.className = 'bui-badge bui-badge--error'
+    badge.textContent = labels.labelOutOfStock
+    stock.replaceChildren(badge)
+  }
   renderAttributes(product.attributes)
   const category = product.categoryPath.at(-1)
   const categoryLink = content.querySelector('[data-product-category]')
   if (category) {
-    categoryLink.href = category.href
-    categoryLink.textContent = `Voir les autres produits : ${category.name}`
+    categoryLink.href = localizePath(category.href)
+    categoryLink.textContent = formatLabel(labels.labelCategoryLink, { name: category.name })
   }
   content.hidden = false
   state.replaceChildren()
@@ -147,7 +169,7 @@ const renderProduct = (product, prerendered) => {
   setMeta('meta[name="description"]', description)
   setMeta('meta[name="robots"]', 'index, follow')
   const canonical = document.head.querySelector('link[rel="canonical"]')
-  const url = new URL(productHref(product.slug), canonical.href).href
+  const url = new URL(localizePath(productHref(product.slug)), canonical.href).href
   canonical.href = url
   setMeta('meta[property="og:url"]', url)
   setMeta('meta[property="og:title"]', document.title)
@@ -169,14 +191,13 @@ const renderProduct = (product, prerendered) => {
 
 /** Produit inconnu de l'API : message, et la page reste hors de l'index (pas de vraie 404 sans serveur). */
 const renderNotFound = () => {
-  title.textContent = 'Produit introuvable'
-  crumb.textContent = 'Produit introuvable'
+  title.textContent = labels.labelNotFound
+  crumb.textContent = labels.labelNotFound
   state.replaceChildren(fromTemplate('product-not-found-template'))
 }
 
 const renderError = () => {
   state.replaceChildren(fromTemplate('product-error-template'))
-  state.querySelector('[data-product-error-message]').textContent = new ProductLoadError().message
   state.querySelector('[data-product-retry]').addEventListener('click', loadPage)
 }
 

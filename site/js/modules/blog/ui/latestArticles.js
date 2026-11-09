@@ -1,4 +1,3 @@
-import { ArticlesLoadError } from '../infrastructure/ArticlesLoadError.js'
 import { findLatestArticles } from '../infrastructure/http/articleRepository.js'
 
 import { renderArticleCard } from './articleCard.js'
@@ -29,7 +28,6 @@ const loadArticles = async () => {
     articles = await findLatestArticles()
   } catch {
     state.replaceChildren(fromTemplate('blog-error-template'))
-    state.querySelector('[data-blog-error-message]').textContent = new ArticlesLoadError().message
     state.querySelector('[data-blog-retry]').addEventListener('click', loadArticles)
     return
   }

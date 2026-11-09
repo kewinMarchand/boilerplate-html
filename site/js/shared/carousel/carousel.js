@@ -1,5 +1,7 @@
 import EmblaCarousel from '/vendor/embla-carousel.esm.js'
 
+import { formatLabel } from '/js/shared/labels.js'
+
 const WHEEL_THRESHOLD = 30
 const root = document.documentElement
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
@@ -21,7 +23,10 @@ export const initCarousel = (carousel) => {
       ...embla.scrollSnapList().map((_, index) => {
         const dot = document.createElement('button')
         dot.type = 'button'
-        dot.setAttribute('aria-label', `Aller à la diapositive ${index + 1}`)
+        dot.setAttribute(
+          'aria-label',
+          formatLabel(carousel.dataset.labelDot, { number: index + 1 }),
+        )
         dot.setAttribute('aria-controls', viewport.id)
         dot.dataset.testid = 'carousel-dot'
         dot.addEventListener('click', () => embla.scrollTo(index))

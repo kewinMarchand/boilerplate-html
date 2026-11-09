@@ -1,6 +1,5 @@
 import { initCarousel } from '/js/shared/carousel/carousel.js'
 
-import { FeaturedProductsLoadError } from '../application/FeaturedProductsLoadError.js'
 import { loadFeaturedProducts } from '../application/products.js'
 
 import { renderProductSlide } from './productSlide.js'
@@ -18,8 +17,6 @@ const renderError = () => {
   controls.hidden = true
   viewport.hidden = true
   state.replaceChildren(document.getElementById('carousel-error-template').content.cloneNode(true))
-  state.querySelector('[data-carousel-error-message]').textContent =
-    new FeaturedProductsLoadError().message
   state.querySelector('[data-carousel-retry]').addEventListener('click', loadSlides)
 }
 
@@ -43,7 +40,13 @@ const loadSlides = async () => {
   state.replaceChildren()
   slidesContainer.replaceChildren(
     ...products.map((product, index) =>
-      renderProductSlide(slideTemplate, product, index, products.length),
+      renderProductSlide(
+        slideTemplate,
+        carousel.dataset.labelSlide,
+        product,
+        index,
+        products.length,
+      ),
     ),
   )
   initCarousel(carousel)

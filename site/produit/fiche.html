@@ -62,7 +62,24 @@
     <!--# set var="page" value="produit" -->
     <!--# include virtual="/partials/header.html" -->
     <main id="main">
-      <div class="container page" data-product-page>
+      <div
+        class="container page"
+        data-product-page
+        data-label-not-found="Produit introuvable"
+        data-label-description="{name} : exposition {exposure}, taille {size}{price}. {stock}, rayon {category}."
+        data-label-in-stock="En stock"
+        data-label-out-of-stock="Rupture de stock"
+        data-label-out-of-stock-sentence="En rupture de stock"
+        data-label-catalog="catalogue"
+        data-label-catalog-title="Catalogue"
+        data-label-home="Accueil"
+        data-label-category-link="Voir les autres produits : {name}"
+        data-label-inquiry-name=" sur {name}"
+        data-label-thumb="Voir l'image {number} sur {count}"
+        data-label-exposure-sun="Soleil"
+        data-label-exposure-partial-shade="Mi-ombre"
+        data-label-exposure-shade="Ombre"
+      >
         <nav class="bui-breadcrumb" aria-label="Fil d'Ariane" data-testid="layout-breadcrumb">
           <ol class="bui-breadcrumb__list" data-product-breadcrumb>
             <li class="bui-breadcrumb__item"><a class="bui-link" href="/">Accueil</a></li>
@@ -150,7 +167,13 @@
                 data-product-attributes
                 data-testid="product-attributes"
               ></dl>
-              <div class="add-to-cart" data-add-to-cart data-sales></div>
+              <div
+                class="add-to-cart"
+                data-add-to-cart
+                data-sales
+                data-label-added="{name} ajouté au panier."
+                data-label-cart-link="Voir le panier"
+              ></div>
               <template id="product-inquiry-template">
                 <p class="product-inquiry">
                   <a
@@ -180,6 +203,8 @@
           data-carousel
           data-similar-products
           data-testid="product-similar"
+          data-label-dot="Aller à la diapositive {number}"
+          data-label-slide="{number} sur {count}"
           hidden
         >
           <div class="carousel-header">
@@ -323,7 +348,9 @@
             </svg>
             <div class="bui-alert__content">
               <span class="bui-visually-hidden">Erreur :</span>
-              <div class="bui-alert__body"><p data-product-error-message></p></div>
+              <div class="bui-alert__body">
+                <p>Impossible de charger ce produit pour le moment.</p>
+              </div>
             </div>
             <div class="bui-alert__action">
               <button

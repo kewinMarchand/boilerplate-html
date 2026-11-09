@@ -2,7 +2,7 @@ const DSN = /^(https?):\/\/[^@/]+@([^/]+)\//
 const URL_ORIGIN = /^(https?:\/\/[^/]+)/
 
 /**
- * Configuration lue dans l'environnement (API, GlitchTip, Matomo), telle que nginx la donne aux inclusions
+ * Configuration lue dans l'environnement (API et son scénario, GlitchTip, Matomo), telle que nginx la donne aux inclusions
  * côté serveur (`set` dans `docker/default.conf.template`) et à la CSP (`map`). Le serveur de
  * développement et les tests la calculent ici de la même façon. Sans valeur, tout reste vide.
  */
@@ -37,6 +37,8 @@ export const runtimeVariables = (env) => {
     ...observabilityVariables(env),
     api_url: apiUrl,
     api_origin: apiOrigin(apiUrl),
+    // Scénario de l'API passé par le navigateur en X-Scenario (`bilingual` : site bilingue des tests)
+    api_scenario: env.API_SCENARIO ?? '',
   }
 }
 

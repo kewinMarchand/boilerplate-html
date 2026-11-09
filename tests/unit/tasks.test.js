@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import {
-  filterTasks,
-  formatDoneCount,
-  formatVisibleCount,
-  splitOnMatch,
-} from '../../site/js/modules/task/domain/tasks.js'
+import { filterTasks, splitOnMatch } from '../../site/js/modules/task/domain/tasks.js'
 
 const TASKS = [
   { id: '1', title: 'Brancher la vraie API', done: false },
@@ -28,11 +23,5 @@ describe('tâches', () => {
       { text: 'API', match: true },
     ])
     assert.deepEqual(splitOnMatch('Lancer', 'zz'), [{ text: 'Lancer', match: false }])
-  })
-
-  it('accorde les compteurs', () => {
-    assert.equal(formatVisibleCount(1, 3), '1 tâche affichée sur 3')
-    assert.equal(formatVisibleCount(2, 3), '2 tâches affichées sur 3')
-    assert.equal(formatDoneCount(0, 3), '0 tâche terminée sur 3')
   })
 })

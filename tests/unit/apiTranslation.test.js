@@ -231,6 +231,7 @@ describe('traduction des réponses de l’API', () => {
       speaker: '',
       metaTitle: '',
       metaDescription: '',
+      alternates: [],
     })
     assert.throws(() => toArticleDetail({ ...dto, html: null }), ApiContractError)
   })
@@ -250,6 +251,10 @@ describe('traduction des réponses de l’API', () => {
       speaker: 'Présenté par Hina',
       metaTitle: 'Titre saisi',
       metaDescription: 'Description saisie',
+      alternates: [
+        { locale: 'fr', slug: 'un-carrousel' },
+        { locale: 'en', slug: 'a-carousel' },
+      ],
     }
     assert.deepEqual(toArticleDetail(dto), { ...dto, id: '2' })
     const empty = toArticles([{ ...dto, section: null, format: null, audio: null, speaker: '' }])[0]

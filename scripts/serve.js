@@ -1,10 +1,11 @@
 import { createReadStream, readFileSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
-import { extname, join, normalize } from 'node:path'
+import { extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
+import { fetchJson } from './apiFetch.js'
 import {
   prerenderArticle,
   prerenderContactProduct,
@@ -14,15 +15,19 @@ import {
 import { resolveVariables, runtimeVariables } from './runtimeVariables.js'
 import { renderSsi } from './ssi.js'
 
-const ROOT = fileURLToPath(new URL('../site/', import.meta.url))
+// SITE_ROOT : un site généré (le site bilingue des tests) à la place des sources
+const ROOT = process.env.SITE_ROOT
+  ? `${resolve(process.env.SITE_ROOT)}/`
+  : fileURLToPath(new URL('../site/', import.meta.url))
 const HEADERS_FILE = fileURLToPath(new URL('../docker/security-headers.conf', import.meta.url))
 const PORT = Number(process.argv[2] ?? 3130)
 const MAINTENANCE = process.env.MAINTENANCE === '1'
 const ERROR_TEST_ROUTE = '/_erreur-test'
 const STYLEGUIDE_MARKER = '<!-- dev:styleguide -->'
-const PARTIALS = '/partials/'
-const ARTICLE_PATH = /^\/blog\/([a-z0-9-]+)\/?$/
-const PRODUCT_PATH = /^\/produit\/([a-z0-9-]+)\/?$/
+// Préfixe de langue facultatif (section 29 bis de la spec commune), comme dans les règles de nginx
+const PARTIALS = /^(\/[a-z]{2})?\/partials\//
+const ARTICLE_PATH = /^(\/[a-z]{2})?\/blog\/([a-z0-9-]+)\/?$/
+const PRODUCT_PATH = /^(\/[a-z]{2})?\/produit\/([a-z0-9-]+)\/?$/
 const PRODUCT_SLUG = /^[a-z0-9-]+$/
 const STYLEGUIDE_LINK = '<p><a href="/charte-graphique">Charte graphique (développement)</a></p>'
 
@@ -71,15 +76,22 @@ const decodePath = (pathname) => {
 
 const resolveFile = async (pathname) => {
   const decoded = decodePath(pathname)
-  if (decoded === undefined || decoded.startsWith(PARTIALS)) return undefined
+  if (decoded === undefined || PARTIALS.test(decoded)) return undefined
   const path = join(ROOT, normalize(decoded))
   if (!path.startsWith(ROOT)) return undefined
   for (const candidate of [path, join(path, 'index.html')]) {
     if (await isFile(candidate)) return candidate
   }
   // Fiche article ou produit non pré-rendue : le gabarit, rempli par JavaScript (même règle que nginx)
-  if (ARTICLE_PATH.test(decoded)) return join(ROOT, 'blog/fiche.html')
-  return PRODUCT_PATH.test(decoded) ? join(ROOT, 'produit/fiche.html') : undefined
+  for (const [pattern, template] of [
+    [ARTICLE_PATH, 'blog/fiche.html'],
+    [PRODUCT_PATH, 'produit/fiche.html'],
+  ]) {
+    const match = pattern.exec(decoded)
+    const file = match && join(ROOT, match[1] ?? '', template)
+    if (file && (await isFile(file))) return file
+  }
+  return undefined
 }
 
 const COMPRESSIBLE = new Set(['.html', '.css', '.js', '.json', '.webmanifest', '.svg', '.xml'])
@@ -122,32 +134,30 @@ const SITE_URL = JSON.parse(
 /** Fiche pré-rendue à la demande, avec la fonction du pré-rendu ; slug inconnu ou API injoignable : le gabarit. */
 const prerendered = async (apiPath, template, render) => {
   try {
-    const response = await fetch(new URL(apiPath, RUNTIME.api_url), {
-      headers: { accept: 'application/json' },
-      signal: AbortSignal.timeout(5_000),
-    })
-    if (!response.ok) return undefined
-    return render(await readFile(template, 'utf8'), await response.json())
+    return render(await readFile(template, 'utf8'), await fetchJson(RUNTIME.api_url, apiPath))
   } catch {
     return undefined
   }
 }
 
 const prerenderedArticle = (pathname, template) =>
-  prerendered(`/api/articles/${ARTICLE_PATH.exec(pathname)?.[1]}`, template, (html, dto) =>
+  prerendered(`/api/articles/${ARTICLE_PATH.exec(pathname)?.[2]}`, template, (html, dto) =>
     prerenderArticle(html, dto, SITE_URL),
   )
 
 const prerenderedProduct = (pathname, template) =>
-  prerendered(`/api/products/${PRODUCT_PATH.exec(pathname)?.[1]}`, template, (html, dto) =>
+  prerendered(`/api/products/${PRODUCT_PATH.exec(pathname)?.[2]}`, template, (html, dto) =>
     prerenderProduct(html, withCategoryHrefs(dto), SITE_URL),
   )
 
-// Comme nginx, qui sert contact/demande/<slug>.html quand le produit était connu à la construction
-const prerenderedContact = (slug, template) =>
-  PRODUCT_SLUG.test(slug ?? '')
-    ? prerendered(`/api/products/${slug}`, template, prerenderContactProduct)
-    : undefined
+// Comme nginx, qui sert contact/demande/<slug>.html quand le produit était connu à la construction ;
+// pré-rendue à la demande depuis les sources
+const prerenderedContact = async (slug, template) => {
+  if (!PRODUCT_SLUG.test(slug ?? '')) return undefined
+  const generated = join(template, '..', 'demande', `${slug}.html`)
+  if (await isFile(generated)) return readFile(generated, 'utf8')
+  return prerendered(`/api/products/${slug}`, template, prerenderContactProduct)
+}
 
 createServer(async (request, response) => {
   if (request.method !== 'GET' && request.method !== 'HEAD') {

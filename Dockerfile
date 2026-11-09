@@ -13,22 +13,26 @@ RUN yarn install --frozen-lockfile --production --ignore-scripts \
 FROM node:26-alpine AS catalog
 WORKDIR /app
 ARG API_URL=http://localhost:8090
+# Scénario de l'API pour toute la génération (en-tête X-Scenario) : `bilingual` génère le site bilingue des tests
+ARG API_SCENARIO=
+ENV API_SCENARIO=$API_SCENARIO
 # Adresse publique à la place de celle de site.config.json (préprod) ; vide : celle de site.config.json
 ARG SITE_URL=
 COPY package.json site.config.json ./
-COPY scripts/prerender-catalog.js scripts/prerender-content.js scripts/prerender-identity.js scripts/prerenderPicture.js scripts/ssi.js scripts/
+COPY i18n i18n
+COPY scripts/generate.sh scripts/apiFetch.js scripts/prerender-locales.js scripts/prerender-catalog.js scripts/prerender-content.js scripts/prerender-identity.js scripts/prerenderPicture.js scripts/ssi.js scripts/
 COPY tests/unit/siteResolver.js tests/unit/
 COPY site site
-RUN node --import ./tests/unit/siteResolver.js scripts/prerender-catalog.js site "$API_URL" \
-  && node --import ./tests/unit/siteResolver.js scripts/prerender-content.js site "$API_URL" \
-  && node --import ./tests/unit/siteResolver.js scripts/prerender-identity.js site "$API_URL" identity-style.conf \
+RUN sh scripts/generate.sh site "$API_URL" identity-style.conf \
   && if [ -n "$SITE_URL" ]; then \
     url=$(node -p "require('./site.config.json').url") \
     && grep -rlF "$url" site | xargs -r sed -i "s|$url|${SITE_URL%/}|g"; \
   fi
 
 FROM nginx:1.31-alpine
-ENV MAINTENANCE=0 GLITCHTIP_DSN="" GLITCHTIP_ENVIRONMENT=production MATOMO_URL="" MATOMO_SITE_ID="" API_URL=http://localhost:8090
+# Scénario de la génération, gardé pour les appels du navigateur (data-api-scenario du footer)
+ARG API_SCENARIO=
+ENV MAINTENANCE=0 GLITCHTIP_DSN="" GLITCHTIP_ENVIRONMENT=production MATOMO_URL="" MATOMO_SITE_ID="" API_URL=http://localhost:8090 API_SCENARIO=$API_SCENARIO
 COPY docker/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY docker/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=catalog /app/identity-style.conf /etc/nginx/snippets/identity-style.conf
