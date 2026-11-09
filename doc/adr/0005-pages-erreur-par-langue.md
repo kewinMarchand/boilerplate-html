@@ -1,6 +1,6 @@
 # 0005 — Pages d'erreur dans la langue de l'adresse, choisies par nginx
 
-- **Statut** : Proposée
+- **Statut** : Acceptée
 - **Introduite par** : le commit qui ajoute `$error_prefix` à `docker/default.conf.template`
 - **Décideurs** : Kewin Marchand
 - **Remplace** : la conséquence « les pages d'erreur de nginx (404, 405, 50x, 503) restent en français » de l'ADR 0004, dont le suivi prévoyait de rouvrir la décision si elles devaient suivre la langue.
