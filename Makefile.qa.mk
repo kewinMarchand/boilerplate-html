@@ -28,6 +28,9 @@ test-unit: ## Tests unitaires (node:test)
 test-e2e: ## Tests end-to-end desktop et mobile (Playwright)
 	$(RUN) yarn test:e2e
 
+e2e-vite: ## e2e desktop des fichiers modifiés depuis origin/main (FICHIERS="…" ou GREP="…"), site bilingue régénéré seulement si ses sources ont changé
+	$(RUN) env FICHIERS='$(FICHIERS)' GREP='$(GREP)' sh scripts/e2e-vite.sh
+
 test-a11y: ## Tests d'accessibilité WCAG 2.1 AA, trois modes : standard, sombre, renforcé (axe-core + Playwright)
 	$(RUN) yarn test:a11y
 
@@ -37,4 +40,4 @@ metrics: ## Métriques Lighthouse CI en clair puis en sombre (perf ≥ 90, a11y 
 test-prod: ## Construit et lance l'image nginx sur la machine, la vérifie depuis le conteneur de dev (codes HTTP, en-têtes, SSI, maintenance)
 	sh scripts/test-prod.sh
 
-.PHONY: qa qa-full lint arch-selftest icons-check lint-fix format format-check test test-unit test-e2e test-a11y metrics test-prod
+.PHONY: qa qa-full lint arch-selftest icons-check lint-fix format format-check test test-unit test-e2e e2e-vite test-a11y metrics test-prod

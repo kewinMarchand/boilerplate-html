@@ -152,19 +152,22 @@ Le serveur de développement lit les mêmes variables, par exemple `GLITCHTIP_DS
 
 `make help` liste toutes les commandes. Les principales :
 
-| Commande                               | Effet                                                                                                                                |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `make up`                              | Serveur de développement sur le port 3130                                                                                            |
-| `make qa`                              | QA rapide : html-validate, stylelint, ESLint, règles d'architecture et leur auto-test, Prettier, tests unitaires                     |
-| `make icons`                           | Génère `site/icons.svg` et la liste des noms depuis `icons.json`                                                                     |
-| `make icons-check`                     | Échoue si le sprite est périmé ou si le site cite une icône absente de `icons.json`                                                  |
-| `make arch-selftest`                   | Écrit une violation de chaque règle d'architecture, exige sa détection, puis la retire                                               |
-| `make qa-full`                         | QA complète : QA rapide, e2e, accessibilité, Lighthouse, image de production                                                         |
-| `make test-e2e`                        | Playwright, desktop et mobile                                                                                                        |
-| `make test-a11y`                       | axe-core, WCAG 2.1 AA, chaque page en standard, sombre et renforcé                                                                   |
-| `make metrics`                         | Lighthouse CI sur le port 3250, en clair puis en sombre : échoue sous 90 en performance, sous 100 en accessibilité et SEO            |
-| `make test-prod`                       | Construit l'image nginx et vérifie codes HTTP, en-têtes, contenus pré-rendus, mode maintenance et image bilingue (API sur `API_URL`) |
-| `make docker-build` / `make docker-up` | Image de production, sur le port `PORT` (8080 par défaut)                                                                            |
+| Commande                               | Effet                                                                                                                                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make up`                              | Serveur de développement sur le port 3130                                                                                                                                               |
+| `make qa`                              | QA rapide : html-validate, stylelint, ESLint, règles d'architecture et leur auto-test, Prettier, tests unitaires                                                                        |
+| `make icons`                           | Génère `site/icons.svg` et la liste des noms depuis `icons.json`                                                                                                                        |
+| `make icons-check`                     | Échoue si le sprite est périmé ou si le site cite une icône absente de `icons.json`                                                                                                     |
+| `make arch-selftest`                   | Écrit une violation de chaque règle d'architecture, exige sa détection, puis la retire                                                                                                  |
+| `make qa-full`                         | QA complète : QA rapide, e2e, accessibilité, Lighthouse, image de production                                                                                                            |
+| `make test-e2e`                        | Playwright, desktop et mobile                                                                                                                                                           |
+| `make e2e-vite`                        | Playwright desktop sur les e2e modifiés depuis `origin/main`, ou `FICHIERS="tests/e2e/panier.e2e.js …"`, ou `GREP="motif"` ; site bilingue régénéré seulement si ses sources ont changé |
+| `make test-a11y`                       | axe-core, WCAG 2.1 AA, chaque page en standard, sombre et renforcé                                                                                                                      |
+| `make metrics`                         | Lighthouse CI sur le port 3250, en clair puis en sombre : échoue sous 90 en performance, sous 100 en accessibilité et SEO                                                               |
+| `make test-prod`                       | Construit l'image nginx et vérifie codes HTTP, en-têtes, contenus pré-rendus, mode maintenance et image bilingue (API sur `API_URL`)                                                    |
+| `make docker-build` / `make docker-up` | Image de production, sur le port `PORT` (8080 par défaut)                                                                                                                               |
+
+En local, on ne lance que ce que le changement touche (section 30 de la spec commune) : `make qa` puis `make e2e-vite` avant un push. La suite complète (`make test-e2e`, `make test-a11y`, `make metrics`, `make test-prod`) tourne en CI à chaque push. `make e2e-vite` (`scripts/e2e-vite.sh`) garde dans `.cache/bilingue/empreinte-e2e` l'empreinte des sources de la génération du site bilingue (fichiers versionnés hors tests, docs et CI, `API_URL`) et ne la refait que si elle change ; mesuré sur `panier.e2e.js` et `bilingue.e2e.js` : 5,3 s à froid, 3,6 s à chaud. Après un changement des fixtures de l'API, `rm -rf .cache/bilingue`.
 
 ## Architecture
 

@@ -20,6 +20,10 @@ const OBSERVABILITY_ENV = {
 export const BILINGUAL_PORT = 3134
 export const BILINGUAL_ROOT = '.cache/bilingue'
 export const API_URL = process.env.API_URL || 'http://localhost:8090'
+// Génération du site bilingue (API_SCENARIO=bilingual). `make e2e-vite` la lance lui-même, seulement si ses
+// sources ont changé depuis la précédente (scripts/e2e-vite.sh), et la passe ici (E2E_SANS_GENERATION=1).
+export const BILINGUAL_GENERATION = `rm -rf ${BILINGUAL_ROOT} && mkdir -p ${BILINGUAL_ROOT} && cp -R site ${BILINGUAL_ROOT}/site && sh scripts/generate.sh ${BILINGUAL_ROOT}/site ${API_URL} ${BILINGUAL_ROOT}/identity-style.conf > ${BILINGUAL_ROOT}/generation.log 2>&1`
+const GENERATION = process.env.E2E_SANS_GENERATION === '1' ? '' : `${BILINGUAL_GENERATION} && `
 
 export default defineConfig({
   testMatch: /.*\.(e2e|a11y)\.js/,
@@ -50,7 +54,7 @@ export default defineConfig({
       env: OBSERVABILITY_ENV,
     },
     {
-      command: `rm -rf ${BILINGUAL_ROOT} && mkdir -p ${BILINGUAL_ROOT} && cp -R site ${BILINGUAL_ROOT}/site && sh scripts/generate.sh ${BILINGUAL_ROOT}/site ${API_URL} ${BILINGUAL_ROOT}/identity-style.conf > ${BILINGUAL_ROOT}/generation.log 2>&1 && node scripts/serve.js ${BILINGUAL_PORT}`,
+      command: `${GENERATION}node scripts/serve.js ${BILINGUAL_PORT}`,
       url: `http://localhost:${BILINGUAL_PORT}`,
       reuseExistingServer: !process.env.CI,
       env: { API_SCENARIO: 'bilingual', SITE_ROOT: `${BILINGUAL_ROOT}/site` },
