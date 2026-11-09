@@ -90,6 +90,21 @@ test.describe('site bilingue', () => {
     await expect(page.getByTestId('product-title')).toHaveText('Monstera deliciosa')
   })
 
+  test('une ligne du panier prend le nom et le lien de la langue de la page', async ({ page }) => {
+    await page.goto(EN_PRODUCT)
+    await page.getByTestId('add-to-cart').click()
+    await expect(page.getByTestId('add-to-cart-status')).toContainText('Swiss cheese plant')
+
+    const link = page.getByTestId('cart-line').getByRole('link')
+    await page.goto('/panier')
+    await expect(link).toHaveText('Monstera deliciosa')
+    await expect(link).toHaveAttribute('href', FR_PRODUCT)
+
+    await page.goto('/en/panier')
+    await expect(link).toHaveText('Swiss cheese plant')
+    await expect(link).toHaveAttribute('href', EN_PRODUCT)
+  })
+
   test('sans équivalent connu, le sélecteur mène à l’accueil de chaque langue', async ({
     page,
   }) => {

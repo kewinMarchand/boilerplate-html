@@ -15,6 +15,7 @@ import {
   withCategoryHrefs,
   withPagesInSitemap,
 } from '../../scripts/prerender-content.js'
+import { decodeEntities } from '../../scripts/prerender-locales.js'
 import { apiImage } from './apiImage.js'
 import { renderPage, SITE_DIR } from './renderedPages.js'
 
@@ -398,6 +399,23 @@ describe('pré-rendu d’une fiche produit', () => {
 
   it('produit un HTML valide', async () => {
     assert.deepEqual(await validate(html, 'produit/fiche.html'), [])
+  })
+
+  it('écrit pour le panier le slug et le nom dans chaque langue, rien sans traduction', () => {
+    const translations = [
+      { locale: 'fr', slug: 'anthurium-andreanum-rouge', name: 'Anthurium « rouge » & co' },
+      { locale: 'en', slug: 'red-anthurium', name: 'Red "anthurium"' },
+    ]
+    const translated = prerenderProduct(
+      PRODUCT_FICHE,
+      product,
+      'https://www.example.com/',
+      translations,
+    )
+    const value = translated.match(/\sdata-add-to-cart data-product-translations="([^"]*)"/)?.[1]
+
+    assert.deepEqual(JSON.parse(decodeEntities(value)), translations)
+    assert.ok(!html.includes('data-product-translations'))
   })
 
   it('prépare la demande de renseignement dans son gabarit, retiré par l’identité', () => {

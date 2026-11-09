@@ -386,7 +386,11 @@ const productDescription = (product, labels, locale) =>
  * Fiche d'un produit à partir du gabarit produit/fiche.html : en-tête (titre, description, canonique,
  * partage, données structurées `Product` et `BreadcrumbList`, indexation), fil d'Ariane et contenu.
  */
-export const prerenderProduct = (html, product, siteUrl) => {
+/**
+ * `translations` : slug et nom du produit dans chaque langue du site (`{ locale, slug, name }`), lus par
+ * l'ajout au panier ; aucun sur un site d'une seule langue ni sur une fiche pré-rendue à la demande.
+ */
+export const prerenderProduct = (html, product, siteUrl, translations = []) => {
   const { locale, locales } = pageLocales(html)
   const labels = labelsOf(html, 'data-product-page')
   const href = (path) => pageHref(path, html)
@@ -515,6 +519,11 @@ export const prerenderProduct = (html, product, siteUrl) => {
       (_, open) =>
         `${open}${escapeHtml(formatLabel(labels.labelInquiryName, { name: product.name }))}`,
     )
+    .replace(/(\sdata-add-to-cart)(?=\s)/, (attribute) =>
+      translations.length > 0
+        ? `${attribute} data-product-translations="${escapeHtml(JSON.stringify(translations))}"`
+        : attribute,
+    )
     .replace(
       '<div class="product-page-layout" data-product-content hidden>',
       '<div class="product-page-layout" data-product-content>',
@@ -568,13 +577,49 @@ const SITE_URL = JSON.parse(
 
 const main = async ([siteDir, apiUrl]) => {
   const { locales } = pageLocales(readFileSync(join(siteDir, 'index.html'), 'utf8'))
+  const productTranslations = await listProductTranslations(apiUrl, locales)
   for (const locale of locales) {
     await prerenderLocale(localeRoot(siteDir, locale, locales), apiUrl, {
       // Site d'une seule langue : adresses de l'API inchangées, sans `locale`
       locale: locales.length > 1 ? locale : null,
       sitemap: locale === locales[0] && join(siteDir, 'sitemap.xml'),
+      productTranslations,
     })
   }
+}
+
+/** Produits de l'API dans une langue (`null` : celle par défaut), page après page jusqu'à une page incomplète. */
+const listProducts = async (apiUrl, locale) => {
+  const products = []
+  for (let page = 1; ; page += 1) {
+    const list = await fetchJson(apiUrl, '/api/products', {
+      page,
+      itemsPerPage: PRODUCTS_PER_PAGE,
+      locale,
+    })
+    products.push(...list)
+    if (list.length < PRODUCTS_PER_PAGE) return products
+  }
+}
+
+/**
+ * Slug et nom de chaque produit dans chaque langue, par identifiant, pour le panier : une ligne ajoutée
+ * dans une langue s'affiche dans celle de la page. Site d'une seule langue : aucun appel, aucune traduction.
+ */
+const listProductTranslations = async (apiUrl, locales) => {
+  const byId = new Map()
+  if (locales.length < 2) return byId
+  try {
+    for (const locale of locales) {
+      for (const { id, slug, name } of await listProducts(apiUrl, locale)) {
+        byId.set(id, [...(byId.get(id) ?? []), { locale, slug, name }])
+      }
+    }
+  } catch (error) {
+    console.warn(`[contenu] panier sans traductions, API injoignable (${error.message})`)
+    byId.clear()
+  }
+  return byId
 }
 
 /**
@@ -611,20 +656,12 @@ const prerenderLocale = async (siteDir, apiUrl, options) => {
  * Une page par produit connu de l'API, et sa page de demande de renseignement ; sans API, les fiches
  * sont rendues dans le navigateur, et /contact?produit=… sert le formulaire de contact simple.
  */
-const prerenderProducts = async (siteDir, apiUrl, { locale, sitemap }) => {
+const prerenderProducts = async (siteDir, apiUrl, { locale, sitemap, productTranslations }) => {
   const { toProductDetail } =
     await import('/js/modules/catalog/infrastructure/http/catalogTranslation.js')
-  const slugs = []
+  let slugs
   try {
-    for (let page = 1; ; page += 1) {
-      const list = await fetchJson(apiUrl, '/api/products', {
-        page,
-        itemsPerPage: PRODUCTS_PER_PAGE,
-        locale,
-      })
-      slugs.push(...list.map((item) => item.slug))
-      if (list.length < PRODUCTS_PER_PAGE) break
-    }
+    slugs = (await listProducts(apiUrl, locale)).map((item) => item.slug)
   } catch (error) {
     console.warn(
       `[contenu] fiches produit rendues dans le navigateur, API injoignable (${error.message})`,
@@ -643,7 +680,7 @@ const prerenderProducts = async (siteDir, apiUrl, { locale, sitemap }) => {
       mkdirSync(join(siteDir, 'produit', slug), { recursive: true })
       writeFileSync(
         join(siteDir, 'produit', slug, 'index.html'),
-        prerenderProduct(template, product, SITE_URL),
+        prerenderProduct(template, product, SITE_URL, productTranslations.get(product.id)),
       )
       writeFileSync(
         join(siteDir, 'contact', 'demande', `${slug}.html`),

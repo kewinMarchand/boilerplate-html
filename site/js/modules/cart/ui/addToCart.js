@@ -18,7 +18,16 @@ document.addEventListener('product:shown', ({ detail: product }) => {
   const status = slot.querySelector('[data-add-to-cart-status]')
   button.disabled = !product.inStock
   button.addEventListener('click', () => {
-    saveCart(addItem(readCart(), { slug: product.slug, name: product.name, price: product.price }))
+    saveCart(
+      addItem(readCart(), {
+        id: String(product.id),
+        slug: product.slug,
+        name: product.name,
+        price: product.price,
+        // Slug et nom dans chaque langue, écrits par la génération sur un site à plusieurs langues
+        translations: JSON.parse(slot.dataset.productTranslations ?? '[]'),
+      }),
+    )
     const link = document.createElement('a')
     link.className = 'bui-link'
     link.href = localizePath(CART_PATH)

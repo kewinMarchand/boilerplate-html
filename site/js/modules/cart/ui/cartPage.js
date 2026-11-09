@@ -1,7 +1,7 @@
 import { formatLabel } from '/js/shared/labels.js'
 import { localizePath, pageLocale } from '/js/shared/locale.js'
 
-import { removeItem, setQuantity, totalPrice } from '../domain/cart.js'
+import { lineIn, removeItem, setQuantity, totalPrice } from '../domain/cart.js'
 import { formatPrice } from '../domain/price.js'
 import { readCart, saveCart, subscribeToCart } from '../infrastructure/cartStorage.js'
 
@@ -25,29 +25,31 @@ const focusAfterRemoval = (removedIndex) => {
   target.focus()
 }
 
+/** Ligne affichée avec le slug et le nom de la langue de la page. */
 const createLine = (line) => {
+  const { slug, name } = lineIn(line, pageLocale())
   const element = lineTemplate.content.firstElementChild.cloneNode(true)
-  element.dataset.slug = line.slug
+  element.dataset.id = line.id
   const link = element.querySelector('[data-cart-line-link]')
-  link.href = productHref(line.slug)
-  link.textContent = line.name
+  link.href = productHref(slug)
+  link.textContent = name
   element.querySelector('[data-cart-line-price]').textContent = formatLabel(labels.labelUnitPrice, {
     price: price(line.price),
   })
   const input = element.querySelector('[data-cart-line-quantity]')
-  input.id = `quantite-${line.slug}`
+  input.id = `quantite-${slug}`
   const label = element.querySelector('label')
   label.htmlFor = input.id
-  label.textContent = formatLabel(labels.labelQuantity, { name: line.name })
+  label.textContent = formatLabel(labels.labelQuantity, { name })
   input.addEventListener('input', () => {
     if (!Number.isNaN(input.valueAsNumber))
-      saveCart(setQuantity(readCart(), line.slug, input.valueAsNumber))
+      saveCart(setQuantity(readCart(), line.id, input.valueAsNumber))
   })
   const remove = element.querySelector('[data-cart-line-remove]')
-  remove.setAttribute('aria-label', formatLabel(labels.labelRemove, { name: line.name }))
+  remove.setAttribute('aria-label', formatLabel(labels.labelRemove, { name }))
   remove.addEventListener('click', () => {
     const index = [...element.parentElement.children].indexOf(element)
-    saveCart(removeItem(readCart(), line.slug))
+    saveCart(removeItem(readCart(), line.id))
     focusAfterRemoval(index)
   })
   return element
@@ -64,12 +66,12 @@ const render = () => {
     container.replaceChildren(fromTemplate('cart-summary-template'))
   }
   const list = container.querySelector('[data-cart-lines]')
-  const slugs = new Set(lines.map((line) => line.slug))
+  const ids = new Set(lines.map((line) => line.id))
   for (const element of [...list.children]) {
-    if (!slugs.has(element.dataset.slug)) element.remove()
+    if (!ids.has(element.dataset.id)) element.remove()
   }
   for (const line of lines) {
-    let element = [...list.children].find((child) => child.dataset.slug === line.slug)
+    let element = [...list.children].find((child) => child.dataset.id === line.id)
     if (!element) {
       element = createLine(line)
       list.append(element)

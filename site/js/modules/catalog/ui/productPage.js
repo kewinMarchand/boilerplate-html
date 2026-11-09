@@ -179,6 +179,7 @@ const renderProduct = (product, prerendered) => {
   document.dispatchEvent(
     new CustomEvent('product:shown', {
       detail: {
+        id: product.id,
         slug: product.slug,
         name: product.name,
         price: product.price,

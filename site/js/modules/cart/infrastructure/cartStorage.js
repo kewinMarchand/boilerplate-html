@@ -3,11 +3,17 @@ import { MAX_QUANTITY } from '../domain/cart.js'
 const STORAGE_KEY = 'panier'
 const CHANGE_EVENT = 'panier:change'
 
+const isText = (value) => typeof value === 'string' && value !== ''
+
+const isTranslation = (translation) =>
+  isText(translation?.locale) && isText(translation.slug) && isText(translation.name)
+
 const isLine = (line) =>
-  typeof line?.slug === 'string' &&
-  line.slug !== '' &&
-  typeof line.name === 'string' &&
-  line.name !== '' &&
+  (line?.id === undefined || isText(line.id)) &&
+  isText(line?.slug) &&
+  isText(line.name) &&
+  (line.translations === undefined ||
+    (Array.isArray(line.translations) && line.translations.every(isTranslation))) &&
   Number.isSafeInteger(line.price) &&
   line.price >= 0 &&
   Number.isInteger(line.quantity) &&
@@ -20,7 +26,19 @@ export const parseCart = (raw) => {
   try {
     const lines = JSON.parse(raw)
     if (!Array.isArray(lines) || !lines.every(isLine)) return []
-    return lines.map(({ slug, name, price, quantity }) => ({ slug, name, price, quantity }))
+    // Panier enregistré avant les langues : sans identifiant ni traductions, le slug identifie la ligne
+    return lines.map(({ id, slug, name, price, quantity, translations = [] }) => ({
+      id: id ?? slug,
+      slug,
+      name,
+      price,
+      quantity,
+      translations: translations.map((translation) => ({
+        locale: translation.locale,
+        slug: translation.slug,
+        name: translation.name,
+      })),
+    }))
   } catch {
     return []
   }
