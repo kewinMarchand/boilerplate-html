@@ -40,10 +40,12 @@ Point de départ pour un site en **HTML, CSS et JavaScript natifs**, sans framew
 git clone https://github.com/kewinMarchand/boilerplate-html.git
 cd boilerplate-html
 make install   # image de dev, dépendances dans son volume, copie d'Embla dans site/vendor
-make up        # http://localhost:3130
+make up        # http://localhost:4098
 ```
 
 L'URL publique est `https://www.example.com` (domaine réservé aux exemples). Elle apparaît dans les balises canoniques, Open Graph, JSON-LD, `sitemap.xml` et `robots.txt`, et dans `site.config.json`. Remplacez-la partout avant une mise en ligne. L'image de production peut aussi la remplacer à la construction, dans toutes les pages : `PUBLIC_SITE_URL=https://… make docker-build` (ce que fait la préprod).
+
+Ports : registre unique de la section 7 de la spec commune (`~/Applications/boilerplates-commun/SPEC-COMMUNE.md`). Bloc 4080-4099 : 4080 e2e principal (serveur de développement lancé par Playwright), 4082 site bilingue des tests (desktop et mobile), 4084 bilingue en maintenance (lancé par `bilingue.e2e.js`), 4086 observabilité, 4087 faux GlitchTip, 4096 image de production (`make test-prod`, `make docker-up`, `PORT`), 4098 développement (`make up`), 4099 Lighthouse CI. Les autres ports du bloc sont libres.
 
 ## Démarrer un projet à partir de ce dépôt
 
@@ -90,7 +92,7 @@ Dans les deux cas, `make qa` puis `make test-e2e` après la mise à jour.
 | Nom du projet                                       | `package.json` (`name`, `description`), titre de ce README, `LICENSE`                                                                                                                                                                                                                                                                       |
 | Nom du site, URL, navigation, éditeur, état d'audit | `site.config.json`, puis les textes qui le reprennent : `site/partials/header.html` et `footer.html` (nom du site, liens), `<head>` de chaque page (titre, canonique, Open Graph, JSON-LD), `site/sitemap.xml`, `site/robots.txt`. Les tests unitaires signalent toute page qui diverge de la configuration                                 |
 | URL publique                                        | `https://www.example.com`, à remplacer partout (`site.config.json`, `<head>` des pages, `sitemap.xml`, `robots.txt`)                                                                                                                                                                                                                        |
-| Ports                                               | développement et Playwright : 3130 (`package.json`, script `dev`, et `playwright.config.js`), site bilingue des tests : 3134 (`playwright.config.js`). Lighthouse : 3250 (`.lighthouserc.json`). Contrôle de l'image : 3140 (`scripts/test-prod.sh`). Image de production : `PORT`, 8080 par défaut (`Makefile`, `compose.yaml`)            |
+| Ports                                               | développement : 4098 (`package.json`, script `dev`, défaut de `scripts/serve.js`). Tests et outils, dans le bloc 4080-4099 (section 7 de la spec commune) : `playwright.config.js` et constantes de `tests/e2e/*.e2e.js`, `.lighthouserc.json`, `scripts/test-prod.sh`, `compose.yaml` (`PORT`)                                             |
 | Logo et favicons                                    | `site/logo-mark.svg`, `site/favicon.svg`, `site/favicon.ico`, `site/apple-touch-icon.png`, `site/icons/icon-192.png`, `site/icons/icon-512.png`, `site/manifest.webmanifest`, image de partage `site/images/og-image.jpg`                                                                                                                   |
 | Pages légales                                       | `site/mentions-legales/`, `site/donnees-personnelles/`, `site/accessibilite/` : titre et texte lus dans l'API (`GET /api/legal_pages/{slug}`), modifiés dans l'admin de l'API Platform (`/admin`, Pages légales). L'état de conformité du lien du footer reste calculé depuis `accessibility` dans `site.config.json`. `site/plan-du-site/` |
 | URL mesurées par Lighthouse                         | `.lighthouserc.json`                                                                                                                                                                                                                                                                                                                        |
@@ -154,7 +156,7 @@ Le serveur de développement lit les mêmes variables, par exemple `GLITCHTIP_DS
 
 | Commande                               | Effet                                                                                                                                                                                   |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `make up`                              | Serveur de développement sur le port 3130                                                                                                                                               |
+| `make up`                              | Serveur de développement sur le port 4098                                                                                                                                               |
 | `make qa`                              | QA rapide : html-validate, stylelint, ESLint, règles d'architecture et leur auto-test, Prettier, tests unitaires                                                                        |
 | `make icons`                           | Génère `site/icons.svg` et la liste des noms depuis `icons.json`                                                                                                                        |
 | `make icons-check`                     | Échoue si le sprite est périmé ou si le site cite une icône absente de `icons.json`                                                                                                     |
@@ -163,9 +165,9 @@ Le serveur de développement lit les mêmes variables, par exemple `GLITCHTIP_DS
 | `make test-e2e`                        | Playwright, desktop et mobile                                                                                                                                                           |
 | `make e2e-vite`                        | Playwright desktop sur les e2e modifiés depuis `origin/main`, ou `FICHIERS="tests/e2e/panier.e2e.js …"`, ou `GREP="motif"` ; site bilingue régénéré seulement si ses sources ont changé |
 | `make test-a11y`                       | axe-core, WCAG 2.1 AA, chaque page en standard, sombre et renforcé                                                                                                                      |
-| `make metrics`                         | Lighthouse CI sur le port 3250, en clair puis en sombre : échoue sous 90 en performance, sous 100 en accessibilité et SEO                                                               |
+| `make metrics`                         | Lighthouse CI sur le port 4099, en clair puis en sombre : échoue sous 90 en performance, sous 100 en accessibilité et SEO                                                               |
 | `make test-prod`                       | Construit l'image nginx et vérifie codes HTTP, en-têtes, contenus pré-rendus, mode maintenance et image bilingue (API sur `API_URL`)                                                    |
-| `make docker-build` / `make docker-up` | Image de production, sur le port `PORT` (8080 par défaut)                                                                                                                               |
+| `make docker-build` / `make docker-up` | Image de production, sur le port `PORT` (4096 par défaut)                                                                                                                               |
 
 En local, on ne lance que ce que le changement touche (section 30 de la spec commune) : `make qa` puis `make e2e-vite` avant un push. La suite complète (`make test-e2e`, `make test-a11y`, `make metrics`, `make test-prod`) tourne en CI à chaque push. `make e2e-vite` (`scripts/e2e-vite.sh`) garde dans `.cache/bilingue/empreinte-e2e` l'empreinte des sources de la génération du site bilingue (fichiers versionnés hors tests, docs et CI, `API_URL`) et ne la refait que si elle change ; mesuré sur `panier.e2e.js` et `bilingue.e2e.js` : 5,3 s à froid, 3,6 s à chaud. Après un changement des fixtures de l'API, `rm -rf .cache/bilingue`.
 
@@ -236,7 +238,7 @@ Il pose `data-js`, le mode renforcé et le thème mémorisé avant le premier re
 
 Le site est branché : `API_URL` désigne l'API (8090, API Platform, par défaut, ou 8091, Hono), par exemple `API_URL=http://localhost:8091 make up`. L'API doit autoriser l'origine du site (CORS). En e2e, les états d'erreur et de liste vide sont provoqués par l'en-tête `X-Scenario`, que Playwright ajoute aux requêtes du navigateur vers l'API (`withScenario` dans `tests/e2e/routes.js`).
 
-`API_SCENARIO` fixe `X-Scenario` pour tous les appels, à la génération comme dans le navigateur. Le site bilingue des tests en dépend : Playwright le génère depuis le scénario `bilingual` de l'API (`scripts/generate.sh` dans `.cache/bilingue/`) et le sert sur 3134 pour `tests/e2e/bilingue.e2e.js` et `tests/a11y/bilingue.a11y.js` ; `make test-prod` construit aussi l'image bilingue (`--build-arg API_SCENARIO=bilingual`). Pour la voir : `API_URL=http://localhost:8091 API_SCENARIO=bilingual make docker-build docker-up`.
+`API_SCENARIO` fixe `X-Scenario` pour tous les appels, à la génération comme dans le navigateur. Le site bilingue des tests en dépend : Playwright le génère depuis le scénario `bilingual` de l'API (`scripts/generate.sh` dans `.cache/bilingue/`) et le sert sur 4082 pour `tests/e2e/bilingue.e2e.js` et `tests/a11y/bilingue.a11y.js` ; `make test-prod` construit aussi l'image bilingue (`--build-arg API_SCENARIO=bilingual`). Pour la voir : `API_URL=http://localhost:8091 API_SCENARIO=bilingual make docker-build docker-up`.
 
 ## CSS natif utilisé
 

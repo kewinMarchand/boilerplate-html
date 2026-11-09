@@ -20,7 +20,7 @@ const ROOT = process.env.SITE_ROOT
   ? `${resolve(process.env.SITE_ROOT)}/`
   : fileURLToPath(new URL('../site/', import.meta.url))
 const HEADERS_FILE = fileURLToPath(new URL('../docker/security-headers.conf', import.meta.url))
-const PORT = Number(process.argv[2] ?? 3130)
+const PORT = Number(process.argv[2] ?? 4098)
 const MAINTENANCE = process.env.MAINTENANCE === '1'
 const ERROR_TEST_ROUTE = '/_erreur-test'
 const STYLEGUIDE_MARKER = '<!-- dev:styleguide -->'

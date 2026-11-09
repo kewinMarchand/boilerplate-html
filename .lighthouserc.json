@@ -1,22 +1,22 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "node scripts/serve.js 3250",
+      "startServerCommand": "node scripts/serve.js 4099",
       "startServerReadyPattern": "Serveur statique prêt",
       "url": [
-        "http://localhost:3250/",
-        "http://localhost:3250/catalogue",
-        "http://localhost:3250/blog",
-        "http://localhost:3250/taches",
-        "http://localhost:3250/contact",
-        "http://localhost:3250/catalogue/plantes-interieur",
-        "http://localhost:3250/catalogue/plantes-interieur/feuillages",
-        "http://localhost:3250/mentions-legales",
-        "http://localhost:3250/donnees-personnelles",
-        "http://localhost:3250/accessibilite",
-        "http://localhost:3250/plan-du-site",
-        "http://localhost:3250/blog/le-mode-accessibilite-renforcee",
-        "http://localhost:3250/produit/monstera-deliciosa"
+        "http://localhost:4099/",
+        "http://localhost:4099/catalogue",
+        "http://localhost:4099/blog",
+        "http://localhost:4099/taches",
+        "http://localhost:4099/contact",
+        "http://localhost:4099/catalogue/plantes-interieur",
+        "http://localhost:4099/catalogue/plantes-interieur/feuillages",
+        "http://localhost:4099/mentions-legales",
+        "http://localhost:4099/donnees-personnelles",
+        "http://localhost:4099/accessibilite",
+        "http://localhost:4099/plan-du-site",
+        "http://localhost:4099/blog/le-mode-accessibilite-renforcee",
+        "http://localhost:4099/produit/monstera-deliciosa"
       ],
       "numberOfRuns": 3,
       "settings": {

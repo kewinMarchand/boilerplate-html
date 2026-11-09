@@ -7,7 +7,7 @@ RUN := docker compose run --rm node
 
 include Makefile.qa.mk
 
-PORT ?= 8080
+PORT ?= 4096
 
 help: ## Affiche cette aide
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -17,7 +17,7 @@ install: ## Construit l'image de dev (Node, Chromium) et installe les dépendanc
 	docker compose build node
 	$(RUN) yarn install --frozen-lockfile
 
-up: ## Lance le serveur statique de développement en conteneur (http://localhost:3130)
+up: ## Lance le serveur statique de développement en conteneur (http://localhost:4098)
 	$(RUN) yarn dev
 
 icons: ## Génère site/icons.svg et la liste des noms depuis icons.json (noms Lucide)
@@ -26,7 +26,7 @@ icons: ## Génère site/icons.svg et la liste des noms depuis icons.json (noms L
 docker-build: ## Construit l'image nginx de production
 	docker compose build
 
-docker-up: ## Lance l'image de production (port PORT, 8080 par défaut)
+docker-up: ## Lance l'image de production (port PORT, 4096 par défaut)
 	docker compose up
 
 docker-down: ## Arrête les conteneurs

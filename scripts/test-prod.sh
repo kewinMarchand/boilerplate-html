@@ -6,7 +6,7 @@ set -eu
 # `checks <phase>` : vérifie l'image par HTTP, sur le réseau de la machine.
 
 IMAGE=boilerplate-html:test
-PORT=3140
+PORT=4096
 NAME=boilerplate-html-prod-test
 PAGES='/ /catalogue /blog /catalogue/plantes-interieur /catalogue/plantes-interieur/feuillages /taches /contact /mentions-legales /donnees-personnelles /accessibilite /plan-du-site /panier /route-inexistante'
 

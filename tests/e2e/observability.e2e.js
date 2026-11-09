@@ -8,7 +8,7 @@ import { OBSERVABILITY_PORT } from '../../playwright.config.js'
 // Second serveur de développement lancé par Playwright avec des valeurs factices : son DSN
 // pointe vers le faux GlitchTip local ci-dessous. Aucune instance réelle n'est contactée.
 const OBSERVED = `http://localhost:${OBSERVABILITY_PORT}`
-const GLITCHTIP_PORT = 3231
+const GLITCHTIP_PORT = 4087
 
 const envelopes = []
 const events = () => envelopes.filter((body) => body.includes('"type":"event"'))

@@ -54,7 +54,7 @@ const page = (route) => PAGES.find((item) => item.route === route)
 describe('GlitchTip', () => {
   it('lit l’origine d’un DSN au format Sentry', () => {
     assert.equal(glitchtipOrigin(DSN), 'https://glitchtip.example.com')
-    assert.equal(glitchtipOrigin('http://cle@localhost:3231/1'), 'http://localhost:3231')
+    assert.equal(glitchtipOrigin('http://cle@localhost:4087/1'), 'http://localhost:4087')
     assert.equal(glitchtipOrigin(''), '')
   })
 

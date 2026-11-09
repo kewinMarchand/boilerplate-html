@@ -1,12 +1,12 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const PORT = 3130
+const PORT = 4080
 const BASE_URL = `http://localhost:${PORT}`
 
 // Second serveur avec des valeurs factices pour tests/e2e/observability.e2e.js : aucun traceur réel.
-export const OBSERVABILITY_PORT = 3133
+export const OBSERVABILITY_PORT = 4086
 const OBSERVABILITY_ENV = {
-  GLITCHTIP_DSN: 'http://cle@localhost:3231/1',
+  GLITCHTIP_DSN: 'http://cle@localhost:4087/1',
   GLITCHTIP_ENVIRONMENT: 'test',
   MATOMO_URL: 'http://matomo.test/',
   MATOMO_SITE_ID: '1',
@@ -15,9 +15,8 @@ const OBSERVABILITY_ENV = {
 // Site bilingue des tests (section 29 bis de la spec commune) : généré depuis le scénario bilingue de l'API
 // (X-Scenario: bilingual à chaque appel, génération comprise) par le script de l'image, puis servi pour
 // tests/e2e/bilingue.e2e.js et tests/a11y/bilingue.a11y.js. Le navigateur appelle l'API : le port doit
-// figurer dans les origines autorisées (CORS) de l'API Platform et de Hono, d'où 3134, propre à ce dépôt
-// (3151 est celui de boilerplate-next).
-export const BILINGUAL_PORT = 3134
+// figurer dans les origines autorisées (CORS) de l'API Platform et de Hono : ports du bloc du dépôt, section 7 de la spec commune.
+export const BILINGUAL_PORT = 4082
 export const BILINGUAL_ROOT = '.cache/bilingue'
 export const API_URL = process.env.API_URL || 'http://localhost:8090'
 // Génération du site bilingue (API_SCENARIO=bilingual). `make e2e-vite` la lance lui-même, seulement si ses

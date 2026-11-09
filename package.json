@@ -6,7 +6,7 @@
   "description": "Boilerplate HTML, CSS et JavaScript natifs, sans framework ni build, avec validation, tests e2e, accessibilité et Lighthouse",
   "scripts": {
     "postinstall": "node scripts/vendor.js",
-    "dev": "node scripts/serve.js 3130",
+    "dev": "node scripts/serve.js 4098",
     "lint": "yarn lint:html && yarn lint:css && yarn lint:js && yarn lint:arch",
     "lint:html": "node scripts/render-pages.js .cache/rendered && html-validate \".cache/rendered/**/*.html\"",
     "lint:css": "stylelint \"site/**/*.css\"",

@@ -8,7 +8,7 @@ services:
         API_SCENARIO: ${API_SCENARIO:-}
         SITE_URL: ${PUBLIC_SITE_URL:-}
     ports:
-      - '${PORT:-8080}:80'
+      - '${PORT:-4096}:80'
     environment:
       MAINTENANCE: ${MAINTENANCE:-0}
       GLITCHTIP_DSN: ${GLITCHTIP_DSN:-}
