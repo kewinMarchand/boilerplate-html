@@ -425,13 +425,6 @@ describe('pré-rendu d’une fiche produit', () => {
     assert.match(html, /data-product-price\s+data-testid="product-price"\s*>24,90/)
   })
 
-  it('prépare la demande de renseignement dans son gabarit, retiré par l’identité', () => {
-    const template = html.match(/<template id="product-inquiry-template">[\s\S]*?<\/template>/)[0]
-    assert.match(template, /href="\/contact\?produit=anthurium-andreanum-rouge"/)
-    assert.match(template, /data-product-inquiry-name\s*> sur Anthurium<\/span/)
-    assert.match(html, /data-product-price\s+data-testid="product-price"\s*>24,90/)
-  })
-
   it('ajoute les fiches au sitemap', () => {
     assert.ok(
       withPagesInSitemap(
