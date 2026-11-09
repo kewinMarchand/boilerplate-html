@@ -12,6 +12,14 @@ const OBSERVABILITY_ENV = {
   MATOMO_SITE_ID: '1',
 }
 
+// Site bilingue des tests (section 29 bis de la spec commune) : généré depuis le scénario bilingue de l'API
+// (X-Scenario: bilingual à chaque appel, génération comprise) par le script de l'image, puis servi pour
+// tests/e2e/bilingue.e2e.js et tests/a11y/bilingue.a11y.js. Le navigateur appelle l'API : le port doit
+// figurer dans les origines autorisées (CORS) de l'API Platform et de Hono, d'où 3151.
+export const BILINGUAL_PORT = 3151
+const BILINGUAL_ROOT = '.cache/bilingue'
+const API_URL = process.env.API_URL || 'http://localhost:8090'
+
 export default defineConfig({
   testMatch: /.*\.(e2e|a11y)\.js/,
   fullyParallel: true,
@@ -39,6 +47,12 @@ export default defineConfig({
       url: `http://localhost:${OBSERVABILITY_PORT}`,
       reuseExistingServer: !process.env.CI,
       env: OBSERVABILITY_ENV,
+    },
+    {
+      command: `rm -rf ${BILINGUAL_ROOT} && mkdir -p ${BILINGUAL_ROOT} && cp -R site ${BILINGUAL_ROOT}/site && sh scripts/generate.sh ${BILINGUAL_ROOT}/site ${API_URL} ${BILINGUAL_ROOT}/identity-style.conf > ${BILINGUAL_ROOT}/generation.log 2>&1 && node scripts/serve.js ${BILINGUAL_PORT}`,
+      url: `http://localhost:${BILINGUAL_PORT}`,
+      reuseExistingServer: !process.env.CI,
+      env: { API_SCENARIO: 'bilingual', SITE_ROOT: `${BILINGUAL_ROOT}/site` },
     },
   ],
 })

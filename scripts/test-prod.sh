@@ -68,6 +68,14 @@ if [ "${1:-}" = checks ]; then
     expect_status /404.html 404
     expect_status /partials/header.html 404
     expect_status /contact/demande/monstera-deliciosa.html 404
+    # Une seule langue servie par l'API : aucun préfixe de langue, aucune alternative
+    expect_status /en 404
+    if curl --silent "http://localhost:$PORT/" | grep --quiet 'hreflang\|data-locales\|layout-languages'; then
+      echo "FAIL langues écrites dans un site d'une seule langue"
+      FAILED=1
+    else
+      echo "ok   site d'une seule langue, sans sélecteur ni hreflang"
+    fi
     expect_status '/contact?produit=produit-inconnu' 200
     expect_body / 'data-site-header'
     expect_body /contact '<a href="/contact" aria-current="page">Contact</a>'
@@ -279,6 +287,46 @@ EOF
     fi
     expect_header / "content-security-policy: .*connect-src 'self' ${API_URL:-http://localhost:8090} https://glitchtip.example.com https://matomo.example.com"
     ;;
+  bilingue)
+    # Scénario bilingue de l'API (section 29 bis de la spec commune) : français à la racine, anglais sous /en
+    for route in / /en /en/catalogue /en/contact /en/blog /en/mentions-legales /sitemap.xml; do
+      expect_status "$route" 200
+    done
+    expect_status /de 404
+    expect_status /de/catalogue 404
+    expect_status /en/partials/header.html 404
+    expect_status /en/route-inexistante 404
+    expect_no_ssi_error "bilingue"
+    node --input-type=module - "http://localhost:$PORT" "${API_URL:-http://localhost:8090}" <<'EOF' || FAILED=1
+const [site, api] = process.argv.slice(2)
+const source = await fetch(`${api}/api/products/monstera-deliciosa?locale=fr`, {
+  headers: { 'x-scenario': 'bilingual' },
+}).then((response) => response.json())
+const slug = source.alternates.find((alternate) => alternate.locale === 'en').slug
+const page = async (path) => {
+  const response = await fetch(`${site}${path}`)
+  return { status: response.status, html: await response.text() }
+}
+const home = await page('/en')
+const product = await page(`/en/produit/${slug}`)
+const french = await page('/produit/monstera-deliciosa')
+const sitemap = await page('/sitemap.xml')
+const checks = [
+  ['accueil anglais : <html lang="en">, sélecteur, scénario passé au navigateur',
+    home.html.includes('<html lang="en" data-locales="fr en"') && home.html.includes('data-testid="layout-languages"') &&
+      home.html.includes('data-api-scenario="bilingual"')],
+  [`fiche anglaise /en/produit/${slug} pré-rendue, avec ses équivalents`, product.status === 200 &&
+    product.html.includes(`<link rel="canonical" href="https://www.example.com/en/produit/${slug}" />`) &&
+    product.html.includes('hreflang="fr" href="https://www.example.com/produit/monstera-deliciosa"') &&
+    product.html.includes('hreflang="x-default"') && product.html.includes('"@type":"Product"')],
+  ['fiche française : sélecteur vers l’équivalent anglais', french.html.includes(`href="/en/produit/${slug}" lang="en"`)],
+  ['sitemap : adresses anglaises et xhtml:link', sitemap.html.includes('xmlns:xhtml=') &&
+    sitemap.html.includes(`<loc>https://www.example.com/en/produit/${slug}</loc>`)],
+]
+for (const [label, ok] of checks) console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`)
+process.exit(checks.every(([, ok]) => ok) ? 0 : 1)
+EOF
+    ;;
   maintenance)
     expect_status / 503
     expect_body / 'data-site-header'
@@ -322,6 +370,12 @@ start 0 --env 'GLITCHTIP_DSN=https://cle@glitchtip.example.com/1' \
 check traceurs
 start 1
 check maintenance
+
+# Site bilingue : même construction, depuis le scénario bilingue de l'API (en-tête X-Scenario de chaque appel)
+docker build --quiet --no-cache --network host --build-arg "API_URL=${API_URL:-http://localhost:8090}" \
+  --build-arg API_SCENARIO=bilingual --tag "$IMAGE" . > /dev/null
+start 0
+check bilingue
 
 docker rm --force "$NAME" > /dev/null
 exit "$FAILED"
