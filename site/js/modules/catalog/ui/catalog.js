@@ -153,7 +153,10 @@ const renderChips = () => {
     ...filters.map((filter) => {
       // Balisage bui-chip de boilerplates-ui, puce de filtre retirable
       const button = element('button', { type: 'button', className: 'bui-chip' }, [
-        element('span', { className: 'bui-visually-hidden', textContent: 'Retirer le filtre : ' }),
+        element('span', {
+          className: 'bui-visually-hidden',
+          textContent: `${labels.labelRemoveFilter} `,
+        }),
         filter.label,
         icon('x'),
       ])

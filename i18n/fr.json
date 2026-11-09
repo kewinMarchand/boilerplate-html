@@ -67,6 +67,7 @@
   "catalog.loading": "Chargement des produits…",
   "catalog.prerendered": "Sans JavaScript, seule la première page s'affiche, sans filtre ni tri.",
   "catalog.page": "Page",
+  "catalog.removeFilter": "Retirer le filtre :",
   "catalog.priceMin": "Prix minimum : {price} €",
   "catalog.priceMax": "Prix maximum : {price} €",
   "catalog.inStock": "En stock",
