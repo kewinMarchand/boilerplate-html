@@ -83,6 +83,10 @@ describe('pages statiques', () => {
         },
       )
 
+      it('écrit sa description sans antislash d’échappement', () => {
+        assert.doesNotMatch(attribute(html, /<meta\s+name="description"\s+content="([^"]+)"/), /\\/)
+      })
+
       if (PUBLIC_ROUTES.includes(route)) {
         it('porte des métadonnées SEO complètes', () => {
           const title = text(html.match(/<title>([\s\S]*?)<\/title>/)[1])

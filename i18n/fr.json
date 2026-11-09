@@ -230,7 +230,7 @@
   "errors.backHome": "Retour à l'accueil",
   "errors.siteMap": "Consulter le plan du site",
   "errors.method": "Envoi impossible sans JavaScript",
-  "errors.methodDescription": "Ce site n\\'a pas de serveur pour traiter un formulaire envoyé sans JavaScript. Écrivez-nous par e-mail ou activez JavaScript.",
+  "errors.methodDescription": "Ce site n'a pas de serveur pour traiter un formulaire envoyé sans JavaScript. Écrivez-nous par e-mail ou activez JavaScript.",
   "errors.methodLead": "Votre message n'a pas été envoyé. Ce site est statique : il n'a pas de serveur pour traiter un formulaire, l'envoi passe par JavaScript.",
   "errors.methodEmail": "Écrivez-nous directement à",
   "errors.methodJavaScript": "ou activez JavaScript puis",
