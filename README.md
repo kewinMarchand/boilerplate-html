@@ -90,7 +90,7 @@ Dans les deux cas, `make qa` puis `make test-e2e` après la mise à jour.
 | Nom du projet                                       | `package.json` (`name`, `description`), titre de ce README, `LICENSE`                                                                                                                                                                                                                                                                       |
 | Nom du site, URL, navigation, éditeur, état d'audit | `site.config.json`, puis les textes qui le reprennent : `site/partials/header.html` et `footer.html` (nom du site, liens), `<head>` de chaque page (titre, canonique, Open Graph, JSON-LD), `site/sitemap.xml`, `site/robots.txt`. Les tests unitaires signalent toute page qui diverge de la configuration                                 |
 | URL publique                                        | `https://www.example.com`, à remplacer partout (`site.config.json`, `<head>` des pages, `sitemap.xml`, `robots.txt`)                                                                                                                                                                                                                        |
-| Ports                                               | développement et Playwright : 3130 (`package.json`, script `dev`, et `playwright.config.js`). Lighthouse : 3250 (`.lighthouserc.json`). Contrôle de l'image : 3140 (`scripts/test-prod.sh`). Image de production : `PORT`, 8080 par défaut (`Makefile`, `compose.yaml`)                                                                     |
+| Ports                                               | développement et Playwright : 3130 (`package.json`, script `dev`, et `playwright.config.js`), site bilingue des tests : 3151 (`playwright.config.js`). Lighthouse : 3250 (`.lighthouserc.json`). Contrôle de l'image : 3140 (`scripts/test-prod.sh`). Image de production : `PORT`, 8080 par défaut (`Makefile`, `compose.yaml`)            |
 | Logo et favicons                                    | `site/logo-mark.svg`, `site/favicon.svg`, `site/favicon.ico`, `site/apple-touch-icon.png`, `site/icons/icon-192.png`, `site/icons/icon-512.png`, `site/manifest.webmanifest`, image de partage `site/images/og-image.jpg`                                                                                                                   |
 | Pages légales                                       | `site/mentions-legales/`, `site/donnees-personnelles/`, `site/accessibilite/` : titre et texte lus dans l'API (`GET /api/legal_pages/{slug}`), modifiés dans l'admin de l'API Platform (`/admin`, Pages légales). L'état de conformité du lien du footer reste calculé depuis `accessibility` dans `site.config.json`. `site/plan-du-site/` |
 | URL mesurées par Lighthouse                         | `.lighthouserc.json`                                                                                                                                                                                                                                                                                                                        |
@@ -137,13 +137,14 @@ Les styles du catalogue et des tâches restent dans `site/css/main.css` (section
 
 ### Variables d'environnement de l'image
 
-| Variable                | Rôle                                                                             |
-| ----------------------- | -------------------------------------------------------------------------------- |
-| `MAINTENANCE`           | `1` : toutes les pages répondent 503                                             |
-| `GLITCHTIP_DSN`         | suivi des erreurs du navigateur (DSN au format Sentry). Vide : rien n'est chargé |
-| `GLITCHTIP_ENVIRONMENT` | environnement transmis à GlitchTip, `production` par défaut                      |
-| `MATOMO_URL`            | adresse de l'instance Matomo, mesure d'audience sans cookie                      |
-| `MATOMO_SITE_ID`        | identifiant du site dans Matomo. Sans les deux, rien n'est chargé                |
+| Variable                | Rôle                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| `MAINTENANCE`           | `1` : toutes les pages répondent 503                                                 |
+| `GLITCHTIP_DSN`         | suivi des erreurs du navigateur (DSN au format Sentry). Vide : rien n'est chargé     |
+| `GLITCHTIP_ENVIRONMENT` | environnement transmis à GlitchTip, `production` par défaut                          |
+| `MATOMO_URL`            | adresse de l'instance Matomo, mesure d'audience sans cookie                          |
+| `MATOMO_SITE_ID`        | identifiant du site dans Matomo. Sans les deux, rien n'est chargé                    |
+| `API_SCENARIO`          | en-tête `X-Scenario` des appels du navigateur (par défaut, celui de la construction) |
 
 Le serveur de développement lit les mêmes variables, par exemple `GLITCHTIP_DSN=… make up`.
 
@@ -151,19 +152,19 @@ Le serveur de développement lit les mêmes variables, par exemple `GLITCHTIP_DS
 
 `make help` liste toutes les commandes. Les principales :
 
-| Commande                               | Effet                                                                                                                     |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `make up`                              | Serveur de développement sur le port 3130                                                                                 |
-| `make qa`                              | QA rapide : html-validate, stylelint, ESLint, règles d'architecture et leur auto-test, Prettier, tests unitaires          |
-| `make icons`                           | Génère `site/icons.svg` et la liste des noms depuis `icons.json`                                                          |
-| `make icons-check`                     | Échoue si le sprite est périmé ou si le site cite une icône absente de `icons.json`                                       |
-| `make arch-selftest`                   | Écrit une violation de chaque règle d'architecture, exige sa détection, puis la retire                                    |
-| `make qa-full`                         | QA complète : QA rapide, e2e, accessibilité, Lighthouse, image de production                                              |
-| `make test-e2e`                        | Playwright, desktop et mobile                                                                                             |
-| `make test-a11y`                       | axe-core, WCAG 2.1 AA, chaque page en standard, sombre et renforcé                                                        |
-| `make metrics`                         | Lighthouse CI sur le port 3250, en clair puis en sombre : échoue sous 90 en performance, sous 100 en accessibilité et SEO |
-| `make test-prod`                       | Construit l'image nginx et vérifie codes HTTP, en-têtes, contenus pré-rendus et mode maintenance (API sur `API_URL`)      |
-| `make docker-build` / `make docker-up` | Image de production, sur le port `PORT` (8080 par défaut)                                                                 |
+| Commande                               | Effet                                                                                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `make up`                              | Serveur de développement sur le port 3130                                                                                            |
+| `make qa`                              | QA rapide : html-validate, stylelint, ESLint, règles d'architecture et leur auto-test, Prettier, tests unitaires                     |
+| `make icons`                           | Génère `site/icons.svg` et la liste des noms depuis `icons.json`                                                                     |
+| `make icons-check`                     | Échoue si le sprite est périmé ou si le site cite une icône absente de `icons.json`                                                  |
+| `make arch-selftest`                   | Écrit une violation de chaque règle d'architecture, exige sa détection, puis la retire                                               |
+| `make qa-full`                         | QA complète : QA rapide, e2e, accessibilité, Lighthouse, image de production                                                         |
+| `make test-e2e`                        | Playwright, desktop et mobile                                                                                                        |
+| `make test-a11y`                       | axe-core, WCAG 2.1 AA, chaque page en standard, sombre et renforcé                                                                   |
+| `make metrics`                         | Lighthouse CI sur le port 3250, en clair puis en sombre : échoue sous 90 en performance, sous 100 en accessibilité et SEO            |
+| `make test-prod`                       | Construit l'image nginx et vérifie codes HTTP, en-têtes, contenus pré-rendus, mode maintenance et image bilingue (API sur `API_URL`) |
+| `make docker-build` / `make docker-up` | Image de production, sur le port `PORT` (8080 par défaut)                                                                            |
 
 ## Architecture
 
@@ -200,6 +201,7 @@ L'architecture suit le document commun `ARCHITECTURE-DDD.md` (forme vanilla). Ch
 - **Header et footer sont inclus par nginx** (`<!--# include virtual="/partials/header.html" -->`), sans générateur ni build. Chaque page nomme d'abord sa place (`<!--# set var="page" value="contact" -->`), ce qui choisit le lien marqué `aria-current`. Le serveur de développement résout les mêmes directives. Un hébergement purement statique, sans SSI, afficherait les pages sans header ni footer (décision et alternatives : `doc/adr/0001-inclusions-serveur-nginx-ssi.md`). Le `<head>` SEO et le fil d'Ariane restent écrits dans chaque page. Pour qu'ils ne dérivent pas, `tests/unit/pages.test.js` vérifie sur le rendu de toutes les pages : navigation et liens légaux identiques à `site.config.json`, fil d'Ariane et JSON-LD conformes au calcul de `lib/breadcrumb.js`, titre et description dans les bonnes longueurs, canonique, hash du script inline présent dans la CSP, sitemap et plan du site complets.
 - **Les données sont lues dans l'API par le navigateur** : produits, facettes, tâches, articles, diapositives du carrousel et texte des pages légales (administrés dans l'admin de l'API Platform ; le HTML des sections, produit par l'API depuis le Markdown, y échappe le HTML saisi et en retire les liens dangereux, il est injecté tel quel). Les pages de catégories restent statiques (une par chemin), seule leur liste vient de l'API. Sans JavaScript, chaque zone de données affiche un message, et le formulaire `GET` du catalogue place les filtres dans l'URL sans les appliquer : limite assumée d'un site sans serveur applicatif.
 - **Le catalogue est pré-rendu dans l'image de production** (`scripts/prerender-catalog.js`, `doc/adr/0002-catalogue-pre-rendu-a-la-construction.md`) : chaque page de catégorie sert sa première page de produits et leur JSON-LD, lisibles sans JavaScript, puis le navigateur les actualise. Le carrousel de l'accueil et les pages légales le sont de la même façon (`scripts/prerender-content.js`) : sans JavaScript, la piste du carrousel défile au scroll-snap et le texte légal se lit. La construction lit l'API sur `API_URL` (`API_URL=http://localhost:8091 make docker-build`) ; sans API, les pages restent rendues dans le navigateur. Les données écrites sont celles du moment de la construction, et le serveur de développement ne pré-rend rien.
+- **Une génération par langue** (`scripts/prerender-locales.js`, `doc/adr/0004-une-generation-par-langue.md`) : quand l'API sert plusieurs langues (`locales` de l'identité du site), l'image écrit une copie de chaque page sous `/<langue>/` (la langue par défaut reste à la racine), traduite depuis les sources françaises par `i18n/fr.json` et `i18n/<langue>.json`, avec liens préfixés, slugs des catégories et des fiches de l'API, `hreflang`, `og:locale`, sitemap avec `xhtml:link` et sélecteur de langue dans le header. À une seule langue, rien ne change. Un préfixe de langue non activée répond 404, et aucune redirection ne suit la langue du navigateur. `make up` sert le français seul.
 - **Le formulaire de contact ne s'envoie qu'avec JavaScript.** Il n'y a pas de serveur pour traiter un envoi. Sans JavaScript, un message au-dessus du formulaire l'annonce et donne l'adresse e-mail, et le `POST` natif reçoit une page française en 405 (`site/405.html`, servie par nginx et par `scripts/serve.js`).
 - **Les balises `robots` et canonique des pages filtrées** sont mises à jour par le script. Un robot sans JavaScript voit la page de catégorie indexable, dont la canonique est déjà la version sans filtre.
 
@@ -219,6 +221,10 @@ L'architecture suit le document commun `ARCHITECTURE-DDD.md` (forme vanilla). Ch
 2. `make icons` régénère `site/icons.svg` et `site/js/shared/iconNames.js`.
 3. L'utiliser : `<svg class="icon" aria-hidden="true" focusable="false" width="20" height="20"><use href="/icons.svg#nom"></use></svg>`. Une icône porteuse de sens prend `role="img"` et un nom accessible au lieu d'`aria-hidden`.
 
+### Ajouter ou changer un texte
+
+Les pages sont écrites en français. Tout texte, attribut lisible (`aria-label`, `alt`, `title`, `placeholder`, métadonnées) ou libellé de script (`data-label-*` sur l'élément que le script sert, lu par `dataset`) a sa clé dans `i18n/fr.json` et sa traduction sous la même clé dans `i18n/en.json`. `make test-unit` liste les textes sans clé (`tests/unit/locales.test.js`). Un script ne contient aucun libellé : il lit `element.dataset.labelXxx`, remplace `{nom}` par `formatLabel` et accorde un nombre par `countLabel` (`site/js/shared/labels.js`), et préfixe ses liens internes par `localizePath` (`site/js/shared/locale.js`).
+
 ### Changer le script inline du `<head>`
 
 Il pose `data-js`, le mode renforcé et le thème mémorisé avant le premier rendu. La CSP l'autorise par son hash : après toute modification, `make test-unit` affiche le nouveau hash attendu, à reporter dans `docker/security-headers.conf`.
@@ -226,6 +232,8 @@ Il pose `data-js`, le mode renforcé et le thème mémorisé avant le premier re
 ### L'API
 
 Le site est branché : `API_URL` désigne l'API (8090, API Platform, par défaut, ou 8091, Hono), par exemple `API_URL=http://localhost:8091 make up`. L'API doit autoriser l'origine du site (CORS). En e2e, les états d'erreur et de liste vide sont provoqués par l'en-tête `X-Scenario`, que Playwright ajoute aux requêtes du navigateur vers l'API (`withScenario` dans `tests/e2e/routes.js`).
+
+`API_SCENARIO` fixe `X-Scenario` pour tous les appels, à la génération comme dans le navigateur. Le site bilingue des tests en dépend : Playwright le génère depuis le scénario `bilingual` de l'API (`scripts/generate.sh` dans `.cache/bilingue/`) et le sert sur 3151 pour `tests/e2e/bilingue.e2e.js` et `tests/a11y/bilingue.a11y.js` ; `make test-prod` construit aussi l'image bilingue (`--build-arg API_SCENARIO=bilingual`). Pour la voir : `API_URL=http://localhost:8091 API_SCENARIO=bilingual make docker-build docker-up`.
 
 ## CSS natif utilisé
 
@@ -259,7 +267,8 @@ Le bouton de l'en-tête pose `data-a11y-mode="enhanced"` sur `<html>`, mémoris�
 L'image `nginx:1.31-alpine` sert `site/`, sans la charte graphique ni son script (`.dockerignore`) :
 
 - URL propres par `try_files $uri $uri/index.html`, 404 personnalisée, 500/502/504 sur `50x.html`.
-- Inclusions côté serveur (`ssi on;`) pour le header et le footer, `/partials/` interne (404 en accès direct).
+- Inclusions côté serveur (`ssi on;`) pour le header et le footer, `/partials/` et `/<langue>/partials/` internes (404 en accès direct).
+- Préfixe de langue de deux lettres accepté par les règles des fiches et du contact ; une langue non générée n'a aucun fichier (404).
 - En-têtes de sécurité partagés avec le serveur de développement (`docker/security-headers.conf`), dont une CSP sans `unsafe-inline`.
 - Maintenance : `MAINTENANCE=1 make docker-up` répond 503 avec `Retry-After` sur toutes les pages, les fichiers statiques restant servis.
 - La route `/_erreur-test`, qui déclenche la 500, n'existe que dans le serveur de développement.
@@ -268,7 +277,8 @@ L'image `nginx:1.31-alpine` sert `site/`, sans la charte graphique ni son script
 
 - **Unitaires** : `tests/unit/`, fonctions pures (catalogue, tâches, formulaire, mode renforcé, thème, contraste, fil d'Ariane, conformité) et cohérence des pages statiques.
 - **End-to-end** : un fichier par page ou par brique, ciblage par `data-testid`, rendus conditionnels testés présents et absents, scénarios sans JavaScript pour le carrousel et le catalogue, absence de débordement à 375, 768 et 1280 px dans les deux modes.
-- **Accessibilité** : axe-core sur chaque route, les pages d'erreur, la charte, le catalogue filtré et le menu ouvert, en standard, sombre et renforcé. Axe ne couvre qu'une partie du RGAA : le lien du footer reste « non conforme » tant qu'aucun audit n'est renseigné dans `site.config.json`, et la déclaration se modifie dans l'admin de l'API.
+- **Langues** : `tests/unit/locales.test.js` (mêmes clés en français et en anglais, aucun texte des pages sans clé, traduction, préfixes, `hreflang`, sitemap), `tests/e2e/bilingue.e2e.js` sur le site bilingue des tests (routes préfixées, libellés et contenu en anglais, sélecteur vers l'équivalent et repli vers l'accueil, en-tête, sitemap, 404 d'un préfixe non activé, site monolingue sans sélecteur).
+- **Accessibilité** : axe-core sur chaque route, les pages d'erreur, la charte, le catalogue filtré et le menu ouvert, en standard, sombre et renforcé, et sur les pages anglaises du site bilingue. Axe ne couvre qu'une partie du RGAA : le lien du footer reste « non conforme » tant qu'aucun audit n'est renseigné dans `site.config.json`, et la déclaration se modifie dans l'admin de l'API.
 
 ## Licence
 
